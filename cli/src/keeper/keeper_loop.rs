@@ -4,7 +4,7 @@ use crate::{
     instructions::{
         crank_close_epoch_accounts, crank_distribute, crank_post_vote_cooldown,
         crank_register_vaults, crank_set_weight, crank_snapshot, crank_vote, create_epoch_state,
-        update_all_vaults_in_network,
+        migrate_tda_merkle_root_upload_authorities, update_all_vaults_in_network,
     },
     keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
@@ -71,6 +71,7 @@ pub async fn timeout_keeper(duration_ms: u64) {
 }
 
 #[allow(clippy::large_stack_frames)]
+#[allow(clippy::too_many_arguments)]
 pub async fn startup_keeper(
     handler: &CliHandler,
     loop_timeout_ms: u64,
@@ -79,6 +80,7 @@ pub async fn startup_keeper(
     all_vault_update: bool,
     emit_metrics: bool,
     metrics_only: bool,
+    run_migration: bool,
 ) -> Result<()> {
     let mut state: KeeperState = KeeperState::default();
     let mut epoch_stall = false;
@@ -148,10 +150,28 @@ pub async fn startup_keeper(
             end_of_loop = current_keeper_epoch == current_epoch;
         }
 
+        // Calls the migrate TDA Merkle Root
+        if run_migration {
+            info!(
+                "\n\nB. Migrate TDA Merkle Root Upload Authorities - {}\n",
+                current_keeper_epoch
+            );
+            let result =
+                migrate_tda_merkle_root_upload_authorities(handler, current_keeper_epoch).await;
+
+            check_and_timeout_error(
+                "Migrate TDA Merkle Root Upload Authorities".to_string(),
+                &result,
+                error_timeout_ms,
+                state.epoch,
+            )
+            .await;
+        }
+
         // Emits metrics for the NCN state
         // This includes validators info, epoch info, ticket states and more
         if emit_metrics {
-            info!("\n\nB. Emit NCN Metrics - {}\n", current_keeper_epoch);
+            info!("\n\nC. Emit NCN Metrics - {}\n", current_keeper_epoch);
             let result = emit_ncn_metrics(handler, start_of_loop).await;
 
             check_and_timeout_error(
@@ -282,7 +302,7 @@ pub async fn startup_keeper(
 
         // Emits metrics for the Epoch State
         if emit_metrics {
-            info!("\n\nC. Emit Epoch Metrics - {}\n", current_keeper_epoch);
+            info!("\n\nD. Emit Epoch Metrics - {}\n", current_keeper_epoch);
             let result = emit_epoch_metrics(handler, state.epoch).await;
 
             check_and_timeout_error(
@@ -299,7 +319,7 @@ pub async fn startup_keeper(
         // Waiting for voting to finish
         // Not enough rewards to distribute
         {
-            info!("\n\nD. Detect Stall - {}\n", current_keeper_epoch);
+            info!("\n\nE. Detect Stall - {}\n", current_keeper_epoch);
 
             let result = state.detect_stall(handler).await;
 
@@ -323,7 +343,7 @@ pub async fn startup_keeper(
 
         // Times out the keeper - this is the main loop timeout
         if end_of_loop && epoch_stall {
-            info!("\n\nE. Timeout - {}\n", current_keeper_epoch);
+            info!("\n\nF. Timeout - {}\n", current_keeper_epoch);
 
             timeout_keeper(loop_timeout_ms).await;
             emit_heartbeat(tick, metrics_only).await;

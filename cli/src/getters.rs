@@ -1318,3 +1318,53 @@ impl fmt::Display for NcnTickets {
         Ok(())
     }
 }
+
+pub async fn get_tip_distribution_accounts_to_migrate(
+    handler: &CliHandler,
+    tip_distribution_program_id: &Pubkey,
+    old_merkle_root_upload_authority: &Pubkey,
+    epoch: u64,
+) -> Result<Vec<Pubkey>> {
+    let rpc_client = handler.rpc_client();
+    let rpc_client = RpcClient::new_with_timeout(rpc_client.url(), Duration::from_secs(3600));
+
+    // Filters assume merkle root is None
+    let filters = vec![
+        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
+            8     // Discriminator
+                + 32, // Pubkey - validator_vote_account
+            old_merkle_root_upload_authority.to_bytes().to_vec(),
+        )),
+        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
+            8    // Discriminator
+                + 32 // Pubkey - validator_vote_account
+                + 32 // Pubkey - merkle_root_upload_authority
+                + 1, // Option - "None" merkle_root
+            epoch.to_le_bytes().to_vec(),
+        )),
+    ];
+
+    let tip_distribution_accounts = rpc_client
+        .get_program_accounts_with_config(
+            tip_distribution_program_id,
+            RpcProgramAccountsConfig {
+                filters: Some(filters),
+                account_config: RpcAccountInfoConfig {
+                    encoding: Some(UiAccountEncoding::Base64),
+                    data_slice: Some(UiDataSliceConfig {
+                        offset: 0,
+                        length: 0,
+                    }),
+                    commitment: Some(handler.commitment),
+                    min_context_slot: None,
+                },
+                ..RpcProgramAccountsConfig::default()
+            },
+        )
+        .await?;
+
+    Ok(tip_distribution_accounts
+        .into_iter()
+        .map(|(pubkey, _)| pubkey)
+        .collect())
+}
