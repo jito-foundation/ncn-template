@@ -5,7 +5,7 @@ use ::{
     ellipsis_client::EllipsisClient,
     log::{error, info},
     meta_merkle_tree::generated_merkle_tree::{GeneratedMerkleTreeCollection, StakeMetaCollection},
-    solana_metrics::set_host_id,
+    solana_metrics::{datapoint_info, set_host_id},
     solana_rpc_client::nonblocking::rpc_client::RpcClient,
     solana_sdk::{pubkey::Pubkey, signer::keypair::read_keypair_file},
     std::{str::FromStr, sync::Arc, time::Duration},
@@ -19,6 +19,7 @@ use ::{
         process_epoch, stake_meta_file_name,
         submit::{submit_recent_epochs_to_ncn, submit_to_ncn},
         tip_router::get_ncn_config,
+        Version,
     },
     tokio::time::sleep,
 };
@@ -39,6 +40,11 @@ async fn main() -> Result<()> {
     )?;
 
     set_host_id(cli.operator_address.to_string());
+    datapoint_info!(
+        "tip_router_cli.version",
+        ("operator_address", cli.operator_address.to_string(), String),
+        ("version", Version::default().to_string(), String)
+    );
 
     // Will panic if the user did not set --save-path or the deprecated --meta-merkle-tree-dir
     let save_path = cli.get_save_path();
