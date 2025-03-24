@@ -58,6 +58,7 @@ pub async fn emit_heartbeat(
     }
 }
 
+#[allow(clippy::large_stack_frames)]
 pub async fn emit_ncn_metrics(handler: &CliHandler, start_of_loop: bool) -> Result<()> {
     emit_ncn_metrics_epoch_slot(handler).await?;
 
@@ -276,9 +277,17 @@ pub async fn emit_ncn_metrics_vault_operator_delegation(handler: &CliHandler) ->
 pub async fn emit_ncn_metrics_operators(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let all_operators = get_all_operators_in_ncn(handler).await?;
+    let ballot_box_result = get_ballot_box(handler, current_epoch).await;
 
     for operator in all_operators {
         let operator_account = get_operator(handler, &operator).await?;
+
+        // Emitting here so all operators get a trackable has_voted metric for alerts to avoid NoData issue
+        let operator_has_voted = ballot_box_result.as_ref().map_or(false, |ballot_box| {
+            ballot_box.operator_votes().iter().any(|operator_vote| {
+                operator_vote.operator() == &operator && !operator_vote.is_empty()
+            })
+        });
 
         datapoint_info!(
             "tr-beta-em-operator",
@@ -292,6 +301,7 @@ pub async fn emit_ncn_metrics_operators(handler: &CliHandler) -> Result<()> {
             ),
             ("vault-count", operator_account.vault_count(), i64),
             ("ncn-count", operator_account.ncn_count(), i64),
+            ("has-voted", operator_has_voted as i64, i64)
         );
     }
 
