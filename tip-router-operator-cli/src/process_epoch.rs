@@ -205,7 +205,6 @@ pub async fn loop_stages(
                 //  distributions. Meanwhile the NCN's Ballot is for the current_epoch. So we
                 //  use epoch + 1 here
                 let ballot_epoch = epoch_to_process.checked_add(1).unwrap();
-                let protocol_fee_bps = config.fee_config.adjusted_total_fees_bps(ballot_epoch)?;
 
                 // Generate the merkle tree collection
                 merkle_tree_collection = Some(create_merkle_tree_collection(
@@ -214,7 +213,7 @@ pub async fn loop_stages(
                     some_stake_meta_collection,
                     epoch_to_process,
                     ncn_address,
-                    protocol_fee_bps,
+                    0, // TODO: remove hardcoded protocol_fee_bps, or remove the whole merkle tree
                     &cli.get_save_path(),
                     save_stages,
                 ));

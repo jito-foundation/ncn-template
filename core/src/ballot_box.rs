@@ -18,7 +18,6 @@ use crate::{
     discriminators::Discriminators,
     error::TipRouterError,
     loaders::check_load,
-    ncn_fee_group::NcnFeeGroup,
     stake_weight::StakeWeights,
 };
 
@@ -666,14 +665,6 @@ impl fmt::Display for BallotBox {
                writeln!(f, "    Slot Voted:                 {}", vote.slot_voted())?;
                writeln!(f, "    Ballot Index:               {}", vote.ballot_index())?;
                writeln!(f, "    Stake Weights:")?;
-               let weights = vote.stake_weights();
-               for group in NcnFeeGroup::all_groups() {
-                   if let Ok(weight) = weights.ncn_fee_group_stake_weight(group) {
-                       if weight > 0 {
-                           writeln!(f, "      Group {}:                  {}", group.group, weight)?;
-                       }
-                   }
-               }
            }
        }
 
@@ -684,14 +675,6 @@ impl fmt::Display for BallotBox {
                writeln!(f, "    Ballot:                     {}", tally.ballot())?;
                writeln!(f, "    Tally:                      {}", tally.tally())?;
                writeln!(f, "    Stake Weights:")?;
-               let weights = tally.stake_weights();
-               for group in NcnFeeGroup::all_groups() {
-                   if let Ok(weight) = weights.ncn_fee_group_stake_weight(group) {
-                       if weight > 0 {
-                           writeln!(f, "      Group {}:                  {}", group.group, weight)?;
-                       }
-                   }
-               }
            }
        }
 
@@ -1208,7 +1191,7 @@ mod tests {
 
         assert_eq!(
             winning_tally.stake_weights().stake_weight(),
-            total_stake_weight as u128
+            total_stake_weight
         );
         assert_eq!(winning_tally.tally(), 3);
 
