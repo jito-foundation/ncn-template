@@ -35,12 +35,8 @@ import {
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
 import {
-  getFeesDecoder,
-  getFeesEncoder,
   getStakeWeightsDecoder,
   getStakeWeightsEncoder,
-  type Fees,
-  type FeesArgs,
   type StakeWeights,
   type StakeWeightsArgs,
 } from '../types';
@@ -52,7 +48,6 @@ export type EpochSnapshot = {
   bump: number;
   slotCreated: bigint;
   slotFinalized: bigint;
-  fees: Fees;
   operatorCount: bigint;
   vaultCount: bigint;
   operatorsRegistered: bigint;
@@ -68,7 +63,6 @@ export type EpochSnapshotArgs = {
   bump: number;
   slotCreated: number | bigint;
   slotFinalized: number | bigint;
-  fees: FeesArgs;
   operatorCount: number | bigint;
   vaultCount: number | bigint;
   operatorsRegistered: number | bigint;
@@ -85,7 +79,6 @@ export function getEpochSnapshotEncoder(): Encoder<EpochSnapshotArgs> {
     ['bump', getU8Encoder()],
     ['slotCreated', getU64Encoder()],
     ['slotFinalized', getU64Encoder()],
-    ['fees', getFeesEncoder()],
     ['operatorCount', getU64Encoder()],
     ['vaultCount', getU64Encoder()],
     ['operatorsRegistered', getU64Encoder()],
@@ -103,7 +96,6 @@ export function getEpochSnapshotDecoder(): Decoder<EpochSnapshot> {
     ['bump', getU8Decoder()],
     ['slotCreated', getU64Decoder()],
     ['slotFinalized', getU64Decoder()],
-    ['fees', getFeesDecoder()],
     ['operatorCount', getU64Decoder()],
     ['vaultCount', getU64Decoder()],
     ['operatorsRegistered', getU64Decoder()],

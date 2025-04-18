@@ -25,8 +25,6 @@ export type EpochAccountStatus = {
   epochSnapshot: number;
   operatorSnapshot: Array<number>;
   ballotBox: number;
-  baseRewardRouter: number;
-  ncnRewardRouter: Array<number>;
 };
 
 export type EpochAccountStatusArgs = EpochAccountStatus;
@@ -38,8 +36,6 @@ export function getEpochAccountStatusEncoder(): Encoder<EpochAccountStatusArgs> 
     ['epochSnapshot', getU8Encoder()],
     ['operatorSnapshot', getArrayEncoder(getU8Encoder(), { size: 256 })],
     ['ballotBox', getU8Encoder()],
-    ['baseRewardRouter', getU8Encoder()],
-    ['ncnRewardRouter', getArrayEncoder(getU8Encoder(), { size: 2048 })],
   ]);
 }
 
@@ -50,8 +46,6 @@ export function getEpochAccountStatusDecoder(): Decoder<EpochAccountStatus> {
     ['epochSnapshot', getU8Decoder()],
     ['operatorSnapshot', getArrayDecoder(getU8Decoder(), { size: 256 })],
     ['ballotBox', getU8Decoder()],
-    ['baseRewardRouter', getU8Decoder()],
-    ['ncnRewardRouter', getArrayDecoder(getU8Decoder(), { size: 2048 })],
   ]);
 }
 

@@ -34,21 +34,13 @@ import {
   type MaybeAccount,
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
-import {
-  getFeeConfigDecoder,
-  getFeeConfigEncoder,
-  type FeeConfig,
-  type FeeConfigArgs,
-} from '../types';
 
 export type Config = {
   discriminator: bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
-  feeAdmin: Address;
   validSlotsAfterConsensus: bigint;
   epochsBeforeStall: bigint;
-  feeConfig: FeeConfig;
   bump: number;
   epochsAfterConsensusBeforeClose: bigint;
   startingValidEpoch: bigint;
@@ -59,10 +51,8 @@ export type ConfigArgs = {
   discriminator: number | bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
-  feeAdmin: Address;
   validSlotsAfterConsensus: number | bigint;
   epochsBeforeStall: number | bigint;
-  feeConfig: FeeConfigArgs;
   bump: number;
   epochsAfterConsensusBeforeClose: number | bigint;
   startingValidEpoch: number | bigint;
@@ -74,10 +64,8 @@ export function getConfigEncoder(): Encoder<ConfigArgs> {
     ['discriminator', getU64Encoder()],
     ['ncn', getAddressEncoder()],
     ['tieBreakerAdmin', getAddressEncoder()],
-    ['feeAdmin', getAddressEncoder()],
     ['validSlotsAfterConsensus', getU64Encoder()],
     ['epochsBeforeStall', getU64Encoder()],
-    ['feeConfig', getFeeConfigEncoder()],
     ['bump', getU8Encoder()],
     ['epochsAfterConsensusBeforeClose', getU64Encoder()],
     ['startingValidEpoch', getU64Encoder()],
@@ -90,10 +78,8 @@ export function getConfigDecoder(): Decoder<Config> {
     ['discriminator', getU64Decoder()],
     ['ncn', getAddressDecoder()],
     ['tieBreakerAdmin', getAddressDecoder()],
-    ['feeAdmin', getAddressDecoder()],
     ['validSlotsAfterConsensus', getU64Decoder()],
     ['epochsBeforeStall', getU64Decoder()],
-    ['feeConfig', getFeeConfigDecoder()],
     ['bump', getU8Decoder()],
     ['epochsAfterConsensusBeforeClose', getU64Decoder()],
     ['startingValidEpoch', getU64Decoder()],

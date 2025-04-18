@@ -27,9 +27,9 @@ use jito_tip_distribution_sdk::{
 };
 use jito_tip_router_client::{
     instructions::{
-        AdminRegisterStMintBuilder, AdminSetConfigFeesBuilder, AdminSetNewAdminBuilder,
-        AdminSetParametersBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder,
-        CastVoteBuilder, CloseEpochAccountBuilder, InitializeBallotBoxBuilder,
+        AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
+        AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
+        CloseEpochAccountBuilder, InitializeBallotBoxBuilder,
         InitializeConfigBuilder as InitializeTipRouterConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
@@ -415,68 +415,6 @@ pub async fn admin_fund_account_payer(handler: &CliHandler, amount: f64) -> Resu
         &[
             format!("NCN: {:?}", ncn),
             format!("Amount: {:?} SOL", amount),
-        ],
-    )
-    .await?;
-
-    Ok(())
-}
-
-pub async fn admin_set_config_fees(
-    handler: &CliHandler,
-    new_block_engine_fee_bps: Option<u16>,
-    base_fee_group: Option<u8>,
-    new_base_fee_wallet: Option<String>,
-    new_base_fee_bps: Option<u16>,
-    ncn_fee_group: Option<u8>,
-    new_ncn_fee_bps: Option<u16>,
-) -> Result<()> {
-    let keypair = handler.keypair()?;
-    let ncn = *handler.ncn()?;
-
-    let config_pda = TipRouterConfig::find_program_address(&handler.tip_router_program_id, &ncn).0;
-
-    let mut ix = AdminSetConfigFeesBuilder::new();
-    ix.config(config_pda).ncn(ncn).ncn_admin(keypair.pubkey());
-
-    if let Some(fee) = new_block_engine_fee_bps {
-        ix.new_block_engine_fee_bps(fee);
-    }
-
-    if let Some(group) = base_fee_group {
-        ix.base_fee_group(group);
-    }
-
-    if let Some(wallet) = &new_base_fee_wallet {
-        let wallet = Pubkey::from_str(wallet).map_err(|_| anyhow!("Invalid wallet address"))?;
-        ix.new_base_fee_wallet(wallet);
-    }
-
-    if let Some(fee) = new_base_fee_bps {
-        ix.new_base_fee_bps(fee);
-    }
-
-    if let Some(group) = ncn_fee_group {
-        ix.ncn_fee_group(group);
-    }
-
-    if let Some(fee) = new_ncn_fee_bps {
-        ix.new_ncn_fee_bps(fee);
-    }
-
-    send_and_log_transaction(
-        handler,
-        &[ix.instruction()],
-        &[],
-        "Set Config Fees",
-        &[
-            format!("NCN: {:?}", ncn),
-            format!("New Block Engine Fee BPS: {:?}", new_block_engine_fee_bps),
-            format!("Base Fee Group: {:?}", base_fee_group),
-            format!("New Base Fee Wallet: {:?}", new_base_fee_wallet),
-            format!("New Base Fee BPS: {:?}", new_base_fee_bps),
-            format!("NCN Fee Group: {:?}", ncn_fee_group),
-            format!("New NCN Fee BPS: {:?}", new_ncn_fee_bps),
         ],
     )
     .await?;

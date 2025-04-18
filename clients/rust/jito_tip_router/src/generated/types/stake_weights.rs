@@ -5,7 +5,6 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
-use crate::generated::types::NcnFeeGroupWeight;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -13,5 +12,4 @@ use borsh::BorshSerialize;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StakeWeights {
     pub stake_weight: u128,
-    pub ncn_fee_group_stake_weights: [NcnFeeGroupWeight; 8],
 }

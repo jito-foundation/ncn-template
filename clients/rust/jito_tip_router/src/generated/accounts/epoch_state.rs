@@ -35,10 +35,6 @@ pub struct EpochState {
     pub voting_progress: Progress,
     pub validation_progress: Progress,
     pub upload_progress: Progress,
-    pub total_distribution_progress: Progress,
-    pub base_distribution_progress: Progress,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub ncn_distribution_progress: [Progress; 2048],
     pub is_closing: bool,
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub reserved: [u8; 1023],

@@ -7,8 +7,8 @@ use jito_tip_router_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
-        ClaimWithPayerBuilder, CloseEpochAccountBuilder, InitializeBallotBoxBuilder,
-        InitializeConfigBuilder, InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
+        CloseEpochAccountBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
+        InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocEpochStateBuilder,
         ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
@@ -234,19 +234,8 @@ impl TipRouterClient {
         self.airdrop(&account_payer, 100.0).await?;
 
         let ncn_admin_pubkey = ncn_admin.pubkey();
-        self.initialize_config(
-            ncn,
-            ncn_admin,
-            &ncn_admin_pubkey,
-            &ncn_admin_pubkey,
-            100,
-            100,
-            100,
-            3,
-            10,
-            10000,
-        )
-        .await
+        self.initialize_config(ncn, ncn_admin, &ncn_admin_pubkey, 3, 10, 10000)
+            .await
     }
 
     pub async fn initialize_config(
@@ -254,10 +243,6 @@ impl TipRouterClient {
         ncn: Pubkey,
         ncn_admin: &Keypair,
         tie_breaker_admin: &Pubkey,
-        fee_wallet: &Pubkey,
-        block_engine_fee_bps: u16,
-        dao_fee_bps: u16,
-        default_ncn_fee_bps: u16,
         epochs_before_stall: u64,
         epochs_after_consensus_before_close: u64,
         valid_slots_after_consensus: u64,
@@ -272,11 +257,7 @@ impl TipRouterClient {
             .ncn(ncn)
             .ncn_admin(ncn_admin.pubkey())
             .account_payer(account_payer)
-            .fee_wallet(*fee_wallet)
             .tie_breaker_admin(*tie_breaker_admin)
-            .dao_fee_bps(dao_fee_bps)
-            .default_ncn_fee_bps(default_ncn_fee_bps)
-            .block_engine_fee_bps(block_engine_fee_bps)
             .epochs_before_stall(epochs_before_stall)
             .epochs_after_consensus_before_close(epochs_after_consensus_before_close)
             .valid_slots_after_consensus(valid_slots_after_consensus)
@@ -1510,86 +1491,6 @@ impl TipRouterClient {
             blockhash,
         ))
         .await
-    }
-
-    pub async fn do_claim_with_payer(
-        &mut self,
-        ncn: Pubkey,
-        claimant: Pubkey,
-        tip_distribution_account: Pubkey,
-        proof: Vec<[u8; 32]>,
-        amount: u64,
-    ) -> TestResult<()> {
-        let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
-
-        let (config, _, _) = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn);
-
-        let tip_distribution_program = jito_tip_distribution::ID;
-        let tip_distribution_config =
-            jito_tip_distribution_sdk::derive_config_account_address(&tip_distribution_program).0;
-
-        let (claim_status, claim_status_bump) =
-            jito_tip_distribution_sdk::derive_claim_status_account_address(
-                &tip_distribution_program,
-                &claimant,
-                &tip_distribution_account,
-            );
-
-        self.claim_with_payer(
-            ncn,
-            config,
-            account_payer,
-            tip_distribution_config,
-            tip_distribution_account,
-            tip_distribution_program,
-            claim_status,
-            claimant,
-            proof,
-            amount,
-            claim_status_bump,
-        )
-        .await
-    }
-
-    pub async fn claim_with_payer(
-        &mut self,
-        ncn: Pubkey,
-        config: Pubkey,
-        account_payer: Pubkey,
-        tip_distribution_config: Pubkey,
-        tip_distribution_account: Pubkey,
-        tip_distribution_program: Pubkey,
-        claim_status: Pubkey,
-        claimant: Pubkey,
-        proof: Vec<[u8; 32]>,
-        amount: u64,
-        bump: u8,
-    ) -> TestResult<()> {
-        let ix = ClaimWithPayerBuilder::new()
-            .account_payer(account_payer)
-            .ncn(ncn)
-            .config(config)
-            .tip_distribution_config(tip_distribution_config)
-            .tip_distribution_account(tip_distribution_account)
-            .tip_distribution_program(tip_distribution_program)
-            .claim_status(claim_status)
-            .claimant(claimant)
-            .system_program(system_program::id())
-            .proof(proof)
-            .amount(amount)
-            .bump(bump)
-            .instruction();
-
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&self.payer.pubkey()),
-            &[&self.payer],
-            blockhash,
-        );
-
-        self.process_transaction(&tx).await
     }
 
     pub async fn do_close_epoch_account(
