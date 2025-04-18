@@ -10,7 +10,6 @@ use ::{
     std::{str::FromStr, sync::Arc, time::Duration},
     tip_router_operator_cli::{
         backup_snapshots::BackupSnapshotMonitor,
-        claim::{claim_mev_tips_with_emit, emit_claim_mev_tips_metrics},
         cli::{Cli, Commands, SnapshotPaths},
         create_merkle_tree_collection, create_meta_merkle_tree, create_stake_meta,
         ledger_utils::get_bank_from_snapshot_at_slot,
@@ -83,9 +82,6 @@ async fn main() -> Result<()> {
             starting_stage,
             save_stages,
             set_merkle_roots,
-            claim_tips,
-            claim_tips_metrics,
-            claim_tips_epoch_lookback,
         } => {
             assert!(
                 num_monitored_epochs > 0,
@@ -110,7 +106,6 @@ async fn main() -> Result<()> {
             let full_snapshots_path = cli.full_snapshots_path.clone().unwrap();
             let backup_snapshots_dir = cli.backup_snapshots_dir.clone();
             let rpc_url = cli.rpc_url.clone();
-            let claim_tips_epoch_filepath = cli.claim_tips_epoch_filepath.clone();
             let cli_clone: Cli = cli.clone();
 
             if !backup_snapshots_dir.exists() {
@@ -164,154 +159,6 @@ async fn main() -> Result<()> {
                 }
             });
 
-            // Claim tips and emit metrics
-            let file_mutex = Arc::new(Mutex::new(()));
-
-            // Run claims if enabled
-            if claim_tips_metrics {
-                let cli_clone = cli.clone();
-                let rpc_client_clone = rpc_client.clone();
-                let file_path_ref = claim_tips_epoch_filepath.clone();
-                let file_mutex_ref = file_mutex.clone();
-
-                tokio::spawn(async move {
-                    loop {
-                        // Get current epoch
-                        let current_epoch = match rpc_client_clone.get_epoch_info().await {
-                            Ok(epoch_info) => epoch_info.epoch,
-                            Err(_) => {
-                                // If we can't get the epoch, wait and retry
-                                sleep(Duration::from_secs(60)).await;
-                                continue;
-                            }
-                        };
-                        for epoch_offset in 0..claim_tips_epoch_lookback {
-                            let epoch_to_emit = current_epoch
-                                .checked_sub(epoch_offset)
-                                .expect("Epoch underflow")
-                                .checked_sub(1)
-                                .expect("Epoch overflow");
-
-                            info!("Emitting Claim Metrics for epoch {}", epoch_to_emit);
-                            let cli_ref = cli_clone.clone();
-                            match emit_claim_mev_tips_metrics(
-                                &cli_ref,
-                                epoch_to_emit,
-                                tip_distribution_program_id,
-                                tip_router_program_id,
-                                ncn_address,
-                                &file_path_ref,
-                                &file_mutex_ref,
-                            )
-                            .await
-                            {
-                                Ok(_) => {
-                                    info!(
-                                        "Successfully emitted claim metrics for epoch {}",
-                                        epoch_to_emit
-                                    );
-                                }
-                                Err(e) => {
-                                    error!(
-                                        "Error emitting claim metrics for epoch {}: {}",
-                                        epoch_to_emit, e
-                                    );
-                                }
-                            }
-                        }
-
-                        info!("Sleeping for 30 minutes before next emit claim cycle");
-                        sleep(Duration::from_secs(1800)).await;
-                    }
-                });
-            }
-
-            if claim_tips {
-                let cli_clone = cli.clone();
-                let rpc_client_clone = rpc_client.clone();
-
-                tokio::spawn(async move {
-                    loop {
-                        // Get current epoch
-                        let current_epoch = match rpc_client_clone.get_epoch_info().await {
-                            Ok(epoch_info) => epoch_info.epoch,
-                            Err(_) => {
-                                // If we can't get the epoch, wait and retry
-                                sleep(Duration::from_secs(60)).await;
-                                continue;
-                            }
-                        };
-
-                        // Create a vector to hold all our handles
-                        let mut join_handles = Vec::new();
-
-                        // Process current epoch and the previous two epochs
-                        for epoch_offset in 0..claim_tips_epoch_lookback {
-                            let epoch_to_process = current_epoch
-                                .checked_sub(epoch_offset)
-                                .expect("Epoch underflow")
-                                .checked_sub(1)
-                                .expect("Epoch overflow");
-                            let cli_ref = cli_clone.clone();
-                            let file_path_ref = claim_tips_epoch_filepath.clone();
-                            let file_mutex_ref = file_mutex.clone();
-
-                            // Create a task for each epoch and add its handle to our vector
-                            let handle = tokio::spawn(async move {
-                                info!("Processing claims for epoch {}", epoch_to_process);
-                                let result = claim_mev_tips_with_emit(
-                                    &cli_ref,
-                                    epoch_to_process,
-                                    tip_distribution_program_id,
-                                    tip_router_program_id,
-                                    ncn_address,
-                                    Duration::from_secs(3600),
-                                    &file_path_ref,
-                                    &file_mutex_ref,
-                                )
-                                .await;
-
-                                match result {
-                                    Err(e) => {
-                                        error!(
-                                            "Error claiming tips for epoch {}: {}",
-                                            epoch_to_process, e
-                                        );
-                                    }
-                                    Ok(_) => {
-                                        info!(
-                                            "Successfully processed claims for epoch {}",
-                                            epoch_to_process
-                                        );
-                                    }
-                                }
-
-                                epoch_to_process
-                            });
-
-                            join_handles.push(handle);
-                        }
-
-                        // Wait for all tasks to complete
-                        let mut completed_epochs = Vec::new();
-                        for handle in join_handles {
-                            if let Ok(epoch) = handle.await {
-                                completed_epochs.push(epoch);
-                            }
-                        }
-
-                        info!(
-                            "Completed processing claims for epochs: {:?}",
-                            completed_epochs
-                        );
-
-                        // Sleep before the next iteration
-                        info!("Sleeping for 30 minutes before next claim cycle");
-                        sleep(Duration::from_secs(1800)).await;
-                    }
-                });
-            }
-
             // Endless loop that transitions between stages of the operator process.
             process_epoch::loop_stages(
                 rpc_client,
@@ -358,27 +205,6 @@ async fn main() -> Result<()> {
                 &tip_distribution_program_id,
                 cli.submit_as_memo,
                 set_merkle_roots,
-            )
-            .await?;
-        }
-        Commands::ClaimTips {
-            tip_router_program_id,
-            tip_distribution_program_id,
-            ncn_address,
-            epoch,
-        } => {
-            info!("Claiming tips...");
-            let claim_tips_epoch_filepath = cli.claim_tips_epoch_filepath.clone();
-            let file_mutex = Arc::new(Mutex::new(()));
-            claim_mev_tips_with_emit(
-                &cli,
-                epoch,
-                tip_distribution_program_id,
-                tip_router_program_id,
-                ncn_address,
-                Duration::from_secs(3600),
-                &claim_tips_epoch_filepath,
-                &file_mutex,
             )
             .await?;
         }
