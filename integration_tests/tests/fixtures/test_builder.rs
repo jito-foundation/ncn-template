@@ -6,15 +6,10 @@ use std::{
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use jito_tip_distribution_sdk::jito_tip_distribution;
 use jito_tip_router_core::{
-    account_payer::AccountPayer,
     ballot_box::BallotBox,
-    base_fee_group::BaseFeeGroup,
-    base_reward_router::{BaseRewardReceiver, BaseRewardRouter},
     constants::{JITOSOL_MINT, JTO_SOL_FEED},
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
-    ncn_fee_group::NcnFeeGroup,
-    ncn_reward_router::{NcnRewardReceiver, NcnRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -27,17 +22,14 @@ use solana_sdk::{
     clock::DEFAULT_SLOTS_PER_EPOCH,
     commitment_config::CommitmentLevel,
     epoch_schedule::EpochSchedule,
-    native_token::lamports_to_sol,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
 use spl_stake_pool::find_withdraw_authority_program_address;
 
 use super::{
-    generated_switchboard_accounts::get_switchboard_accounts,
-    restaking_client::NcnRoot,
-    stake_pool_client::{PoolRoot, StakePoolClient},
-    tip_distribution_client::TipDistributionClient,
+    generated_switchboard_accounts::get_switchboard_accounts, restaking_client::NcnRoot,
+    stake_pool_client::StakePoolClient, tip_distribution_client::TipDistributionClient,
     tip_router_client::TipRouterClient,
 };
 use crate::fixtures::{
@@ -314,18 +306,6 @@ impl TestBuilder {
 
         tip_router_client.setup_tip_router(&ncn_root).await?;
 
-        tip_router_client
-            .do_set_config_fees(
-                Some(300),
-                None,
-                Some(self.context.payer.pubkey()),
-                Some(270),
-                None,
-                Some(15),
-                &ncn_root,
-            )
-            .await?;
-
         Ok(TestNcn {
             ncn_root: ncn_root.clone(),
             operators: vec![],
@@ -345,18 +325,6 @@ impl TestBuilder {
 
         tip_router_client.setup_tip_router(&ncn_root).await?;
 
-        tip_router_client
-            .do_set_config_fees(
-                Some(300),
-                None,
-                Some(self.context.payer.pubkey()),
-                Some(270),
-                None,
-                Some(15),
-                &ncn_root,
-            )
-            .await?;
-
         Ok(TestNcn {
             ncn_root: ncn_root.clone(),
             operators: vec![],
@@ -365,11 +333,7 @@ impl TestBuilder {
     }
 
     // 1a.
-    pub async fn create_custom_test_ncn(
-        &mut self,
-        base_fee_bps: u16,
-        ncn_fee_bps: u16,
-    ) -> TestResult<TestNcn> {
+    pub async fn create_custom_test_ncn(&mut self) -> TestResult<TestNcn> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
         let mut tip_router_client = self.tip_router_client();
@@ -381,18 +345,6 @@ impl TestBuilder {
             .await?;
 
         tip_router_client.setup_tip_router(&ncn_root).await?;
-
-        tip_router_client
-            .do_set_config_fees(
-                Some(300),
-                None,
-                Some(self.context.payer.pubkey()),
-                Some(base_fee_bps),
-                None,
-                Some(ncn_fee_bps),
-                &ncn_root,
-            )
-            .await?;
 
         Ok(TestNcn {
             ncn_root: ncn_root.clone(),
@@ -585,14 +537,7 @@ impl TestBuilder {
                 NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
 
             tip_router_client
-                .do_admin_register_st_mint(
-                    ncn,
-                    st_mint,
-                    NcnFeeGroup::lst(),
-                    10_000,
-                    Some(JTO_SOL_FEED),
-                    None,
-                )
+                .do_admin_register_st_mint(ncn, st_mint, 10_000, Some(JTO_SOL_FEED), None)
                 .await?;
 
             tip_router_client
@@ -626,12 +571,8 @@ impl TestBuilder {
         operator_count: usize,
         vault_count: usize,
         operator_fees_bps: u16,
-        base_fee_bps: u16,
-        ncn_fee_bps: u16,
     ) -> TestResult<TestNcn> {
-        let mut test_ncn = self
-            .create_custom_test_ncn(base_fee_bps, ncn_fee_bps)
-            .await?;
+        let mut test_ncn = self.create_custom_test_ncn().await?;
         self.add_operators_to_test_ncn(&mut test_ncn, operator_count, Some(operator_fees_bps))
             .await?;
         self.add_vaults_to_test_ncn(&mut test_ncn, vault_count, None)
@@ -882,16 +823,6 @@ impl TestBuilder {
         let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
 
         let config_account = tip_router_client.get_ncn_config(ncn).await?;
-
-        let lamports_per_signature: u64 = if dao_wallet.eq(&self.context.payer.pubkey()) {
-            5000
-        } else {
-            0
-        };
-
-        let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
-        let rent = self.context.banks_client.get_rent().await?;
 
         // Wait until we can close the accounts
         {

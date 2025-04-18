@@ -2,9 +2,7 @@
 mod tests {
 
     use jito_restaking_core::MAX_FEE_BPS;
-    use jito_tip_router_core::{
-        constants::JITOSOL_MINT, error::TipRouterError, ncn_fee_group::NcnFeeGroup,
-    };
+    use jito_tip_router_core::{constants::JITOSOL_MINT, error::TipRouterError};
 
     use crate::fixtures::{
         test_builder::TestBuilder, tip_router_client::assert_tip_router_error, TestResult,
@@ -14,9 +12,6 @@ mod tests {
     async fn test_removing_operator() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
         let mut restaking_client = fixture.restaking_program_client();
-        let mut tip_router_client = fixture.tip_router_client();
-        let mut stake_pool_client = fixture.stake_pool_client();
-        let pool_root = stake_pool_client.do_initialize_stake_pool().await?;
 
         const OPERATOR_COUNT: usize = 3;
         const VAULT_COUNT: usize = 1;
@@ -33,19 +28,6 @@ mod tests {
             .await?;
 
         {
-            // Set all fees to 0
-            tip_router_client
-                .do_set_config_fees(
-                    Some(0),
-                    None,
-                    None,
-                    Some(0),
-                    None,
-                    Some(1),
-                    &test_ncn.ncn_root,
-                )
-                .await?;
-
             fixture.warp_epoch_incremental(2).await?;
         }
 
@@ -55,37 +37,14 @@ mod tests {
 
             fixture.vote_test_ncn(&test_ncn).await?;
 
-            fixture
-                .reward_test_ncn(&test_ncn, AMOUNT_TO_REWARD, &pool_root)
-                .await?;
-
-            let clock = fixture.clock().await;
-            let epoch = clock.epoch;
-
-            let router = tip_router_client
-                .get_base_reward_router(test_ncn.ncn_root.ncn_pubkey, epoch)
-                .await?;
-
-            assert_eq!(router.total_rewards(), AMOUNT_TO_REWARD);
-
             for operator_root in &test_ncn.operators {
                 let operator = operator_root.operator_pubkey;
-
-                let router = tip_router_client
-                    .get_ncn_reward_router(
-                        NcnFeeGroup::default(),
-                        operator,
-                        test_ncn.ncn_root.ncn_pubkey,
-                        epoch,
-                    )
-                    .await?;
 
                 let operator_balance = fixture
                     .get_associated_token_account(&operator, &JITOSOL_MINT)
                     .await?
                     .map_or(0, |account| account.amount);
 
-                assert_eq!(router.total_rewards(), operator_balance);
                 assert_eq!(operator_balance, expected_active_operator_balance_run_1);
             }
         }
@@ -106,19 +65,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            fixture
-                .reward_test_ncn(&test_ncn, AMOUNT_TO_REWARD, &pool_root)
-                .await?;
-
-            let clock = fixture.clock().await;
-            let epoch = clock.epoch;
-
-            let router = tip_router_client
-                .get_base_reward_router(test_ncn.ncn_root.ncn_pubkey, epoch)
-                .await?;
-
-            assert_eq!(router.total_rewards(), AMOUNT_TO_REWARD);
 
             for (index, operator_root) in test_ncn.operators.iter().enumerate() {
                 let operator = operator_root.operator_pubkey;
@@ -143,9 +89,6 @@ mod tests {
     async fn test_removing_vault() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
         let mut restaking_client = fixture.restaking_program_client();
-        let mut tip_router_client = fixture.tip_router_client();
-        let mut stake_pool_client = fixture.stake_pool_client();
-        let pool_root = stake_pool_client.do_initialize_stake_pool().await?;
 
         const OPERATOR_COUNT: usize = 1;
         const VAULT_COUNT: usize = 3;
@@ -161,19 +104,6 @@ mod tests {
             .await?;
 
         {
-            // Set all fees to 0
-            tip_router_client
-                .do_set_config_fees(
-                    Some(0),
-                    None,
-                    None,
-                    Some(0),
-                    None,
-                    Some(1),
-                    &test_ncn.ncn_root,
-                )
-                .await?;
-
             fixture.warp_epoch_incremental(2).await?;
         }
 
@@ -182,19 +112,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            fixture
-                .reward_test_ncn(&test_ncn, AMOUNT_TO_REWARD, &pool_root)
-                .await?;
-
-            let clock = fixture.clock().await;
-            let epoch = clock.epoch;
-
-            let router = tip_router_client
-                .get_base_reward_router(test_ncn.ncn_root.ncn_pubkey, epoch)
-                .await?;
-
-            assert_eq!(router.total_rewards(), AMOUNT_TO_REWARD);
 
             for vault_root in &test_ncn.vaults {
                 let vault = vault_root.vault_pubkey;
@@ -224,19 +141,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            fixture
-                .reward_test_ncn(&test_ncn, AMOUNT_TO_REWARD, &pool_root)
-                .await?;
-
-            let clock = fixture.clock().await;
-            let epoch = clock.epoch;
-
-            let router = tip_router_client
-                .get_base_reward_router(test_ncn.ncn_root.ncn_pubkey, epoch)
-                .await?;
-
-            assert_eq!(router.total_rewards(), AMOUNT_TO_REWARD);
 
             for (index, vault_root) in test_ncn.vaults.iter().enumerate() {
                 let vault = vault_root.vault_pubkey;

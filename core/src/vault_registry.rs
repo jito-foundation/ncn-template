@@ -486,7 +486,9 @@ mod tests {
         assert_eq!(entry.no_feed_weight(), 0);
 
         // Test 3: Update reward_multiplier_bps only
-        vault_registry.set_st_mint(&mint, None, None, None).unwrap();
+        vault_registry
+            .set_st_mint(&mint, Some(2000), None, None)
+            .unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.reward_multiplier_bps(), 2000);
         assert_eq!(entry.switchboard_feed(), &switchboard_feed); // unchanged
