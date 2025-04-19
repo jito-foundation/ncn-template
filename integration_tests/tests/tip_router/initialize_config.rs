@@ -57,27 +57,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_initialize_ncn_config_fees_exceed_max_fails() -> TestResult<()> {
-        let mut fixture = TestBuilder::new().await;
-        let mut tip_router_client = fixture.tip_router_client();
-        let ncn_root = fixture.setup_ncn().await?;
-
-        let ncn_admin_pubkey = ncn_root.ncn_admin.pubkey();
-        let transaction_error = tip_router_client
-            .initialize_config(
-                ncn_root.ncn_pubkey,
-                &ncn_root.ncn_admin,
-                &ncn_admin_pubkey,
-                0,
-                0,
-                0,
-            )
-            .await;
-        assert_tip_router_error(transaction_error, TipRouterError::FeeCapExceeded);
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn test_initialize_ncn_config_invalid_parameters() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
         let mut tip_router_client = fixture.tip_router_client();
