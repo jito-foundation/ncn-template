@@ -36,6 +36,7 @@ pub struct EpochAccountStatus {
     epoch_snapshot: u8,
     operator_snapshot: [u8; 256],
     ballot_box: u8,
+    reserved: [u8; 2049], // Initialize padding with zeros
 }
 
 impl Default for EpochAccountStatus {
@@ -46,6 +47,7 @@ impl Default for EpochAccountStatus {
             epoch_snapshot: 0,
             operator_snapshot: [0; MAX_OPERATORS],
             ballot_box: 0,
+            reserved: [0; 2049], // Initialize padding with zeros
         }
     }
 }
@@ -254,6 +256,9 @@ pub struct EpochState {
     /// Upload progress
     upload_progress: Progress,
 
+    /// Reserved space to replace total_distribution_progress, base_distribution_progress, and ncn_distribution_progress
+    reserved_distribution_space: [u8; 2064], // 24 (Progress * 3) + (2048 * 24)
+
     /// Is closing
     is_closing: PodBool,
 
@@ -285,6 +290,7 @@ impl EpochState {
             voting_progress: Progress::default(),
             validation_progress: Progress::default(),
             upload_progress: Progress::default(),
+            reserved_distribution_space: [0; 2064],
             is_closing: PodBool::from(false),
             reserved: [0; 1023],
         }

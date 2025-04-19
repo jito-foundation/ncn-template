@@ -1330,6 +1330,15 @@
             "type": "publicKey"
           },
           {
+            "name": "reservedFeeAdmin",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "validSlotsAfterConsensus",
             "type": {
               "defined": "PodU64"
@@ -1422,6 +1431,15 @@
             "name": "slotFinalized",
             "type": {
               "defined": "PodU64"
+            }
+          },
+          {
+            "name": "reservedForFees",
+            "type": {
+              "array": [
+                "u8",
+                168
+              ]
             }
           },
           {
@@ -1666,6 +1684,15 @@
             "name": "uploadProgress",
             "type": {
               "defined": "Progress"
+            }
+          },
+          {
+            "name": "reservedDistributionSpace",
+            "type": {
+              "array": [
+                "u8",
+                2064
+              ]
             }
           },
           {
@@ -1919,6 +1946,15 @@
             }
           },
           {
+            "name": "reservedFeeGroup",
+            "type": {
+              "array": [
+                "u8",
+                1
+              ]
+            }
+          },
+          {
             "name": "stakeWeight",
             "type": {
               "defined": "StakeWeights"
@@ -1965,6 +2001,15 @@
           {
             "name": "ballotBox",
             "type": "u8"
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                2049
+              ]
+            }
           }
         ]
       }
@@ -2008,6 +2053,15 @@
             "type": {
               "defined": "PodU128"
             }
+          },
+          {
+            "name": "reservedForNcnFeeGroupStakeWeights",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -2023,6 +2077,12 @@
           },
           {
             "name": "rewardMultiplierBps",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "reservedRewardMultiplierBps",
             "type": {
               "defined": "PodU64"
             }

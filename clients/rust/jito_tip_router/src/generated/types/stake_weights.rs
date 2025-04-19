@@ -12,4 +12,6 @@ use borsh::BorshSerialize;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StakeWeights {
     pub stake_weight: u128,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub reserved_for_ncn_fee_group_stake_weights: [u8; 128],
 }

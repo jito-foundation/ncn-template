@@ -21,6 +21,8 @@ pub struct Config {
     pub ncn: Pubkey,
     /// The admin to update the tie breaker - who can decide the meta merkle root when consensus is reached
     pub tie_breaker_admin: Pubkey,
+    /// reserved space for fee admin pubkey
+    reserved_fee_admin: [u8; 32],
     /// Number of slots after consensus reached where voting is still valid
     pub valid_slots_after_consensus: PodU64,
     /// Number of epochs before voting is considered stalled
@@ -55,6 +57,7 @@ impl Config {
         Self {
             ncn: *ncn,
             tie_breaker_admin: *tie_breaker_admin,
+            reserved_fee_admin: [0; 32],
             starting_valid_epoch: PodU64::from(starting_valid_epoch),
             valid_slots_after_consensus: PodU64::from(valid_slots_after_consensus),
             epochs_before_stall: PodU64::from(epochs_before_stall),

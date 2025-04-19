@@ -30,6 +30,8 @@ pub struct EpochSnapshot {
     slot_created: PodU64,
     /// Slot Epoch snapshot was finalized
     slot_finalized: PodU64,
+    /// Reserved space for Fees
+    reserved_for_fees: [u8; 168],
     /// Number of operators in the epoch
     operator_count: PodU64,
     /// Number of vaults in the epoch
@@ -64,6 +66,7 @@ impl EpochSnapshot {
             epoch: PodU64::from(ncn_epoch),
             slot_created: PodU64::from(current_slot),
             slot_finalized: PodU64::from(0),
+            reserved_for_fees: [0; 168],
             bump,
             operator_count: PodU64::from(operator_count),
             vault_count: PodU64::from(vault_count),
@@ -517,6 +520,7 @@ impl OperatorSnapshot {
 pub struct VaultOperatorStakeWeight {
     vault: Pubkey,
     vault_index: PodU64,
+    reserved_fee_group: [u8; 1],
     stake_weight: StakeWeights,
     reserved: [u8; 32],
 }
@@ -526,6 +530,7 @@ impl Default for VaultOperatorStakeWeight {
         Self {
             vault: Pubkey::default(),
             vault_index: PodU64::from(u64::MAX),
+            reserved_fee_group: [0; 1],
             stake_weight: StakeWeights::default(),
             reserved: [0; 32],
         }
@@ -537,6 +542,7 @@ impl VaultOperatorStakeWeight {
         Self {
             vault: *vault,
             vault_index: PodU64::from(vault_index),
+            reserved_fee_group: [0; 1],
             stake_weight: *stake_weight,
             reserved: [0; 32],
         }

@@ -13,10 +13,14 @@ import {
   decodeAccount,
   fetchEncodedAccount,
   fetchEncodedAccounts,
+  fixDecoderSize,
+  fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -33,12 +37,14 @@ import {
   type FetchAccountsConfig,
   type MaybeAccount,
   type MaybeEncodedAccount,
+  type ReadonlyUint8Array,
 } from '@solana/web3.js';
 
 export type Config = {
   discriminator: bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
+  reservedFeeAdmin: ReadonlyUint8Array;
   validSlotsAfterConsensus: bigint;
   epochsBeforeStall: bigint;
   bump: number;
@@ -51,6 +57,7 @@ export type ConfigArgs = {
   discriminator: number | bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
+  reservedFeeAdmin: ReadonlyUint8Array;
   validSlotsAfterConsensus: number | bigint;
   epochsBeforeStall: number | bigint;
   bump: number;
@@ -64,6 +71,7 @@ export function getConfigEncoder(): Encoder<ConfigArgs> {
     ['discriminator', getU64Encoder()],
     ['ncn', getAddressEncoder()],
     ['tieBreakerAdmin', getAddressEncoder()],
+    ['reservedFeeAdmin', fixEncoderSize(getBytesEncoder(), 32)],
     ['validSlotsAfterConsensus', getU64Encoder()],
     ['epochsBeforeStall', getU64Encoder()],
     ['bump', getU8Encoder()],
@@ -78,6 +86,7 @@ export function getConfigDecoder(): Decoder<Config> {
     ['discriminator', getU64Decoder()],
     ['ncn', getAddressDecoder()],
     ['tieBreakerAdmin', getAddressDecoder()],
+    ['reservedFeeAdmin', fixDecoderSize(getBytesDecoder(), 32)],
     ['validSlotsAfterConsensus', getU64Decoder()],
     ['epochsBeforeStall', getU64Decoder()],
     ['bump', getU8Decoder()],

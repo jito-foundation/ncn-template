@@ -29,6 +29,7 @@ import {
 export type StMintEntry = {
   stMint: Address;
   rewardMultiplierBps: bigint;
+  reservedRewardMultiplierBps: bigint;
   switchboardFeed: Address;
   noFeedWeight: bigint;
   reserved: Array<number>;
@@ -37,6 +38,7 @@ export type StMintEntry = {
 export type StMintEntryArgs = {
   stMint: Address;
   rewardMultiplierBps: number | bigint;
+  reservedRewardMultiplierBps: number | bigint;
   switchboardFeed: Address;
   noFeedWeight: number | bigint;
   reserved: Array<number>;
@@ -46,6 +48,7 @@ export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
   return getStructEncoder([
     ['stMint', getAddressEncoder()],
     ['rewardMultiplierBps', getU64Encoder()],
+    ['reservedRewardMultiplierBps', getU64Encoder()],
     ['switchboardFeed', getAddressEncoder()],
     ['noFeedWeight', getU128Encoder()],
     ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
@@ -56,6 +59,7 @@ export function getStMintEntryDecoder(): Decoder<StMintEntry> {
   return getStructDecoder([
     ['stMint', getAddressDecoder()],
     ['rewardMultiplierBps', getU64Decoder()],
+    ['reservedRewardMultiplierBps', getU64Decoder()],
     ['switchboardFeed', getAddressDecoder()],
     ['noFeedWeight', getU128Decoder()],
     ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],

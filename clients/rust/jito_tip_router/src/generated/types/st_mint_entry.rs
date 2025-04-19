@@ -18,6 +18,7 @@ pub struct StMintEntry {
     )]
     pub st_mint: Pubkey,
     pub reward_multiplier_bps: u64,
+    pub reserved_reward_multiplier_bps: u64,
     #[cfg_attr(
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")

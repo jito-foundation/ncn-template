@@ -23,6 +23,7 @@ pub struct Config {
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
     )]
     pub tie_breaker_admin: Pubkey,
+    pub reserved_fee_admin: [u8; 32],
     pub valid_slots_after_consensus: u64,
     pub epochs_before_stall: u64,
     pub bump: u8,

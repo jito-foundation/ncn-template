@@ -23,6 +23,10 @@ pub struct StMintEntry {
     st_mint: Pubkey,
     /// The reward multiplier in basis points
     reward_multiplier_bps: PodU64,
+
+    /// Reserved: The reward multiplier in basis points
+    reserved_reward_multiplier_bps: PodU64,
+
     // Either a switchboard feed or a no feed weight must be set
     /// The switchboard feed for the mint
     switchboard_feed: Pubkey,
@@ -42,6 +46,7 @@ impl StMintEntry {
         Self {
             st_mint: *st_mint,
             reward_multiplier_bps: PodU64::from(reward_multiplier_bps),
+            reserved_reward_multiplier_bps: PodU64::from(0),
             switchboard_feed: *switchboard_feed,
             no_feed_weight: PodU128::from(no_feed_weight),
             reserved: [0; 128],
