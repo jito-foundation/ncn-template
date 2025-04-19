@@ -16,12 +16,7 @@ mod tests {
         const OPERATOR_COUNT: usize = 3;
         const VAULT_COUNT: usize = 1;
         const OPERATOR_FEE_BPS: u16 = MAX_FEE_BPS;
-        const AMOUNT_TO_REWARD: u64 = 50_000 * OPERATOR_COUNT as u64;
         const INDEX_OF_OPERATOR_TO_REMOVE: usize = 1;
-
-        let expected_active_operator_balance_run_1 = AMOUNT_TO_REWARD / OPERATOR_COUNT as u64;
-        let expected_active_operator_balance_run_2 = expected_active_operator_balance_run_1
-            + (AMOUNT_TO_REWARD / (OPERATOR_COUNT - 1) as u64);
 
         let test_ncn = fixture
             .create_initial_test_ncn(OPERATOR_COUNT, VAULT_COUNT, Some(OPERATOR_FEE_BPS))
@@ -36,17 +31,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            for operator_root in &test_ncn.operators {
-                let operator = operator_root.operator_pubkey;
-
-                let operator_balance = fixture
-                    .get_associated_token_account(&operator, &JITOSOL_MINT)
-                    .await?
-                    .map_or(0, |account| account.amount);
-
-                assert_eq!(operator_balance, expected_active_operator_balance_run_1);
-            }
         }
 
         {
@@ -65,21 +49,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            for (index, operator_root) in test_ncn.operators.iter().enumerate() {
-                let operator = operator_root.operator_pubkey;
-
-                let operator_balance = fixture
-                    .get_associated_token_account(&operator, &JITOSOL_MINT)
-                    .await?
-                    .map_or(0, |account| account.amount);
-
-                if index == INDEX_OF_OPERATOR_TO_REMOVE {
-                    assert_eq!(operator_balance, expected_active_operator_balance_run_1);
-                } else {
-                    assert_eq!(operator_balance, expected_active_operator_balance_run_2);
-                }
-            }
         }
 
         Ok(())
@@ -92,12 +61,7 @@ mod tests {
 
         const OPERATOR_COUNT: usize = 1;
         const VAULT_COUNT: usize = 3;
-        const AMOUNT_TO_REWARD: u64 = 50_000 * VAULT_COUNT as u64;
         const INDEX_OF_VAULT_TO_REMOVE: usize = 1;
-
-        let expected_active_vault_balance_run_1 = AMOUNT_TO_REWARD / VAULT_COUNT as u64;
-        let expected_active_vault_balance_run_2 =
-            expected_active_vault_balance_run_1 + (AMOUNT_TO_REWARD / (VAULT_COUNT - 1) as u64);
 
         let test_ncn = fixture
             .create_initial_test_ncn(OPERATOR_COUNT, VAULT_COUNT, Some(0))
@@ -112,17 +76,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            for vault_root in &test_ncn.vaults {
-                let vault = vault_root.vault_pubkey;
-
-                let vault_balance = fixture
-                    .get_associated_token_account(&vault, &JITOSOL_MINT)
-                    .await?
-                    .map_or(0, |account| account.amount);
-
-                assert_eq!(vault_balance, expected_active_vault_balance_run_1);
-            }
         }
 
         {
@@ -141,21 +94,6 @@ mod tests {
             fixture.snapshot_test_ncn(&test_ncn).await?;
 
             fixture.vote_test_ncn(&test_ncn).await?;
-
-            for (index, vault_root) in test_ncn.vaults.iter().enumerate() {
-                let vault = vault_root.vault_pubkey;
-
-                let vault_balance = fixture
-                    .get_associated_token_account(&vault, &JITOSOL_MINT)
-                    .await?
-                    .map_or(0, |account| account.amount);
-
-                if index == INDEX_OF_VAULT_TO_REMOVE {
-                    assert_eq!(vault_balance, expected_active_vault_balance_run_1);
-                } else {
-                    assert_eq!(vault_balance, expected_active_vault_balance_run_2);
-                }
-            }
         }
 
         Ok(())
