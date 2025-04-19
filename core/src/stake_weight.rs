@@ -146,10 +146,7 @@ mod tests {
 
         // Use smaller numbers that won't overflow in the initial calculation
         // but will overflow when incremented twice
-        let max_reward = StakeWeights::snapshot(
-            u128::MAX / 20_000, // Divide by reward multiplier to avoid initial overflow
-        )
-        .unwrap();
+        let max_reward = StakeWeights::snapshot(u128::MAX).unwrap();
 
         base_weights.increment(&max_reward).unwrap();
         assert!(base_weights.increment(&max_reward).is_err());
