@@ -1498,7 +1498,6 @@ impl TipRouterClient {
         ncn: Pubkey,
         epoch: u64,
         account_to_close: Pubkey,
-        receiver_to_close: Option<Pubkey>,
     ) -> TestResult<()> {
         let (epoch_marker, _, _) =
             EpochMarker::find_program_address(&jito_tip_router_program::id(), &ncn, epoch);
@@ -1517,7 +1516,6 @@ impl TipRouterClient {
             ncn,
             config,
             account_to_close,
-            receiver_to_close,
             account_payer,
             epoch,
         )
@@ -1531,7 +1529,6 @@ impl TipRouterClient {
         ncn: Pubkey,
         config: Pubkey,
         account_to_close: Pubkey,
-        receiver_to_close: Option<Pubkey>,
         account_payer: Pubkey,
         epoch: u64,
     ) -> TestResult<()> {
@@ -1545,10 +1542,6 @@ impl TipRouterClient {
             .ncn(ncn)
             .system_program(system_program::id())
             .epoch(epoch);
-
-        if let Some(receiver_to_close) = receiver_to_close {
-            ix.receiver_to_close(Some(receiver_to_close));
-        }
 
         let ix = ix.instruction();
 

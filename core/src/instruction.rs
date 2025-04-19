@@ -234,9 +234,7 @@ pub enum TipRouterInstruction {
     #[account(3, name = "ncn")]
     #[account(4, writable, name = "account_to_close")]
     #[account(5, writable, name = "account_payer")]
-    #[account(6, writable, name = "dao_wallet")]
-    #[account(7, name = "system_program")]
-    #[account(8, writable, optional, name = "receiver_to_close")]
+    #[account(6, name = "system_program")]
     CloseEpochAccount {
         epoch: u64,
     },

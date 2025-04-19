@@ -1175,7 +1175,6 @@ pub async fn close_epoch_account(
     ncn: Pubkey,
     epoch: u64,
     account_to_close: Pubkey,
-    receiver_to_close: Option<Pubkey>,
 ) -> Result<()> {
     let (epoch_marker, _, _) =
         EpochMarker::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
@@ -1210,10 +1209,6 @@ pub async fn close_epoch_account(
         .system_program(system_program::id())
         .epoch(epoch);
 
-    if let Some(receiver_to_close) = receiver_to_close {
-        ix.receiver_to_close(Some(receiver_to_close));
-    }
-
     send_and_log_transaction(
         handler,
         &[ix.instruction()],
@@ -1222,7 +1217,6 @@ pub async fn close_epoch_account(
         &[
             format!("NCN: {:?}", ncn),
             format!("Account to Close: {:?}", account_to_close),
-            format!("Receiver to Close: {:?}", receiver_to_close),
             format!("Epoch: {:?}", epoch),
         ],
     )
@@ -1689,7 +1683,7 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
     let (ballot_box, _, _) =
         BallotBox::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
 
-    let result = close_epoch_account(handler, ncn, epoch, ballot_box, None).await;
+    let result = close_epoch_account(handler, ncn, epoch, ballot_box).await;
 
     if let Err(err) = result {
         log::error!(
@@ -1709,7 +1703,7 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
             epoch,
         );
 
-        let result = close_epoch_account(handler, ncn, epoch, operator_snapshot, None).await;
+        let result = close_epoch_account(handler, ncn, epoch, operator_snapshot).await;
 
         if let Err(err) = result {
             log::error!(
@@ -1725,7 +1719,7 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
     let (epoch_snapshot, _, _) =
         EpochSnapshot::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
 
-    let result = close_epoch_account(handler, ncn, epoch, epoch_snapshot, None).await;
+    let result = close_epoch_account(handler, ncn, epoch, epoch_snapshot).await;
 
     if let Err(err) = result {
         log::error!(
@@ -1740,7 +1734,7 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
     let (weight_table, _, _) =
         WeightTable::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
 
-    let result = close_epoch_account(handler, ncn, epoch, weight_table, None).await;
+    let result = close_epoch_account(handler, ncn, epoch, weight_table).await;
 
     if let Err(err) = result {
         log::error!(
@@ -1755,7 +1749,7 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
     let (epoch_state, _, _) =
         EpochState::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
 
-    let result = close_epoch_account(handler, ncn, epoch, epoch_state, None).await;
+    let result = close_epoch_account(handler, ncn, epoch, epoch_state).await;
 
     if let Err(err) = result {
         log::error!(

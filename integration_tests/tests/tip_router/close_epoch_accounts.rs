@@ -52,7 +52,7 @@ mod tests {
             );
 
             let result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
             assert_tip_router_error(result, TipRouterError::CannotCloseAccountNotEnoughEpochs);
@@ -100,7 +100,7 @@ mod tests {
             );
 
             let result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
             assert_tip_router_error(result, TipRouterError::ConsensusNotReached);
@@ -149,7 +149,7 @@ mod tests {
             );
 
             let result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
             assert_tip_router_error(result, TipRouterError::CannotCloseEpochStateAccount);
@@ -198,7 +198,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await?;
 
             let result = fixture.get_account(&weight_table).await?;
@@ -216,7 +216,7 @@ mod tests {
             );
 
             let result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await;
 
             assert_tip_router_error(result, TipRouterError::CannotCloseAccountAlreadyClosed);
@@ -264,7 +264,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await?;
 
             let result = fixture.get_account(&weight_table).await?;
@@ -297,7 +297,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot)
                 .await?;
 
             let result = fixture.get_account(&epoch_snapshot).await?;
@@ -332,7 +332,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot)
                 .await?;
 
             let result = fixture.get_account(&operator_snapshot).await?;
@@ -367,7 +367,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, ballot_box, None)
+                .do_close_epoch_account(ncn, epoch_to_close, ballot_box)
                 .await?;
 
             let result = fixture.get_account(&ballot_box).await?;
@@ -400,7 +400,7 @@ mod tests {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await?;
 
             let result = fixture.get_account(&epoch_state).await?;
@@ -492,18 +492,18 @@ mod tests {
             );
 
             let bad_epoch_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_weight_table)
                 .await;
 
             let bad_ncn_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_weight_table)
                 .await;
 
             assert!(bad_epoch_result.is_err());
             assert!(bad_ncn_result.is_err());
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, good_weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, good_weight_table)
                 .await?;
         }
 
@@ -526,18 +526,18 @@ mod tests {
             );
 
             let bad_epoch_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_epoch_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_epoch_snapshot)
                 .await;
 
             let bad_ncn_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_epoch_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_epoch_snapshot)
                 .await;
 
             assert!(bad_epoch_result.is_err());
             assert!(bad_ncn_result.is_err());
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, good_epoch_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, good_epoch_snapshot)
                 .await?;
         }
 
@@ -564,18 +564,18 @@ mod tests {
             );
 
             let bad_epoch_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_operator_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_operator_snapshot)
                 .await;
 
             let bad_ncn_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_operator_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_operator_snapshot)
                 .await;
 
             assert!(bad_epoch_result.is_err());
             assert!(bad_ncn_result.is_err());
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, good_operator_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, good_operator_snapshot)
                 .await?;
         }
 
@@ -598,18 +598,18 @@ mod tests {
             );
 
             let bad_epoch_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_ballot_box, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_ballot_box)
                 .await;
 
             let bad_ncn_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_ballot_box, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_ballot_box)
                 .await;
 
             assert!(bad_epoch_result.is_err());
             assert!(bad_ncn_result.is_err());
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, good_ballot_box, None)
+                .do_close_epoch_account(ncn, epoch_to_close, good_ballot_box)
                 .await?;
         }
 
@@ -632,18 +632,18 @@ mod tests {
             );
 
             let bad_epoch_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_epoch_epoch_state)
                 .await;
 
             let bad_ncn_result = tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, bad_ncn_epoch_state)
                 .await;
 
             assert!(bad_epoch_result.is_err());
             assert!(bad_ncn_result.is_err());
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, good_epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, good_epoch_state)
                 .await?;
         }
 

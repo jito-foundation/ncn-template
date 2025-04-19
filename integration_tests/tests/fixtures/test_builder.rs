@@ -844,7 +844,7 @@ impl TestBuilder {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, ballot_box, None)
+                .do_close_epoch_account(ncn, epoch_to_close, ballot_box)
                 .await?;
 
             let result = self.get_account(&ballot_box).await?;
@@ -863,7 +863,7 @@ impl TestBuilder {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot)
                 .await?;
 
             let result = self.get_account(&operator_snapshot).await?;
@@ -879,7 +879,7 @@ impl TestBuilder {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot)
                 .await?;
 
             let result = self.get_account(&epoch_snapshot).await?;
@@ -895,7 +895,7 @@ impl TestBuilder {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, weight_table, None)
+                .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await?;
 
             let result = self.get_account(&weight_table).await?;
@@ -911,7 +911,7 @@ impl TestBuilder {
             );
 
             tip_router_client
-                .do_close_epoch_account(ncn, epoch_to_close, epoch_state, None)
+                .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await?;
 
             let result = self.get_account(&epoch_state).await?;
