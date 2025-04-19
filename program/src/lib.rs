@@ -6,7 +6,6 @@ mod admin_set_st_mint;
 mod admin_set_tie_breaker;
 mod admin_set_weight;
 mod cast_vote;
-mod claim_with_payer;
 mod close_epoch_account;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;

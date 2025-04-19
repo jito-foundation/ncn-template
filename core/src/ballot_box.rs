@@ -1197,7 +1197,7 @@ mod tests {
 
         // Verify ballot2 wins consensus with all votes
         ballot_box
-            .tally_votes(total_stake_weight as u128, current_slot + 4)
+            .tally_votes(total_stake_weight, current_slot + 4)
             .unwrap();
         assert!(ballot_box.has_winning_ballot());
         assert_eq!(*ballot_box.get_winning_ballot().unwrap(), ballot2);
@@ -1797,12 +1797,11 @@ mod revote_same_tests {
         // Record state after first vote
         let initial_operators_voted = ballot_box.operators_voted();
         let initial_unique_ballots = ballot_box.unique_ballots();
-        let initial_ballot_tally = ballot_box
+        let initial_ballot_tally = *ballot_box
             .ballot_tallies()
             .iter()
             .find(|t| t.ballot().eq(&ballot))
-            .expect("Ballot tally should exist")
-            .clone();
+            .expect("Ballot tally should exist");
 
         // Vote again for the same ballot
         ballot_box

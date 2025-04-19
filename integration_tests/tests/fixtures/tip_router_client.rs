@@ -33,7 +33,7 @@ use jito_vault_core::{
     vault_ncn_ticket::VaultNcnTicket, vault_operator_delegation::VaultOperatorDelegation,
 };
 use solana_program::{
-    hash::Hash, instruction::InstructionError, native_token::sol_to_lamports, pubkey::Pubkey,
+    instruction::InstructionError, native_token::sol_to_lamports, pubkey::Pubkey,
     system_instruction::transfer,
 };
 use solana_program_test::{BanksClient, ProgramTestBanksClientExt};
@@ -70,16 +70,6 @@ impl TipRouterClient {
         Ok(())
     }
 
-    pub async fn get_best_latest_blockhash(&mut self) -> TestResult<Hash> {
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        let new_blockhash = self
-            .banks_client
-            .get_new_latest_blockhash(&blockhash)
-            .await?;
-
-        Ok(new_blockhash)
-    }
-
     pub async fn airdrop(&mut self, to: &Pubkey, sol: f64) -> TestResult<()> {
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         let new_blockhash = self
@@ -94,22 +84,6 @@ impl TipRouterClient {
                     Some(&self.payer.pubkey()),
                     &[&self.payer],
                     new_blockhash,
-                ),
-                CommitmentLevel::Processed,
-            )
-            .await?;
-        Ok(())
-    }
-
-    pub async fn airdrop_lamports(&mut self, to: &Pubkey, lamports: u64) -> TestResult<()> {
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        self.banks_client
-            .process_transaction_with_preflight_and_commitment(
-                Transaction::new_signed_with_payer(
-                    &[transfer(&self.payer.pubkey(), to, lamports)],
-                    Some(&self.payer.pubkey()),
-                    &[&self.payer],
-                    blockhash,
                 ),
                 CommitmentLevel::Processed,
             )
@@ -563,7 +537,7 @@ impl TipRouterClient {
         ncn: &Pubkey,
     ) -> TestResult<()> {
         let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
+            AccountPayer::find_program_address(&jito_tip_router_program::id(), ncn);
 
         let ix = InitializeVaultRegistryBuilder::new()
             .config(*ncn_config)
@@ -603,7 +577,7 @@ impl TipRouterClient {
         num_reallocations: u64,
     ) -> TestResult<()> {
         let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
+            AccountPayer::find_program_address(&jito_tip_router_program::id(), ncn);
 
         let ix = ReallocVaultRegistryBuilder::new()
             .ncn(*ncn)
@@ -695,6 +669,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn admin_register_st_mint(
         &mut self,
         ncn: Pubkey,
@@ -766,6 +741,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn admin_set_st_mint(
         &mut self,
         ncn: Pubkey,
@@ -1173,6 +1149,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn cast_vote(
         &mut self,
         ncn_config: Pubkey,
@@ -1211,6 +1188,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn do_set_merkle_root(
         &mut self,
         ncn: Pubkey,
@@ -1253,6 +1231,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn set_merkle_root(
         &mut self,
         config: Pubkey,
@@ -1388,6 +1367,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn realloc_operator_snapshot(
         &mut self,
         config: Pubkey,
@@ -1522,6 +1502,7 @@ impl TipRouterClient {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn close_epoch_account(
         &mut self,
         epoch_marker: Pubkey,

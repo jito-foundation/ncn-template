@@ -32,10 +32,10 @@ mod tests {
             (Keypair::new(), 20_000, Some(JITOSOL_SOL_FEED), None), // JitoSOL
             (Keypair::new(), 10_000, Some(JTO_SOL_FEED), None),     // JTO
             (Keypair::new(), 10_000, Some(JITOSOL_SOL_FEED), None), // BnSOL
-            (Keypair::new(), 7_000, None, Some(1 * WEIGHT_PRECISION)), // nSol
+            (Keypair::new(), 7_000, None, Some(WEIGHT_PRECISION)),  // nSol
         ];
 
-        let delegations = vec![
+        let delegations = [
             1,
             sol_to_lamports(1000.0),
             sol_to_lamports(10000.0),
@@ -74,9 +74,12 @@ mod tests {
 
         // Add delegation
         {
-            let mut index = 0;
-            for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1) {
-                // for operator_root in test_ncn.operators.iter() {
+            for (index, operator_root) in test_ncn
+                .operators
+                .iter()
+                .take(OPERATOR_COUNT - 1)
+                .enumerate()
+            {
                 for vault_root in test_ncn.vaults.iter() {
                     let delegation_amount = delegations[index % delegations.len()];
 
@@ -85,13 +88,12 @@ mod tests {
                             .do_add_delegation(
                                 vault_root,
                                 &operator_root.operator_pubkey,
-                                delegation_amount as u64,
+                                delegation_amount,
                             )
                             .await
                             .unwrap();
                     }
                 }
-                index += 1;
             }
         }
 
@@ -586,7 +588,7 @@ mod fuzz_tests {
                     keypair: Keypair::new(),
                     reward_multiplier: 7_000,
                     switchboard_feed: None,
-                    no_feed_weight: Some(1 * WEIGHT_PRECISION),
+                    no_feed_weight: Some(WEIGHT_PRECISION),
                     vault_count: 1,
                 },
             ],

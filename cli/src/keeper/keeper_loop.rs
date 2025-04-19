@@ -350,7 +350,7 @@ pub async fn startup_keeper(
         {
             info!("\n\nE. Detect Stall - {}\n", current_keeper_epoch);
 
-            let result = state.detect_stall(handler).await;
+            let result = state.detect_stall().await;
 
             if check_and_timeout_error(
                 "Detect Stall".to_string(),

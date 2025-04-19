@@ -17,10 +17,9 @@ use ::{
         process_epoch, read_merkle_tree_collection, read_stake_meta_collection,
         stake_meta_file_name,
         submit::{submit_recent_epochs_to_ncn, submit_to_ncn},
-        tip_router::get_ncn_config,
         Version,
     },
-    tokio::{sync::Mutex, time::sleep},
+    tokio::time::sleep,
 };
 
 #[tokio::main]
@@ -255,11 +254,6 @@ async fn main() -> Result<()> {
                 epoch,
                 &cli.get_save_path().join(stake_meta_file_name(epoch)),
             );
-            let config = get_ncn_config(&rpc_client, &tip_router_program_id, &ncn_address).await?;
-            // Tip Router looks backwards in time (typically current_epoch - 1) to calculated
-            //  distributions. Meanwhile the NCN's Ballot is for the current_epoch. So we
-            //  use epoch + 1 here
-            let ballot_epoch = epoch.checked_add(1).unwrap();
             let protocol_fee_bps = 0;
 
             // Generate the merkle tree collection

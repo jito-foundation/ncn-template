@@ -283,7 +283,7 @@ impl KeeperState {
         Ok(*state)
     }
 
-    pub async fn detect_stall(&mut self, handler: &CliHandler) -> Result<bool> {
+    pub async fn detect_stall(&mut self) -> Result<bool> {
         if self.is_epoch_completed {
             return Ok(true);
         }

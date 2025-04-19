@@ -155,17 +155,6 @@ impl TestBuilder {
         }
     }
 
-    pub async fn get_associated_token_account(
-        &mut self,
-        wallet: &Pubkey,
-        mint: &Pubkey,
-    ) -> Result<Option<spl_token::state::Account>, BanksClientError> {
-        let ata = spl_associated_token_account::get_associated_token_address(wallet, mint);
-        self.get_account(&ata).await.map(|opt_acct| {
-            opt_acct.map(|acct| spl_token::state::Account::unpack(&acct.data).unwrap())
-        })
-    }
-
     pub async fn get_account(
         &mut self,
         address: &Pubkey,
@@ -319,27 +308,6 @@ impl TestBuilder {
 
         let mut tip_router_client = self.tip_router_client();
 
-        let ncn_root = restaking_program_client
-            .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
-            .await?;
-
-        tip_router_client.setup_tip_router(&ncn_root).await?;
-
-        Ok(TestNcn {
-            ncn_root: ncn_root.clone(),
-            operators: vec![],
-            vaults: vec![],
-        })
-    }
-
-    // 1a.
-    pub async fn create_custom_test_ncn(&mut self) -> TestResult<TestNcn> {
-        let mut restaking_program_client = self.restaking_program_client();
-        let mut vault_program_client = self.vault_program_client();
-        let mut tip_router_client = self.tip_router_client();
-
-        vault_program_client.do_initialize_config().await?;
-        restaking_program_client.do_initialize_config().await?;
         let ncn_root = restaking_program_client
             .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
             .await?;
@@ -557,23 +525,6 @@ impl TestBuilder {
     ) -> TestResult<TestNcn> {
         let mut test_ncn = self.create_test_ncn().await?;
         self.add_operators_to_test_ncn(&mut test_ncn, operator_count, operator_fees_bps)
-            .await?;
-        self.add_vaults_to_test_ncn(&mut test_ncn, vault_count, None)
-            .await?;
-        self.add_delegation_in_test_ncn(&test_ncn, 100).await?;
-        self.add_vault_registry_to_test_ncn(&test_ncn).await?;
-
-        Ok(test_ncn)
-    }
-
-    pub async fn create_custom_initial_test_ncn(
-        &mut self,
-        operator_count: usize,
-        vault_count: usize,
-        operator_fees_bps: u16,
-    ) -> TestResult<TestNcn> {
-        let mut test_ncn = self.create_custom_test_ncn().await?;
-        self.add_operators_to_test_ncn(&mut test_ncn, operator_count, Some(operator_fees_bps))
             .await?;
         self.add_vaults_to_test_ncn(&mut test_ncn, vault_count, None)
             .await?;
@@ -816,8 +767,6 @@ impl TestBuilder {
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
         let mut tip_router_client = self.tip_router_client();
-
-        const EXTRA_SOL_TO_AIRDROP: f64 = 0.25;
 
         let epoch_to_close = self.clock().await.epoch;
         let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;

@@ -2,7 +2,7 @@
 mod tests {
 
     use jito_restaking_core::MAX_FEE_BPS;
-    use jito_tip_router_core::{constants::JITOSOL_MINT, error::TipRouterError};
+    use jito_tip_router_core::error::TipRouterError;
 
     use crate::fixtures::{
         test_builder::TestBuilder, tip_router_client::assert_tip_router_error, TestResult,
