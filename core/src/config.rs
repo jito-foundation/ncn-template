@@ -148,6 +148,7 @@ mod tests {
 
         let expected_total = size_of::<Pubkey>() // ncn
             + size_of::<Pubkey>() // tie_breaker_admin 
+            + size_of::<[u8; 32]>() // reserved_fee_admin
             + size_of::<PodU64>() // valid_slots_after_consensus
             + size_of::<PodU64>() // epochs_before_stall
             + 1 // bump
