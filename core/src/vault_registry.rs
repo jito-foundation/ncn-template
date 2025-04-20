@@ -29,7 +29,7 @@ pub struct StMintEntry {
 
     // Either a switchboard feed or a no feed weight must be set
     /// The switchboard feed for the mint
-    switchboard_feed: Pubkey,
+    reserve_switchboard_feed: [u8; 32],
     /// The weight when no feed is available
     no_feed_weight: PodU128,
     /// Reserved space
@@ -37,17 +37,12 @@ pub struct StMintEntry {
 }
 
 impl StMintEntry {
-    pub fn new(
-        st_mint: &Pubkey,
-        reward_multiplier_bps: u64,
-        switchboard_feed: &Pubkey,
-        no_feed_weight: u128,
-    ) -> Self {
+    pub fn new(st_mint: &Pubkey, reward_multiplier_bps: u64, no_feed_weight: u128) -> Self {
         Self {
             st_mint: *st_mint,
             reward_multiplier_bps: PodU64::from(reward_multiplier_bps),
             reserved_reward_multiplier_bps: PodU64::from(0),
-            switchboard_feed: *switchboard_feed,
+            reserve_switchboard_feed: [0; 32],
             no_feed_weight: PodU128::from(no_feed_weight),
             reserved: [0; 128],
         }
@@ -65,10 +60,6 @@ impl StMintEntry {
         self.reward_multiplier_bps.into()
     }
 
-    pub const fn switchboard_feed(&self) -> &Pubkey {
-        &self.switchboard_feed
-    }
-
     pub fn is_empty(&self) -> bool {
         self.st_mint().eq(&Pubkey::default())
     }
@@ -76,7 +67,7 @@ impl StMintEntry {
 
 impl Default for StMintEntry {
     fn default() -> Self {
-        Self::new(&Pubkey::default(), 0, &Pubkey::default(), 0)
+        Self::new(&Pubkey::default(), 0, 0)
     }
 }
 
@@ -218,8 +209,8 @@ impl VaultRegistry {
     }
 
     pub fn check_st_mint_entry(entry: &StMintEntry) -> Result<(), ProgramError> {
-        if entry.no_feed_weight() == 0 && entry.switchboard_feed().eq(&Pubkey::default()) {
-            return Err(TipRouterError::NoFeedWeightOrSwitchboardFeed.into());
+        if entry.no_feed_weight() == 0 {
+            return Err(TipRouterError::NoFeedWeightNotSet.into());
         }
 
         Ok(())
@@ -229,7 +220,6 @@ impl VaultRegistry {
         &mut self,
         st_mint: &Pubkey,
         reward_multiplier_bps: u64,
-        switchboard_feed: &Pubkey,
         no_feed_weight: u128,
     ) -> Result<(), ProgramError> {
         // Check if mint is already in the list
@@ -244,12 +234,7 @@ impl VaultRegistry {
             .find(|m| m.st_mint == StMintEntry::default().st_mint)
             .ok_or(TipRouterError::VaultRegistryListFull)?;
 
-        let new_mint_entry = StMintEntry::new(
-            st_mint,
-            reward_multiplier_bps,
-            switchboard_feed,
-            no_feed_weight,
-        );
+        let new_mint_entry = StMintEntry::new(st_mint, reward_multiplier_bps, no_feed_weight);
 
         Self::check_st_mint_entry(&new_mint_entry)?;
 
@@ -262,7 +247,6 @@ impl VaultRegistry {
         &mut self,
         st_mint: &Pubkey,
         reward_multiplier_bps: Option<u64>,
-        switchboard_feed: Option<Pubkey>,
         no_feed_weight: Option<u128>,
     ) -> Result<(), ProgramError> {
         let mint_entry = self
@@ -275,10 +259,6 @@ impl VaultRegistry {
 
         if let Some(reward_multiplier_bps) = reward_multiplier_bps {
             updated_mint_entry.reward_multiplier_bps = PodU64::from(reward_multiplier_bps);
-        }
-
-        if let Some(switchboard_feed) = switchboard_feed {
-            updated_mint_entry.switchboard_feed = switchboard_feed;
         }
 
         if let Some(no_feed_weight) = no_feed_weight {
@@ -367,7 +347,6 @@ impl fmt::Display for VaultRegistry {
         for mint in self.get_valid_mint_entries() {
             writeln!(f, "    Mint:                       {}", mint.st_mint())?;
             writeln!(f, "      Reward Multiplier:        {}", mint.reward_multiplier_bps())?;
-            writeln!(f, "      Switchboard Feed:         {}", mint.switchboard_feed())?;
             writeln!(f, "      No Feed Weight:           {}\n", mint.no_feed_weight())?;
         }
         writeln!(f, "  Vaults:                     ")?;
@@ -385,6 +364,8 @@ impl fmt::Display for VaultRegistry {
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::WEIGHT;
+
     use super::*;
 
     #[test]
@@ -407,24 +388,23 @@ mod tests {
     fn test_add_mint() {
         let mut vault_registry = VaultRegistry::new(&Pubkey::default(), 0);
         let mint = Pubkey::new_unique();
-        let switchboard_feed = Pubkey::new_unique();
 
         // Test 1: Initial registration should succeed
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 0);
         vault_registry
-            .register_st_mint(&mint, 1000, &switchboard_feed, 0)
+            .register_st_mint(&mint, 1000, WEIGHT)
             .unwrap();
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 1);
 
         // Test 2: Trying to add the same mint should fail
-        let result = vault_registry.register_st_mint(&mint, 1000, &switchboard_feed, 0);
+        let result = vault_registry.register_st_mint(&mint, 1000, WEIGHT);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 1);
 
         // Test 3: Adding a different mint should succeed
         let mint2 = Pubkey::new_unique();
         vault_registry
-            .register_st_mint(&mint2, 1000, &switchboard_feed, 0)
+            .register_st_mint(&mint2, 1000, WEIGHT)
             .unwrap();
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 2);
 
@@ -432,12 +412,11 @@ mod tests {
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.st_mint(), &mint);
         assert_eq!(entry.reward_multiplier_bps(), 1000);
-        assert_eq!(entry.switchboard_feed(), &switchboard_feed);
-        assert_eq!(entry.no_feed_weight(), 0);
+        assert_eq!(entry.no_feed_weight(), WEIGHT);
 
-        // Test 5: Adding a mint without either switchboard feed or no_feed_weight should fail
+        // Test 5: Adding a mint with weight 0 should fail
         let mint3 = Pubkey::new_unique();
-        let result = vault_registry.register_st_mint(&mint3, 1000, &Pubkey::default(), 0);
+        let result = vault_registry.register_st_mint(&mint3, 1000, 0);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 2);
 
@@ -445,13 +424,13 @@ mod tests {
         for _ in 2..MAX_ST_MINTS {
             let new_mint = Pubkey::new_unique();
             vault_registry
-                .register_st_mint(&new_mint, 1000, &switchboard_feed, 0)
+                .register_st_mint(&new_mint, 1000, WEIGHT)
                 .unwrap();
         }
 
         // Test 7: Attempting to add to a full list should fail
         let overflow_mint = Pubkey::new_unique();
-        let result = vault_registry.register_st_mint(&overflow_mint, 1000, &switchboard_feed, 0);
+        let result = vault_registry.register_st_mint(&overflow_mint, 1000, WEIGHT);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), MAX_ST_MINTS);
 
@@ -464,85 +443,64 @@ mod tests {
         let mut fresh_registry = VaultRegistry::new(&Pubkey::default(), 0);
         let mint_with_weight = Pubkey::new_unique();
         fresh_registry
-            .register_st_mint(&mint_with_weight, 1000, &Pubkey::default(), 100)
+            .register_st_mint(&mint_with_weight, 1000, WEIGHT)
             .unwrap();
 
         let entry = fresh_registry.get_mint_entry(&mint_with_weight).unwrap();
         assert_eq!(entry.no_feed_weight(), 100);
-        assert_eq!(entry.switchboard_feed(), &Pubkey::default());
     }
 
     #[test]
     fn test_set_st_mint() {
         let mut vault_registry = VaultRegistry::new(&Pubkey::default(), 0);
         let mint = Pubkey::new_unique();
-        let switchboard_feed = Pubkey::new_unique();
 
         // First register a mint to update
         vault_registry
-            .register_st_mint(&mint, 1000, &switchboard_feed, 0)
+            .register_st_mint(&mint, 1000, WEIGHT)
             .unwrap();
 
         // Test 1: Verify initial state
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.st_mint(), &mint);
         assert_eq!(entry.reward_multiplier_bps(), 1000);
-        assert_eq!(entry.switchboard_feed(), &switchboard_feed);
-        assert_eq!(entry.no_feed_weight(), 0);
+        assert_eq!(entry.no_feed_weight(), WEIGHT);
 
         // Test 3: Update reward_multiplier_bps only
-        vault_registry
-            .set_st_mint(&mint, Some(2000), None, None)
-            .unwrap();
+        vault_registry.set_st_mint(&mint, Some(2000), None).unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.reward_multiplier_bps(), 2000);
-        assert_eq!(entry.switchboard_feed(), &switchboard_feed); // unchanged
-        assert_eq!(entry.no_feed_weight(), 0); // unchanged
-
-        // Test 4: Update switchboard_feed only
-        let new_switchboard_feed = Pubkey::new_unique();
-        vault_registry
-            .set_st_mint(&mint, None, Some(new_switchboard_feed), None)
-            .unwrap();
-        let entry = vault_registry.get_mint_entry(&mint).unwrap();
-        assert_eq!(entry.reward_multiplier_bps(), 2000); // unchanged
-        assert_eq!(entry.switchboard_feed(), &new_switchboard_feed);
-        assert_eq!(entry.no_feed_weight(), 0); // unchanged
+        assert_eq!(entry.no_feed_weight(), WEIGHT); // unchanged
 
         // Test 5: Update no_feed_weight only
-        vault_registry
-            .set_st_mint(&mint, None, None, Some(100))
-            .unwrap();
+        vault_registry.set_st_mint(&mint, None, Some(100)).unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.reward_multiplier_bps(), 2000); // unchanged
-        assert_eq!(entry.switchboard_feed(), &new_switchboard_feed); // unchanged
         assert_eq!(entry.no_feed_weight(), 100);
 
         // Test 6: Update multiple fields at once
         vault_registry
-            .set_st_mint(&mint, Some(3000), Some(switchboard_feed), Some(200))
+            .set_st_mint(&mint, Some(3000), Some(200))
             .unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.reward_multiplier_bps(), 3000);
-        assert_eq!(entry.switchboard_feed(), &switchboard_feed);
         assert_eq!(entry.no_feed_weight(), 200);
 
         // Test 7: Attempt to update non-existent mint
         let nonexistent_mint = Pubkey::new_unique();
-        let result = vault_registry.set_st_mint(&nonexistent_mint, None, None, None);
+        let result = vault_registry.set_st_mint(&nonexistent_mint, None, None);
         assert_eq!(
             result.unwrap_err(),
             ProgramError::from(TipRouterError::MintEntryNotFound)
         );
 
-        // Test 8: Setting both switchboard_feed and no_feed_weight to invalid values should fail
-        let result = vault_registry.set_st_mint(&mint, None, Some(Pubkey::default()), Some(0));
+        // Test 8: Setting  no_feed_weight to invalid values should fail
+        let result = vault_registry.set_st_mint(&mint, None, Some(0));
         assert!(result.is_err());
 
         // Test 9: Verify original values remain after failed update
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.reward_multiplier_bps(), 3000);
-        assert_eq!(entry.switchboard_feed(), &switchboard_feed);
         assert_eq!(entry.no_feed_weight(), 200);
     }
 
@@ -565,14 +523,10 @@ mod tests {
 
         let mint1 = Pubkey::new_unique();
         let mint2 = Pubkey::new_unique();
-        vault_registry
-            .register_st_mint(&mint1, 0, &Pubkey::new_unique(), 0)
-            .unwrap();
-        vault_registry
-            .register_st_mint(&mint2, 0, &Pubkey::new_unique(), 0)
-            .unwrap();
+        vault_registry.register_st_mint(&mint1, 0, WEIGHT).unwrap();
+        vault_registry.register_st_mint(&mint2, 0, WEIGHT).unwrap();
 
-        let result = vault_registry.register_st_mint(&mint1, 0, &Pubkey::new_unique(), 0);
+        let result = vault_registry.register_st_mint(&mint1, 0, WEIGHT);
 
         assert!(result.is_err());
     }

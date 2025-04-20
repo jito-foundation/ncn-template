@@ -19,11 +19,7 @@ pub struct StMintEntry {
     pub st_mint: Pubkey,
     pub reward_multiplier_bps: u64,
     pub reserved_reward_multiplier_bps: u64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub switchboard_feed: Pubkey,
+    pub reserve_switchboard_feed: [u8; 32],
     pub no_feed_weight: u128,
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub reserved: [u8; 128],

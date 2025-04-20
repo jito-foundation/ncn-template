@@ -40,7 +40,7 @@ import {
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 23;
+export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 22;
 
 export function getAdminSetStMintDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_SET_ST_MINT_DISCRIMINATOR);
@@ -76,14 +76,12 @@ export type AdminSetStMintInstructionData = {
   discriminator: number;
   stMint: Address;
   rewardMultiplierBps: Option<bigint>;
-  switchboardFeed: Option<Address>;
   noFeedWeight: Option<bigint>;
 };
 
 export type AdminSetStMintInstructionDataArgs = {
   stMint: Address;
   rewardMultiplierBps: OptionOrNullable<number | bigint>;
-  switchboardFeed: OptionOrNullable<Address>;
   noFeedWeight: OptionOrNullable<number | bigint>;
 };
 
@@ -93,7 +91,6 @@ export function getAdminSetStMintInstructionDataEncoder(): Encoder<AdminSetStMin
       ['discriminator', getU8Encoder()],
       ['stMint', getAddressEncoder()],
       ['rewardMultiplierBps', getOptionEncoder(getU64Encoder())],
-      ['switchboardFeed', getOptionEncoder(getAddressEncoder())],
       ['noFeedWeight', getOptionEncoder(getU128Encoder())],
     ]),
     (value) => ({ ...value, discriminator: ADMIN_SET_ST_MINT_DISCRIMINATOR })
@@ -105,7 +102,6 @@ export function getAdminSetStMintInstructionDataDecoder(): Decoder<AdminSetStMin
     ['discriminator', getU8Decoder()],
     ['stMint', getAddressDecoder()],
     ['rewardMultiplierBps', getOptionDecoder(getU64Decoder())],
-    ['switchboardFeed', getOptionDecoder(getAddressDecoder())],
     ['noFeedWeight', getOptionDecoder(getU128Decoder())],
   ]);
 }
@@ -132,7 +128,6 @@ export type AdminSetStMintInput<
   admin: TransactionSigner<TAccountAdmin>;
   stMint: AdminSetStMintInstructionDataArgs['stMint'];
   rewardMultiplierBps: AdminSetStMintInstructionDataArgs['rewardMultiplierBps'];
-  switchboardFeed: AdminSetStMintInstructionDataArgs['switchboardFeed'];
   noFeedWeight: AdminSetStMintInstructionDataArgs['noFeedWeight'];
 };
 

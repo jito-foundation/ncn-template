@@ -21,7 +21,6 @@ mod realloc_weight_table;
 mod register_vault;
 mod set_merkle_root;
 mod snapshot_vault_operator_delegation;
-mod switchboard_set_weight;
 
 use admin_set_new_admin::process_admin_set_new_admin;
 use borsh::BorshDeserialize;
@@ -54,7 +53,6 @@ use crate::{
     realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
     set_merkle_root::process_set_merkle_root,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
-    switchboard_set_weight::process_switchboard_set_weight,
 };
 
 declare_id!(env!("TIP_ROUTER_PROGRAM_ID"));
@@ -134,10 +132,6 @@ pub fn process_instruction(
         TipRouterInstruction::ReallocWeightTable { epoch } => {
             msg!("Instruction: ReallocWeightTable");
             process_realloc_weight_table(program_id, accounts, epoch)
-        }
-        TipRouterInstruction::SwitchboardSetWeight { epoch, st_mint } => {
-            msg!("Instruction: SwitchboardSetWeight");
-            process_switchboard_set_weight(program_id, accounts, &st_mint, epoch)
         }
         TipRouterInstruction::InitializeEpochSnapshot { epoch } => {
             msg!("Instruction: InitializeEpochSnapshot");
@@ -241,7 +235,6 @@ pub fn process_instruction(
         }
         TipRouterInstruction::AdminRegisterStMint {
             reward_multiplier_bps,
-            switchboard_feed,
             no_feed_weight,
         } => {
             msg!("Instruction: AdminRegisterStMint");
@@ -249,14 +242,12 @@ pub fn process_instruction(
                 program_id,
                 accounts,
                 reward_multiplier_bps,
-                switchboard_feed,
                 no_feed_weight,
             )
         }
         TipRouterInstruction::AdminSetStMint {
             st_mint,
             reward_multiplier_bps,
-            switchboard_feed,
             no_feed_weight,
         } => {
             msg!("Instruction: AdminSetStMint");
@@ -265,7 +256,6 @@ pub fn process_instruction(
                 accounts,
                 &st_mint,
                 reward_multiplier_bps,
-                switchboard_feed,
                 no_feed_weight,
             )
         }

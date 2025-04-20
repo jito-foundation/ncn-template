@@ -8,10 +8,14 @@
 
 import {
   combineCodec,
+  fixDecoderSize,
+  fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU128Decoder,
@@ -24,13 +28,14 @@ import {
   type Codec,
   type Decoder,
   type Encoder,
+  type ReadonlyUint8Array,
 } from '@solana/web3.js';
 
 export type StMintEntry = {
   stMint: Address;
   rewardMultiplierBps: bigint;
   reservedRewardMultiplierBps: bigint;
-  switchboardFeed: Address;
+  reserveSwitchboardFeed: ReadonlyUint8Array;
   noFeedWeight: bigint;
   reserved: Array<number>;
 };
@@ -39,7 +44,7 @@ export type StMintEntryArgs = {
   stMint: Address;
   rewardMultiplierBps: number | bigint;
   reservedRewardMultiplierBps: number | bigint;
-  switchboardFeed: Address;
+  reserveSwitchboardFeed: ReadonlyUint8Array;
   noFeedWeight: number | bigint;
   reserved: Array<number>;
 };
@@ -49,7 +54,7 @@ export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
     ['stMint', getAddressEncoder()],
     ['rewardMultiplierBps', getU64Encoder()],
     ['reservedRewardMultiplierBps', getU64Encoder()],
-    ['switchboardFeed', getAddressEncoder()],
+    ['reserveSwitchboardFeed', fixEncoderSize(getBytesEncoder(), 32)],
     ['noFeedWeight', getU128Encoder()],
     ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
@@ -60,7 +65,7 @@ export function getStMintEntryDecoder(): Decoder<StMintEntry> {
     ['stMint', getAddressDecoder()],
     ['rewardMultiplierBps', getU64Decoder()],
     ['reservedRewardMultiplierBps', getU64Decoder()],
-    ['switchboardFeed', getAddressDecoder()],
+    ['reserveSwitchboardFeed', fixDecoderSize(getBytesDecoder(), 32)],
     ['noFeedWeight', getU128Decoder()],
     ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);

@@ -1,12 +1,7 @@
 #[cfg(test)]
 mod tests {
-
-    use std::str::FromStr;
-
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::constants::{
-        JITOSOL_SOL_FEED, JTO_SOL_FEED, MAX_OPERATORS, WEIGHT_PRECISION,
-    };
+    use jito_tip_router_core::constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION};
     use solana_sdk::{
         native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
@@ -23,16 +18,12 @@ mod tests {
         let mut restaking_client = fixture.restaking_program_client();
 
         const OPERATOR_COUNT: usize = 13;
-        let base_fee_wallet: Pubkey =
-            Pubkey::from_str("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF").unwrap();
-
-        tip_router_client.airdrop(&base_fee_wallet, 1.0).await?;
 
         let mints = vec![
-            (Keypair::new(), 20_000, Some(JITOSOL_SOL_FEED), None), // JitoSOL
-            (Keypair::new(), 10_000, Some(JTO_SOL_FEED), None),     // JTO
-            (Keypair::new(), 10_000, Some(JITOSOL_SOL_FEED), None), // BnSOL
-            (Keypair::new(), 7_000, None, Some(WEIGHT_PRECISION)),  // nSol
+            (Keypair::new(), 20_000, WEIGHT),          // JitoSOL
+            (Keypair::new(), 10_000, WEIGHT),          // JTO
+            (Keypair::new(), 10_000, WEIGHT),          // BnSOL
+            (Keypair::new(), 7_000, WEIGHT_PRECISION), // nSol
         ];
 
         let delegations = [
@@ -112,13 +103,12 @@ mod tests {
                 .await
                 .unwrap();
 
-            for (mint, reward_multiplier_bps, switchboard_feed, no_feed_weight) in mints.iter() {
+            for (mint, reward_multiplier_bps, no_feed_weight) in mints.iter() {
                 tip_router_client
                     .do_admin_register_st_mint(
                         ncn,
                         mint.pubkey(),
                         *reward_multiplier_bps as u64,
-                        *switchboard_feed,
                         *no_feed_weight,
                     )
                     .await?;
@@ -139,9 +129,7 @@ mod tests {
         }
 
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture
-            .add_switchboard_weights_for_test_ncn(&test_ncn)
-            .await?;
+        fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
 
         fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
         fixture
@@ -296,25 +284,20 @@ mod tests {
 mod fuzz_tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::constants::{
-        JITOSOL_SOL_FEED, JTO_SOL_FEED, MAX_OPERATORS, WEIGHT_PRECISION,
-    };
+    use jito_tip_router_core::constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION};
     use solana_sdk::{
-        native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
+        msg, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
-    use std::str::FromStr;
 
     struct MintConfig {
         keypair: Keypair,
         reward_multiplier: u64,
-        switchboard_feed: Option<Pubkey>,
-        no_feed_weight: Option<u128>,
+        no_feed_weight: u128,
         vault_count: usize,
     }
 
     struct SimConfig {
         operator_count: usize,
-        base_fee_wallet: Pubkey,
         mints: Vec<MintConfig>,
         delegations: Vec<u64>,
         operator_fee_bps: u16,
@@ -329,10 +312,6 @@ mod fuzz_tests {
 
         let total_vaults = config.mints.iter().map(|m| m.vault_count).sum::<usize>();
         assert_eq!(config.delegations.len(), total_vaults);
-
-        tip_router_client
-            .airdrop(&config.base_fee_wallet, 1.0)
-            .await?;
 
         // Setup NCN
         let mut test_ncn = fixture.create_test_ncn().await?;
@@ -422,7 +401,6 @@ mod fuzz_tests {
                         ncn,
                         mint_config.keypair.pubkey(),
                         mint_config.reward_multiplier,
-                        mint_config.switchboard_feed,
                         mint_config.no_feed_weight,
                     )
                     .await?;
@@ -443,9 +421,7 @@ mod fuzz_tests {
         }
 
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture
-            .add_switchboard_weights_for_test_ncn(&test_ncn)
-            .await?;
+        fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
 
         {
             let epoch = fixture.clock().await.epoch;
@@ -556,39 +532,31 @@ mod fuzz_tests {
     #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_basic_simulation() -> TestResult<()> {
-        let base_fee_wallet =
-            Pubkey::from_str("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF").unwrap();
-
         let config = SimConfig {
             operator_count: 13,
-            base_fee_wallet,
             mints: vec![
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 20_000,
-                    switchboard_feed: Some(JITOSOL_SOL_FEED),
-                    no_feed_weight: None,
+                    no_feed_weight: WEIGHT,
                     vault_count: 3,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 10_000,
-                    switchboard_feed: Some(JTO_SOL_FEED),
-                    no_feed_weight: None,
+                    no_feed_weight: WEIGHT,
                     vault_count: 2,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 10_000,
-                    switchboard_feed: Some(JITOSOL_SOL_FEED),
-                    no_feed_weight: None,
+                    no_feed_weight: WEIGHT,
                     vault_count: 1,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 7_000,
-                    switchboard_feed: None,
-                    no_feed_weight: Some(WEIGHT_PRECISION),
+                    no_feed_weight: WEIGHT_PRECISION,
                     vault_count: 1,
                 },
             ],
@@ -611,17 +579,12 @@ mod fuzz_tests {
     #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_high_operator_count_simulation() -> TestResult<()> {
-        let base_fee_wallet =
-            Pubkey::from_str("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF").unwrap();
-
         let config = SimConfig {
             operator_count: 50,
-            base_fee_wallet,
             mints: vec![MintConfig {
                 keypair: Keypair::new(),
                 reward_multiplier: 20_000,
-                switchboard_feed: Some(JITOSOL_SOL_FEED),
-                no_feed_weight: None,
+                no_feed_weight: WEIGHT,
                 vault_count: 2,
             }],
             delegations: vec![sol_to_lamports(1000.0), sol_to_lamports(1000.0)],
@@ -634,28 +597,22 @@ mod fuzz_tests {
     #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_fuzz_simulation() -> TestResult<()> {
-        let base_fee_wallet =
-            Pubkey::from_str("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF").unwrap();
-
         // Create multiple test configurations with different parameters
         let test_configs = vec![
             // Test varying operator counts
             SimConfig {
                 operator_count: 15, // Mid-size operator set
-                base_fee_wallet,
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 15_000,
-                        switchboard_feed: Some(JITOSOL_SOL_FEED),
-                        no_feed_weight: None,
+                        no_feed_weight: WEIGHT,
                         vault_count: 2,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 12_000,
-                        switchboard_feed: Some(JTO_SOL_FEED),
-                        no_feed_weight: None,
+                        no_feed_weight: WEIGHT,
                         vault_count: 1,
                     },
                 ],
@@ -669,12 +626,10 @@ mod fuzz_tests {
             // Test extreme delegation amounts
             SimConfig {
                 operator_count: 20,
-                base_fee_wallet,
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 25_000,
-                    switchboard_feed: None,
-                    no_feed_weight: Some(2 * WEIGHT_PRECISION),
+                    no_feed_weight: 2 * WEIGHT_PRECISION,
                     vault_count: 3,
                 }],
                 delegations: vec![
@@ -687,27 +642,23 @@ mod fuzz_tests {
             // Test mixed fee groups and feeds
             SimConfig {
                 operator_count: 30,
-                base_fee_wallet,
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 18_000,
-                        switchboard_feed: Some(JITOSOL_SOL_FEED),
-                        no_feed_weight: None,
+                        no_feed_weight: WEIGHT,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 8_000,
-                        switchboard_feed: Some(JTO_SOL_FEED),
-                        no_feed_weight: None,
+                        no_feed_weight: WEIGHT,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 5_000,
-                        switchboard_feed: None,
-                        no_feed_weight: Some(WEIGHT_PRECISION / 2),
+                        no_feed_weight: WEIGHT_PRECISION / 2,
                         vault_count: 1,
                     },
                 ],

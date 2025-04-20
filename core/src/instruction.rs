@@ -96,15 +96,6 @@ pub enum TipRouterInstruction {
         epoch: u64,
     },
 
-    // Sets the weight table for a given epoch
-    #[account(0, writable, name = "epoch_state")]
-    #[account(1, name = "ncn")]
-    #[account(2, writable, name = "weight_table")]
-    #[account(3, name = "switchboard_feed")]
-    SwitchboardSetWeight{
-        st_mint: Pubkey,
-        epoch: u64,
-    },
 
 
     /// Initializes the Epoch Snapshot
@@ -293,7 +284,6 @@ pub enum TipRouterInstruction {
     #[account(4, signer, writable, name = "admin")]
     AdminRegisterStMint{
         reward_multiplier_bps: u64,
-        switchboard_feed: Option<Pubkey>,
         no_feed_weight: Option<u128>,
     },
 
@@ -305,7 +295,6 @@ pub enum TipRouterInstruction {
     AdminSetStMint{
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        switchboard_feed: Option<Pubkey>,
         no_feed_weight: Option<u128>,
     },
 }

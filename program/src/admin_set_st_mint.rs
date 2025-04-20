@@ -12,7 +12,6 @@ pub fn process_admin_set_st_mint(
     accounts: &[AccountInfo],
     st_mint: &Pubkey,
     reward_multiplier_bps: Option<u64>,
-    switchboard_feed: Option<Pubkey>,
     no_feed_weight: Option<u128>,
 ) -> ProgramResult {
     let [config, ncn, vault_registry, admin] = accounts else {
@@ -39,12 +38,7 @@ pub fn process_admin_set_st_mint(
     let vault_registry_account =
         VaultRegistry::try_from_slice_unchecked_mut(&mut vault_registry_data)?;
 
-    vault_registry_account.set_st_mint(
-        st_mint,
-        reward_multiplier_bps,
-        switchboard_feed,
-        no_feed_weight,
-    )?;
+    vault_registry_account.set_st_mint(st_mint, reward_multiplier_bps, no_feed_weight)?;
 
     Ok(())
 }

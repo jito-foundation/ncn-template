@@ -13,7 +13,6 @@ use jito_tip_router_client::{
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocEpochStateBuilder,
         ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
         RegisterVaultBuilder, SetMerkleRootBuilder, SnapshotVaultOperatorDelegationBuilder,
-        SwitchboardSetWeightBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -468,52 +467,6 @@ impl TipRouterClient {
         .await
     }
 
-    pub async fn do_switchboard_set_weight(
-        &mut self,
-        ncn: Pubkey,
-        epoch: u64,
-        st_mint: Pubkey,
-    ) -> TestResult<()> {
-        let vault_registry = self.get_vault_registry(ncn).await?;
-
-        let mint_entry = vault_registry.get_mint_entry(&st_mint)?;
-        let switchboard_feed = mint_entry.switchboard_feed();
-
-        self.switchboard_set_weight(ncn, epoch, st_mint, *switchboard_feed)
-            .await
-    }
-
-    pub async fn switchboard_set_weight(
-        &mut self,
-        ncn: Pubkey,
-        epoch: u64,
-        st_mint: Pubkey,
-        switchboard_feed: Pubkey,
-    ) -> TestResult<()> {
-        let weight_table =
-            WeightTable::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
-        let epoch_state =
-            EpochState::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
-
-        let ix = SwitchboardSetWeightBuilder::new()
-            .epoch_state(epoch_state)
-            .ncn(ncn)
-            .weight_table(weight_table)
-            .st_mint(st_mint)
-            .switchboard_feed(switchboard_feed)
-            .epoch(epoch)
-            .instruction();
-
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        self.process_transaction(&Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&self.payer.pubkey()),
-            &[&self.payer],
-            blockhash,
-        ))
-        .await
-    }
-
     pub async fn do_full_initialize_vault_registry(&mut self, ncn: Pubkey) -> TestResult<()> {
         self.do_initialize_vault_registry(ncn).await?;
         let num_reallocs = (WeightTable::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
@@ -645,8 +598,7 @@ impl TipRouterClient {
         ncn: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: u64,
-        switchboard_feed: Option<Pubkey>,
-        no_feed_weight: Option<u128>,
+        no_feed_weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
             VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -663,7 +615,6 @@ impl TipRouterClient {
             admin,
             st_mint,
             reward_multiplier_bps,
-            switchboard_feed,
             no_feed_weight,
         )
         .await
@@ -678,8 +629,7 @@ impl TipRouterClient {
         admin: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: u64,
-        switchboard_feed: Option<Pubkey>,
-        no_feed_weight: Option<u128>,
+        no_feed_weight: u128,
     ) -> TestResult<()> {
         let ix = {
             let mut builder = AdminRegisterStMintBuilder::new();
@@ -689,15 +639,8 @@ impl TipRouterClient {
                 .vault_registry(vault_registry)
                 .admin(admin)
                 .st_mint(st_mint)
-                .reward_multiplier_bps(reward_multiplier_bps);
-
-            if let Some(switchboard_feed) = switchboard_feed {
-                builder.switchboard_feed(switchboard_feed);
-            }
-
-            if let Some(no_feed_weight) = no_feed_weight {
-                builder.no_feed_weight(no_feed_weight);
-            }
+                .reward_multiplier_bps(reward_multiplier_bps)
+                .no_feed_weight(no_feed_weight);
 
             builder.instruction()
         };
@@ -717,8 +660,7 @@ impl TipRouterClient {
         ncn: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        switchboard_feed: Option<Pubkey>,
-        no_feed_weight: Option<u128>,
+        no_feed_weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
             VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -735,7 +677,6 @@ impl TipRouterClient {
             admin,
             st_mint,
             reward_multiplier_bps,
-            switchboard_feed,
             no_feed_weight,
         )
         .await
@@ -750,8 +691,7 @@ impl TipRouterClient {
         admin: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        switchboard_feed: Option<Pubkey>,
-        no_feed_weight: Option<u128>,
+        no_feed_weight: u128,
     ) -> TestResult<()> {
         let ix = {
             let mut builder = AdminSetStMintBuilder::new();
@@ -760,18 +700,11 @@ impl TipRouterClient {
                 .ncn(ncn)
                 .vault_registry(vault_registry)
                 .admin(admin)
-                .st_mint(st_mint);
+                .st_mint(st_mint)
+                .no_feed_weight(no_feed_weight);
 
             if let Some(reward_multiplier_bps) = reward_multiplier_bps {
                 builder.reward_multiplier_bps(reward_multiplier_bps);
-            }
-
-            if let Some(switchboard_feed) = switchboard_feed {
-                builder.switchboard_feed(switchboard_feed);
-            }
-
-            if let Some(no_feed_weight) = no_feed_weight {
-                builder.no_feed_weight(no_feed_weight);
             }
 
             builder.instruction()

@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_weight_entry_new() {
         let mint = Pubkey::new_unique();
-        let mint_entry = StMintEntry::new(&mint, 0, &Pubkey::new_unique(), 0);
+        let mint_entry = StMintEntry::new(&mint, 0, 0);
         let weight_entry = WeightEntry::new(&mint_entry);
 
         assert_eq!(*weight_entry.st_mint(), mint);
@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn test_precise_weight() {
         let mint = Pubkey::new_unique();
-        let mint_entry = StMintEntry::new(&mint, 0, &Pubkey::new_unique(), 0);
+        let mint_entry = StMintEntry::new(&mint, 0, 0);
         let mut weight_entry = WeightEntry::new(&mint_entry);
 
         // Test 1: Zero weight should convert successfully

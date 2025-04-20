@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::constants::JTO_SOL_FEED;
+    use jito_tip_router_core::constants::WEIGHT;
     use solana_sdk::{signature::Keypair, signer::Signer};
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
@@ -55,13 +55,7 @@ mod tests {
 
         // Register ST Mint
         tip_router_client
-            .do_admin_register_st_mint(
-                ncn_root.ncn_pubkey,
-                st_mint,
-                10_000,
-                Some(JTO_SOL_FEED),
-                None,
-            )
+            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, 10_000, WEIGHT)
             .await?;
 
         // Register mint
@@ -152,13 +146,7 @@ mod tests {
 
         // Register ST Mint
         tip_router_client
-            .do_admin_register_st_mint(
-                ncn_root.ncn_pubkey,
-                st_mint,
-                10_000,
-                Some(JTO_SOL_FEED),
-                None,
-            )
+            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, 10_000, WEIGHT)
             .await?;
 
         // Register mint first time

@@ -160,7 +160,6 @@ pub enum ProgramCommand {
     /// Crank Functions
     CrankUpdateAllVaults {},
     CrankRegisterVaults {},
-    CrankSetWeight {},
     CrankSnapshot {},
     CrankCloseEpochAccounts {},
 
@@ -188,8 +187,6 @@ pub enum ProgramCommand {
             help = "Reward multiplier in basis points"
         )]
         reward_multiplier_bps: u64,
-        #[arg(long, help = "Switchboard feed address")]
-        switchboard_feed: Option<String>,
         #[arg(long, help = "Weight when no feed is available")]
         no_feed_weight: Option<u128>,
     },
@@ -235,16 +232,6 @@ pub enum ProgramCommand {
     CreateEpochState,
 
     CreateWeightTable,
-
-    CrankSwitchboard {
-        #[arg(long, help = "Switchboard feed address")]
-        switchboard_feed: String,
-    },
-
-    SetWeight {
-        #[arg(long, help = "Vault address")]
-        vault: String,
-    },
 
     CreateEpochSnapshot,
 

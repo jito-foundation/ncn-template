@@ -35,7 +35,7 @@ use jito_tip_router_client::{
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocEpochStateBuilder,
         ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
-        RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder, SwitchboardSetWeightBuilder,
+        RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -43,7 +43,7 @@ use jito_tip_router_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
     config::Config as TipRouterConfig,
-    constants::{MAX_REALLOC_BYTES, SWITCHBOARD_QUEUE},
+    constants::{MAX_REALLOC_BYTES, WEIGHT},
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
@@ -68,7 +68,6 @@ use log::info;
 use solana_client::rpc_config::RpcSendTransactionConfig;
 
 use solana_sdk::{
-    clock::DEFAULT_SLOTS_PER_EPOCH,
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
     native_token::sol_to_lamports,
@@ -82,7 +81,6 @@ use solana_sdk::{
     transaction::Transaction,
 };
 use spl_associated_token_account::get_associated_token_address;
-use switchboard_on_demand_client::{CrossbarClient, FetchUpdateParams, PullFeed, QueueAccountData};
 use tokio::time::sleep;
 
 // --------------------- ADMIN ------------------------------
@@ -149,7 +147,6 @@ pub async fn admin_register_st_mint(
     handler: &CliHandler,
     vault: &Pubkey,
     reward_multiplier_bps: u64,
-    switchboard_feed: Option<Pubkey>,
     no_feed_weight: Option<u128>,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
@@ -174,10 +171,6 @@ pub async fn admin_register_st_mint(
         .st_mint(vault_account.supported_mint)
         .reward_multiplier_bps(reward_multiplier_bps);
 
-    if let Some(switchboard_feed) = switchboard_feed {
-        register_st_mint_builder.switchboard_feed(switchboard_feed);
-    }
-
     if let Some(no_feed_weight) = no_feed_weight {
         register_st_mint_builder.no_feed_weight(no_feed_weight);
     }
@@ -193,10 +186,6 @@ pub async fn admin_register_st_mint(
             format!("NCN: {:?}", ncn),
             format!("ST Mint: {:?}", vault_account.supported_mint),
             format!("Reward Multiplier BPS: {:?}", reward_multiplier_bps),
-            format!(
-                "Switchboard Feed: {:?}",
-                switchboard_feed.unwrap_or_default()
-            ),
             format!("No Feed Weight: {:?}", no_feed_weight.unwrap_or_default()),
         ],
     )
@@ -673,130 +662,6 @@ pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()>
             format!("NCN: {:?}", ncn),
             format!("Epoch: {:?}", epoch),
             format!("Number of reallocations: {:?}", num_reallocs),
-        ],
-    )
-    .await?;
-
-    Ok(())
-}
-
-pub async fn crank_switchboard(handler: &CliHandler, switchboard_feed: &Pubkey) -> Result<()> {
-    async fn wait_for_x_slots_after_epoch(handler: &CliHandler, slots: u64) -> Result<()> {
-        loop {
-            let current_slot = handler.rpc_client().get_slot().await?;
-            if current_slot % DEFAULT_SLOTS_PER_EPOCH > slots {
-                break;
-            }
-            sleep(Duration::from_millis(500)).await;
-        }
-        Ok(())
-    }
-
-    let client = handler.rpc_client();
-    let switchboard_context = handler.switchboard_context();
-    let payer = handler.keypair()?;
-
-    if switchboard_feed.eq(&Pubkey::default()) {
-        return Ok(());
-    }
-
-    wait_for_x_slots_after_epoch(handler, 400).await?;
-
-    // STATIC PUBKEY
-    let queue_key = SWITCHBOARD_QUEUE;
-
-    let queue = QueueAccountData::load(client, &queue_key).await?;
-    let gateways = &queue.fetch_gateways(client).await?;
-    if gateways.is_empty() {
-        return Err(anyhow!("No gateways found"));
-    }
-
-    let gw = &gateways[0];
-    let crossbar = CrossbarClient::default();
-    let (ix, _, _, _) = PullFeed::fetch_update_ix(
-        switchboard_context.clone(),
-        client,
-        FetchUpdateParams {
-            feed: *switchboard_feed,
-            payer: payer.pubkey(),
-            gateway: gw.clone(),
-            crossbar: Some(crossbar),
-            ..Default::default()
-        },
-    )
-    .await?;
-
-    send_and_log_transaction(
-        handler,
-        &[
-            ComputeBudgetInstruction::set_compute_unit_limit(1_400_000),
-            ix,
-        ],
-        &[],
-        "Crank Switchboard",
-        &[format!("FEED: {:?}", switchboard_feed)],
-    )
-    .await?;
-
-    Ok(())
-}
-
-pub async fn set_weight(handler: &CliHandler, vault: &Pubkey, epoch: u64) -> Result<()> {
-    let vault_account = get_vault(handler, vault).await?;
-
-    set_weight_with_st_mint(handler, &vault_account.supported_mint, epoch).await
-}
-
-pub async fn set_weight_with_st_mint(
-    handler: &CliHandler,
-    st_mint: &Pubkey,
-    epoch: u64,
-) -> Result<()> {
-    let ncn = *handler.ncn()?;
-
-    let vault_registry = get_vault_registry(handler).await?;
-
-    let mint_entry = vault_registry.get_mint_entry(st_mint)?;
-    let switchboard_feed = mint_entry.switchboard_feed();
-
-    let (epoch_state, _, _) =
-        EpochState::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
-
-    let (weight_table, _, _) =
-        WeightTable::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
-
-    // Crank Switchboard
-    let result = crank_switchboard(handler, switchboard_feed).await;
-    if let Err(e) = result {
-        log::error!(
-            "\n\nFailed to crank switchboard - will need manual crank at {}\n\nError:\n{:?}\n",
-            format!(
-                "https://ondemand.switchboard.xyz/solana/mainnet/feed/{}",
-                switchboard_feed
-            ),
-            e
-        );
-    }
-
-    let set_weight_ix = SwitchboardSetWeightBuilder::new()
-        .ncn(ncn)
-        .weight_table(weight_table)
-        .epoch_state(epoch_state)
-        .st_mint(*st_mint)
-        .switchboard_feed(*switchboard_feed)
-        .epoch(epoch)
-        .instruction();
-
-    send_and_log_transaction(
-        handler,
-        &[set_weight_ix],
-        &[],
-        "Set Weight Using Switchboard Feed",
-        &[
-            format!("NCN: {:?}", ncn),
-            format!("Epoch: {:?}", epoch),
-            format!("ST Mint: {:?}", st_mint),
-            format!("Switchboard Feed: {:?}", switchboard_feed),
         ],
     )
     .await?;
@@ -1536,7 +1401,7 @@ pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
         .collect::<Vec<Pubkey>>();
 
     for st_mint in st_mints {
-        let result = set_weight_with_st_mint(handler, &st_mint, epoch).await;
+        let result = admin_set_weight_with_st_mint(handler, &st_mint, epoch, WEIGHT).await;
 
         if let Err(err) = result {
             log::error!(

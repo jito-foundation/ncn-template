@@ -29,4 +29,3 @@ export * from './reallocWeightTable';
 export * from './registerVault';
 export * from './setMerkleRoot';
 export * from './snapshotVaultOperatorDelegation';
-export * from './switchboardSetWeight';

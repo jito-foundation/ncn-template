@@ -11,7 +11,6 @@ pub fn process_admin_register_st_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     reward_multiplier_bps: u64,
-    switchboard_feed: Option<Pubkey>,
     no_feed_weight: Option<u128>,
 ) -> ProgramResult {
     let [config, ncn, st_mint, vault_registry, admin] = accounts else {
@@ -40,20 +39,9 @@ pub fn process_admin_register_st_mint(
     let vault_registry_account =
         VaultRegistry::try_from_slice_unchecked_mut(&mut vault_registry_data)?;
 
-    let switchboard_feed = switchboard_feed.unwrap_or_default();
     let no_feed_weight = no_feed_weight.unwrap_or_default();
 
-    if switchboard_feed.eq(&Pubkey::default()) && no_feed_weight == 0 {
-        msg!("Either switchboard feed or no feed weight must be set");
-        return Err(ProgramError::InvalidArgument);
-    }
-
-    vault_registry_account.register_st_mint(
-        st_mint.key,
-        reward_multiplier_bps,
-        &switchboard_feed,
-        no_feed_weight,
-    )?;
+    vault_registry_account.register_st_mint(st_mint.key, reward_multiplier_bps, no_feed_weight)?;
 
     Ok(())
 }

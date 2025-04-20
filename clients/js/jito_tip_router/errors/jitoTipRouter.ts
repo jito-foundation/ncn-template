@@ -156,46 +156,44 @@ export const JITO_TIP_ROUTER_ERROR__BAD_SWITCHBOARD_FEED = 0x223b; // 8763
 export const JITO_TIP_ROUTER_ERROR__BAD_SWITCHBOARD_VALUE = 0x223c; // 8764
 /** StaleSwitchboardFeed: Stale switchboard feed */
 export const JITO_TIP_ROUTER_ERROR__STALE_SWITCHBOARD_FEED = 0x223d; // 8765
-/** NoFeedWeightOrSwitchboardFeed: Weight entry needs either a feed or a no feed weight */
-export const JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_OR_SWITCHBOARD_FEED = 0x223e; // 8766
 /** RouterStillRouting: Router still routing */
-export const JITO_TIP_ROUTER_ERROR__ROUTER_STILL_ROUTING = 0x223f; // 8767
+export const JITO_TIP_ROUTER_ERROR__ROUTER_STILL_ROUTING = 0x223e; // 8766
 /** InvalidEpochsBeforeStall: Invalid epochs before stall */
-export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_STALL = 0x2240; // 8768
+export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_STALL = 0x223f; // 8767
 /** InvalidEpochsBeforeClose: Invalid epochs before accounts can close */
-export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_CLOSE = 0x2241; // 8769
+export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_CLOSE = 0x2240; // 8768
 /** InvalidSlotsAfterConsensus: Invalid slots after consensus */
-export const JITO_TIP_ROUTER_ERROR__INVALID_SLOTS_AFTER_CONSENSUS = 0x2242; // 8770
+export const JITO_TIP_ROUTER_ERROR__INVALID_SLOTS_AFTER_CONSENSUS = 0x2241; // 8769
 /** VaultNeedsUpdate: Vault needs to be updated */
-export const JITO_TIP_ROUTER_ERROR__VAULT_NEEDS_UPDATE = 0x2243; // 8771
+export const JITO_TIP_ROUTER_ERROR__VAULT_NEEDS_UPDATE = 0x2242; // 8770
 /** InvalidAccountStatus: Invalid Account Status */
-export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_STATUS = 0x2244; // 8772
+export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_STATUS = 0x2243; // 8771
 /** AccountAlreadyInitialized: Account already initialized */
-export const JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED = 0x2245; // 8773
+export const JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED = 0x2244; // 8772
 /** BadBallot: Cannot vote with uninitialized account */
-export const JITO_TIP_ROUTER_ERROR__BAD_BALLOT = 0x2246; // 8774
+export const JITO_TIP_ROUTER_ERROR__BAD_BALLOT = 0x2245; // 8773
 /** VotingIsNotOver: Cannot route until voting is over */
-export const JITO_TIP_ROUTER_ERROR__VOTING_IS_NOT_OVER = 0x2247; // 8775
+export const JITO_TIP_ROUTER_ERROR__VOTING_IS_NOT_OVER = 0x2246; // 8774
 /** OperatorIsNotInSnapshot: Operator is not in snapshot */
-export const JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT = 0x2248; // 8776
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT = 0x2247; // 8775
 /** InvalidAccountToCloseDiscriminator: Invalid account_to_close Discriminator */
-export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR = 0x2249; // 8777
+export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR = 0x2248; // 8776
 /** CannotCloseAccount: Cannot close account */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT = 0x224a; // 8778
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT = 0x2249; // 8777
 /** CannotCloseAccountAlreadyClosed: Cannot close account - Already closed */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x224b; // 8779
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x224a; // 8778
 /** CannotCloseAccountNotEnoughEpochs: Cannot close account - Not enough epochs have passed since consensus reached */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x224c; // 8780
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x224b; // 8779
 /** CannotCloseAccountNoReceiverProvided: Cannot close account - No receiver provided */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x224d; // 8781
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x224c; // 8780
 /** CannotCloseEpochStateAccount: Cannot close epoch state account - Epoch state needs all other accounts to be closed first */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224e; // 8782
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224d; // 8781
 /** InvalidDaoWallet: Invalid DAO wallet */
-export const JITO_TIP_ROUTER_ERROR__INVALID_DAO_WALLET = 0x224f; // 8783
+export const JITO_TIP_ROUTER_ERROR__INVALID_DAO_WALLET = 0x224e; // 8782
 /** EpochIsClosingDown: Epoch is closing down */
-export const JITO_TIP_ROUTER_ERROR__EPOCH_IS_CLOSING_DOWN = 0x2250; // 8784
+export const JITO_TIP_ROUTER_ERROR__EPOCH_IS_CLOSING_DOWN = 0x224f; // 8783
 /** MarkerExists: Marker exists */
-export const JITO_TIP_ROUTER_ERROR__MARKER_EXISTS = 0x2251; // 8785
+export const JITO_TIP_ROUTER_ERROR__MARKER_EXISTS = 0x2250; // 8784
 
 export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED
@@ -253,7 +251,6 @@ export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND
   | typeof JITO_TIP_ROUTER_ERROR__NEW_PRECISE_NUMBER_ERROR
   | typeof JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_NOT_SET
-  | typeof JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_OR_SWITCHBOARD_FEED
   | typeof JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE
   | typeof JITO_TIP_ROUTER_ERROR__NO_OPERATORS
   | typeof JITO_TIP_ROUTER_ERROR__NO_REWARDS
@@ -348,7 +345,6 @@ if (process.env.NODE_ENV !== 'production') {
     [JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND]: `Ncn reward route not found`,
     [JITO_TIP_ROUTER_ERROR__NEW_PRECISE_NUMBER_ERROR]: `New precise number error`,
     [JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_NOT_SET]: `No Feed Weight not set`,
-    [JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_OR_SWITCHBOARD_FEED]: `Weight entry needs either a feed or a no feed weight`,
     [JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE]: `There are no mints in the table`,
     [JITO_TIP_ROUTER_ERROR__NO_OPERATORS]: `No operators in ncn`,
     [JITO_TIP_ROUTER_ERROR__NO_REWARDS]: `No rewards to distribute`,

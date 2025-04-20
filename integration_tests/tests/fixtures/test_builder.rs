@@ -7,7 +7,7 @@ use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use jito_tip_distribution_sdk::jito_tip_distribution;
 use jito_tip_router_core::{
     ballot_box::BallotBox,
-    constants::{JITOSOL_MINT, JTO_SOL_FEED},
+    constants::{JITOSOL_MINT, WEIGHT},
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     weight_table::WeightTable,
@@ -505,7 +505,7 @@ impl TestBuilder {
                 NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
 
             tip_router_client
-                .do_admin_register_st_mint(ncn, st_mint, 10_000, Some(JTO_SOL_FEED), None)
+                .do_admin_register_st_mint(ncn, st_mint, 10_000, WEIGHT)
                 .await?;
 
             tip_router_client
@@ -553,9 +553,6 @@ impl TestBuilder {
     // 6a. Admin Set weights
     pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut tip_router_client = self.tip_router_client();
-        let mut vault_client = self.vault_program_client();
-
-        const WEIGHT: u128 = 100;
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
@@ -563,37 +560,7 @@ impl TestBuilder {
             .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
-        for vault_root in test_ncn.vaults.iter() {
-            let vault = vault_client.get_vault(&vault_root.vault_pubkey).await?;
-
-            let st_mint = vault.supported_mint;
-
-            tip_router_client
-                .do_admin_set_weight(test_ncn.ncn_root.ncn_pubkey, epoch, st_mint, WEIGHT)
-                .await?;
-        }
-
-        Ok(())
-    }
-
-    // 6b. Switchboard Set weights
-    pub async fn add_switchboard_weights_for_test_ncn(
-        &mut self,
-        test_ncn: &TestNcn,
-    ) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
-
-        // Not sure if this is needed
-        self.warp_slot_incremental(1000).await?;
-
         let ncn = test_ncn.ncn_root.ncn_pubkey;
-
-        let clock = self.clock().await;
-        let epoch = clock.epoch;
-        tip_router_client
-            .do_full_initialize_weight_table(ncn, epoch)
-            .await?;
-
         let vault_registry = tip_router_client.get_vault_registry(ncn).await?;
 
         for entry in vault_registry.st_mint_list {
@@ -603,7 +570,7 @@ impl TestBuilder {
 
             let st_mint = entry.st_mint();
             tip_router_client
-                .do_switchboard_set_weight(ncn, epoch, *st_mint)
+                .do_admin_set_weight(test_ncn.ncn_root.ncn_pubkey, epoch, *st_mint, WEIGHT)
                 .await?;
         }
 

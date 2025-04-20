@@ -1,5 +1,5 @@
 #![allow(clippy::integer_division)]
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     args::{Args, ProgramCommand},
@@ -14,11 +14,10 @@ use crate::{
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
         admin_set_parameters, admin_set_weight, crank_close_epoch_accounts, crank_register_vaults,
-        crank_set_weight, crank_snapshot, crank_switchboard, create_and_add_test_operator,
-        create_and_add_test_vault, create_ballot_box, create_epoch_snapshot, create_epoch_state,
-        create_operator_snapshot, create_test_ncn, create_vault_registry, create_weight_table,
-        full_vault_update, register_vault, set_weight, snapshot_vault_operator_delegation,
-        update_all_vaults_in_network,
+        crank_snapshot, create_and_add_test_operator, create_and_add_test_vault, create_ballot_box,
+        create_epoch_snapshot, create_epoch_state, create_operator_snapshot, create_test_ncn,
+        create_vault_registry, create_weight_table, full_vault_update, register_vault,
+        snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
     keeper::keeper_loop::startup_keeper,
 };
@@ -38,7 +37,6 @@ use solana_sdk::{
     pubkey::Pubkey,
     signature::{read_keypair_file, Keypair},
 };
-use switchboard_on_demand_client::SbContext;
 
 pub struct CliHandler {
     pub rpc_url: String,
@@ -52,7 +50,6 @@ pub struct CliHandler {
     ncn: Option<Pubkey>,
     pub epoch: u64,
     rpc_client: RpcClient,
-    switchboard_context: Arc<SbContext>,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
 }
@@ -87,8 +84,6 @@ impl CliHandler {
 
         let rpc_client = RpcClient::new_with_commitment(rpc_url.clone(), commitment);
 
-        let switchboard_context = SbContext::new();
-
         let mut handler = Self {
             rpc_url,
             commitment,
@@ -99,7 +94,6 @@ impl CliHandler {
             tip_distribution_program_id,
             token_program_id,
             ncn,
-            switchboard_context,
             epoch: u64::MAX,
             rpc_client,
             retries: args.transaction_retries,
@@ -153,10 +147,6 @@ impl CliHandler {
         Ok(config)
     }
 
-    pub const fn switchboard_context(&self) -> &Arc<SbContext> {
-        &self.switchboard_context
-    }
-
     pub fn keypair(&self) -> Result<&Keypair> {
         self.keypair.as_ref().ok_or_else(|| anyhow!("No keypair"))
     }
@@ -198,7 +188,6 @@ impl CliHandler {
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
 
-            ProgramCommand::CrankSetWeight {} => crank_set_weight(self, self.epoch).await,
             ProgramCommand::CrankSnapshot {} => crank_snapshot(self, self.epoch).await,
             ProgramCommand::CrankCloseEpochAccounts {} => {
                 crank_close_epoch_accounts(self, self.epoch).await
@@ -225,20 +214,10 @@ impl CliHandler {
             ProgramCommand::AdminRegisterStMint {
                 vault,
                 reward_multiplier_bps,
-                switchboard_feed,
                 no_feed_weight,
             } => {
                 let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-                let switchboard = switchboard_feed
-                    .map(|s| Pubkey::from_str(&s).expect("error parsing switchboard feed"));
-                admin_register_st_mint(
-                    self,
-                    &vault,
-                    reward_multiplier_bps,
-                    switchboard,
-                    no_feed_weight,
-                )
-                .await
+                admin_register_st_mint(self, &vault, reward_multiplier_bps, no_feed_weight).await
             }
             ProgramCommand::AdminSetWeight { vault, weight } => {
                 let vault = Pubkey::from_str(&vault).expect("error parsing vault");
@@ -300,15 +279,6 @@ impl CliHandler {
             ProgramCommand::CreateEpochState {} => create_epoch_state(self, self.epoch).await,
 
             ProgramCommand::CreateWeightTable {} => create_weight_table(self, self.epoch).await,
-            ProgramCommand::CrankSwitchboard { switchboard_feed } => {
-                let switchboard_feed =
-                    Pubkey::from_str(&switchboard_feed).expect("error parsing switchboard feed");
-                crank_switchboard(self, &switchboard_feed).await
-            }
-            ProgramCommand::SetWeight { vault } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-                set_weight(self, &vault, self.epoch).await
-            }
 
             ProgramCommand::CreateEpochSnapshot {} => create_epoch_snapshot(self, self.epoch).await,
             ProgramCommand::CreateOperatorSnapshot { operator } => {

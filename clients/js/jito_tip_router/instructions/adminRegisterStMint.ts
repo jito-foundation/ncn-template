@@ -8,8 +8,6 @@
 
 import {
   combineCodec,
-  getAddressDecoder,
-  getAddressEncoder,
   getOptionDecoder,
   getOptionEncoder,
   getStructDecoder,
@@ -40,7 +38,7 @@ import {
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_REGISTER_ST_MINT_DISCRIMINATOR = 22;
+export const ADMIN_REGISTER_ST_MINT_DISCRIMINATOR = 21;
 
 export function getAdminRegisterStMintDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_REGISTER_ST_MINT_DISCRIMINATOR);
@@ -79,13 +77,11 @@ export type AdminRegisterStMintInstruction<
 export type AdminRegisterStMintInstructionData = {
   discriminator: number;
   rewardMultiplierBps: bigint;
-  switchboardFeed: Option<Address>;
   noFeedWeight: Option<bigint>;
 };
 
 export type AdminRegisterStMintInstructionDataArgs = {
   rewardMultiplierBps: number | bigint;
-  switchboardFeed: OptionOrNullable<Address>;
   noFeedWeight: OptionOrNullable<number | bigint>;
 };
 
@@ -94,7 +90,6 @@ export function getAdminRegisterStMintInstructionDataEncoder(): Encoder<AdminReg
     getStructEncoder([
       ['discriminator', getU8Encoder()],
       ['rewardMultiplierBps', getU64Encoder()],
-      ['switchboardFeed', getOptionEncoder(getAddressEncoder())],
       ['noFeedWeight', getOptionEncoder(getU128Encoder())],
     ]),
     (value) => ({
@@ -108,7 +103,6 @@ export function getAdminRegisterStMintInstructionDataDecoder(): Decoder<AdminReg
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['rewardMultiplierBps', getU64Decoder()],
-    ['switchboardFeed', getOptionDecoder(getAddressDecoder())],
     ['noFeedWeight', getOptionDecoder(getU128Decoder())],
   ]);
 }
@@ -136,7 +130,6 @@ export type AdminRegisterStMintInput<
   vaultRegistry: Address<TAccountVaultRegistry>;
   admin: TransactionSigner<TAccountAdmin>;
   rewardMultiplierBps: AdminRegisterStMintInstructionDataArgs['rewardMultiplierBps'];
-  switchboardFeed: AdminRegisterStMintInstructionDataArgs['switchboardFeed'];
   noFeedWeight: AdminRegisterStMintInstructionDataArgs['noFeedWeight'];
 };
 

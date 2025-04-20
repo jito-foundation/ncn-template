@@ -68,7 +68,7 @@ pub struct AdminSetStMintInstructionData {
 
 impl AdminSetStMintInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 23 }
+        Self { discriminator: 22 }
     }
 }
 
@@ -83,7 +83,6 @@ impl Default for AdminSetStMintInstructionData {
 pub struct AdminSetStMintInstructionArgs {
     pub st_mint: Pubkey,
     pub reward_multiplier_bps: Option<u64>,
-    pub switchboard_feed: Option<Pubkey>,
     pub no_feed_weight: Option<u128>,
 }
 
@@ -103,7 +102,6 @@ pub struct AdminSetStMintBuilder {
     admin: Option<solana_program::pubkey::Pubkey>,
     st_mint: Option<Pubkey>,
     reward_multiplier_bps: Option<u64>,
-    switchboard_feed: Option<Pubkey>,
     no_feed_weight: Option<u128>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -145,12 +143,6 @@ impl AdminSetStMintBuilder {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn switchboard_feed(&mut self, switchboard_feed: Pubkey) -> &mut Self {
-        self.switchboard_feed = Some(switchboard_feed);
-        self
-    }
-    /// `[optional argument]`
-    #[inline(always)]
     pub fn no_feed_weight(&mut self, no_feed_weight: u128) -> &mut Self {
         self.no_feed_weight = Some(no_feed_weight);
         self
@@ -184,7 +176,6 @@ impl AdminSetStMintBuilder {
         let args = AdminSetStMintInstructionArgs {
             st_mint: self.st_mint.clone().expect("st_mint is not set"),
             reward_multiplier_bps: self.reward_multiplier_bps.clone(),
-            switchboard_feed: self.switchboard_feed.clone(),
             no_feed_weight: self.no_feed_weight.clone(),
         };
 
@@ -341,7 +332,6 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
             admin: None,
             st_mint: None,
             reward_multiplier_bps: None,
-            switchboard_feed: None,
             no_feed_weight: None,
             __remaining_accounts: Vec::new(),
         });
@@ -382,12 +372,6 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn reward_multiplier_bps(&mut self, reward_multiplier_bps: u64) -> &mut Self {
         self.instruction.reward_multiplier_bps = Some(reward_multiplier_bps);
-        self
-    }
-    /// `[optional argument]`
-    #[inline(always)]
-    pub fn switchboard_feed(&mut self, switchboard_feed: Pubkey) -> &mut Self {
-        self.instruction.switchboard_feed = Some(switchboard_feed);
         self
     }
     /// `[optional argument]`
@@ -444,7 +428,6 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
                 .clone()
                 .expect("st_mint is not set"),
             reward_multiplier_bps: self.instruction.reward_multiplier_bps.clone(),
-            switchboard_feed: self.instruction.switchboard_feed.clone(),
             no_feed_weight: self.instruction.no_feed_weight.clone(),
         };
         let instruction = AdminSetStMintCpi {
@@ -478,7 +461,6 @@ struct AdminSetStMintCpiBuilderInstruction<'a, 'b> {
     admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     st_mint: Option<Pubkey>,
     reward_multiplier_bps: Option<u64>,
-    switchboard_feed: Option<Pubkey>,
     no_feed_weight: Option<u128>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

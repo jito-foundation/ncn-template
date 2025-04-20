@@ -18,4 +18,3 @@ mod set_new_admin;
 mod set_tie_breaker;
 mod simulation_tests;
 mod snapshot_vault_operator_delegation;
-mod switchboard_set_weight;

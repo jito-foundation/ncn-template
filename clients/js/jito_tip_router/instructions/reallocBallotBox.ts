@@ -29,7 +29,7 @@ import {
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const REALLOC_BALLOT_BOX_DISCRIMINATOR = 14;
+export const REALLOC_BALLOT_BOX_DISCRIMINATOR = 13;
 
 export function getReallocBallotBoxDiscriminatorBytes() {
   return getU8Encoder().encode(REALLOC_BALLOT_BOX_DISCRIMINATOR);

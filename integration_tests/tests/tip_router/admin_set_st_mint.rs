@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use jito_tip_router_core::constants::JITOSOL_SOL_FEED;
+    use jito_tip_router_core::constants::WEIGHT;
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
@@ -24,17 +24,10 @@ mod tests {
             .await?;
         let st_mint = vault.supported_mint;
         let reward_multiplier_bps = Some(10);
-        let switchboard_feed = Some(JITOSOL_SOL_FEED);
-        let no_feed_weight = Some(100);
+        let no_feed_weight = WEIGHT;
 
         tip_router_client
-            .do_admin_set_st_mint(
-                ncn,
-                st_mint,
-                reward_multiplier_bps,
-                switchboard_feed,
-                no_feed_weight,
-            )
+            .do_admin_set_st_mint(ncn, st_mint, reward_multiplier_bps, no_feed_weight)
             .await?;
 
         let vault_registry = tip_router_client.get_vault_registry(ncn).await?;
@@ -46,11 +39,10 @@ mod tests {
             mint_entry.reward_multiplier_bps(),
             reward_multiplier_bps.unwrap()
         );
-        assert_eq!(*mint_entry.switchboard_feed(), switchboard_feed.unwrap());
-        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight.unwrap());
+        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight);
 
         tip_router_client
-            .do_admin_set_st_mint(ncn, st_mint, None, None, None)
+            .do_admin_set_st_mint(ncn, st_mint, None, no_feed_weight)
             .await?;
 
         let mint_entry = vault_registry.get_mint_entry(&st_mint).unwrap();
@@ -60,8 +52,7 @@ mod tests {
             mint_entry.reward_multiplier_bps(),
             reward_multiplier_bps.unwrap()
         );
-        assert_eq!(*mint_entry.switchboard_feed(), switchboard_feed.unwrap());
-        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight.unwrap());
+        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight);
 
         Ok(())
     }

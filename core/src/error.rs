@@ -147,8 +147,6 @@ pub enum TipRouterError {
     BadSwitchboardValue,
     #[error("Stale switchboard feed")]
     StaleSwitchboardFeed,
-    #[error("Weight entry needs either a feed or a no feed weight")]
-    NoFeedWeightOrSwitchboardFeed,
     #[error("Router still routing")]
     RouterStillRouting,
     #[error("Invalid epochs before stall")]

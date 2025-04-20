@@ -351,11 +351,6 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
             ("current-slot", current_slot, i64),
             ("st-mint", st_mint.st_mint().to_string(), String),
             (
-                "switchboard-feed",
-                st_mint.switchboard_feed().to_string(),
-                String
-            ),
-            (
                 "no-feed-weight",
                 st_mint.no_feed_weight().to_string(),
                 String

@@ -346,45 +346,6 @@
       }
     },
     {
-      "name": "SwitchboardSetWeight",
-      "accounts": [
-        {
-          "name": "epochState",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "ncn",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "weightTable",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "switchboardFeed",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "stMint",
-          "type": "publicKey"
-        },
-        {
-          "name": "epoch",
-          "type": "u64"
-        }
-      ],
-      "discriminant": {
-        "type": "u8",
-        "value": 8
-      }
-    },
-    {
       "name": "InitializeEpochSnapshot",
       "accounts": [
         {
@@ -436,7 +397,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 9
+        "value": 8
       }
     },
     {
@@ -501,7 +462,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 10
+        "value": 9
       }
     },
     {
@@ -566,7 +527,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 11
+        "value": 10
       }
     },
     {
@@ -641,7 +602,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 12
+        "value": 11
       }
     },
     {
@@ -691,7 +652,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 13
+        "value": 12
       }
     },
     {
@@ -736,7 +697,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 14
+        "value": 13
       }
     },
     {
@@ -800,7 +761,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 15
+        "value": 14
       }
     },
     {
@@ -883,7 +844,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 16
+        "value": 15
       }
     },
     {
@@ -933,7 +894,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 17
+        "value": 16
       }
     },
     {
@@ -983,7 +944,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 18
+        "value": 17
       }
     },
     {
@@ -1020,7 +981,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 18
       }
     },
     {
@@ -1069,7 +1030,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 19
       }
     },
     {
@@ -1112,7 +1073,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 20
       }
     },
     {
@@ -1150,12 +1111,6 @@
           "type": "u64"
         },
         {
-          "name": "switchboardFeed",
-          "type": {
-            "option": "publicKey"
-          }
-        },
-        {
           "name": "noFeedWeight",
           "type": {
             "option": "u128"
@@ -1164,7 +1119,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 22
+        "value": 21
       }
     },
     {
@@ -1203,12 +1158,6 @@
           }
         },
         {
-          "name": "switchboardFeed",
-          "type": {
-            "option": "publicKey"
-          }
-        },
-        {
           "name": "noFeedWeight",
           "type": {
             "option": "u128"
@@ -1217,7 +1166,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 23
+        "value": 22
       }
     }
   ],
@@ -2077,8 +2026,13 @@
             }
           },
           {
-            "name": "switchboardFeed",
-            "type": "publicKey"
+            "name": "reserveSwitchboardFeed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "noFeedWeight",
@@ -2546,101 +2500,96 @@
     },
     {
       "code": 8766,
-      "name": "NoFeedWeightOrSwitchboardFeed",
-      "msg": "Weight entry needs either a feed or a no feed weight"
-    },
-    {
-      "code": 8767,
       "name": "RouterStillRouting",
       "msg": "Router still routing"
     },
     {
-      "code": 8768,
+      "code": 8767,
       "name": "InvalidEpochsBeforeStall",
       "msg": "Invalid epochs before stall"
     },
     {
-      "code": 8769,
+      "code": 8768,
       "name": "InvalidEpochsBeforeClose",
       "msg": "Invalid epochs before accounts can close"
     },
     {
-      "code": 8770,
+      "code": 8769,
       "name": "InvalidSlotsAfterConsensus",
       "msg": "Invalid slots after consensus"
     },
     {
-      "code": 8771,
+      "code": 8770,
       "name": "VaultNeedsUpdate",
       "msg": "Vault needs to be updated"
     },
     {
-      "code": 8772,
+      "code": 8771,
       "name": "InvalidAccountStatus",
       "msg": "Invalid Account Status"
     },
     {
-      "code": 8773,
+      "code": 8772,
       "name": "AccountAlreadyInitialized",
       "msg": "Account already initialized"
     },
     {
-      "code": 8774,
+      "code": 8773,
       "name": "BadBallot",
       "msg": "Cannot vote with uninitialized account"
     },
     {
-      "code": 8775,
+      "code": 8774,
       "name": "VotingIsNotOver",
       "msg": "Cannot route until voting is over"
     },
     {
-      "code": 8776,
+      "code": 8775,
       "name": "OperatorIsNotInSnapshot",
       "msg": "Operator is not in snapshot"
     },
     {
-      "code": 8777,
+      "code": 8776,
       "name": "InvalidAccountToCloseDiscriminator",
       "msg": "Invalid account_to_close Discriminator"
     },
     {
-      "code": 8778,
+      "code": 8777,
       "name": "CannotCloseAccount",
       "msg": "Cannot close account"
     },
     {
-      "code": 8779,
+      "code": 8778,
       "name": "CannotCloseAccountAlreadyClosed",
       "msg": "Cannot close account - Already closed"
     },
     {
-      "code": 8780,
+      "code": 8779,
       "name": "CannotCloseAccountNotEnoughEpochs",
       "msg": "Cannot close account - Not enough epochs have passed since consensus reached"
     },
     {
-      "code": 8781,
+      "code": 8780,
       "name": "CannotCloseAccountNoReceiverProvided",
       "msg": "Cannot close account - No receiver provided"
     },
     {
-      "code": 8782,
+      "code": 8781,
       "name": "CannotCloseEpochStateAccount",
       "msg": "Cannot close epoch state account - Epoch state needs all other accounts to be closed first"
     },
     {
-      "code": 8783,
+      "code": 8782,
       "name": "InvalidDaoWallet",
       "msg": "Invalid DAO wallet"
     },
     {
-      "code": 8784,
+      "code": 8783,
       "name": "EpochIsClosingDown",
       "msg": "Epoch is closing down"
     },
     {
-      "code": 8785,
+      "code": 8784,
       "name": "MarkerExists",
       "msg": "Marker exists"
     }
