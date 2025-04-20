@@ -89,7 +89,7 @@ impl Default for AdminRegisterStMintInstructionData {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AdminRegisterStMintInstructionArgs {
     pub reward_multiplier_bps: u64,
-    pub no_feed_weight: Option<u128>,
+    pub weight: Option<u128>,
 }
 
 /// Instruction builder for `AdminRegisterStMint`.
@@ -109,7 +109,7 @@ pub struct AdminRegisterStMintBuilder {
     vault_registry: Option<solana_program::pubkey::Pubkey>,
     admin: Option<solana_program::pubkey::Pubkey>,
     reward_multiplier_bps: Option<u64>,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -149,8 +149,8 @@ impl AdminRegisterStMintBuilder {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn no_feed_weight(&mut self, no_feed_weight: u128) -> &mut Self {
-        self.no_feed_weight = Some(no_feed_weight);
+    pub fn weight(&mut self, weight: u128) -> &mut Self {
+        self.weight = Some(weight);
         self
     }
     /// Add an additional account to the instruction.
@@ -185,7 +185,7 @@ impl AdminRegisterStMintBuilder {
                 .reward_multiplier_bps
                 .clone()
                 .expect("reward_multiplier_bps is not set"),
-            no_feed_weight: self.no_feed_weight.clone(),
+            weight: self.weight.clone(),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -354,7 +354,7 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
             vault_registry: None,
             admin: None,
             reward_multiplier_bps: None,
-            no_feed_weight: None,
+            weight: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -400,8 +400,8 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn no_feed_weight(&mut self, no_feed_weight: u128) -> &mut Self {
-        self.instruction.no_feed_weight = Some(no_feed_weight);
+    pub fn weight(&mut self, weight: u128) -> &mut Self {
+        self.instruction.weight = Some(weight);
         self
     }
     /// Add an additional account to the instruction.
@@ -451,7 +451,7 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
                 .reward_multiplier_bps
                 .clone()
                 .expect("reward_multiplier_bps is not set"),
-            no_feed_weight: self.instruction.no_feed_weight.clone(),
+            weight: self.instruction.weight.clone(),
         };
         let instruction = AdminRegisterStMintCpi {
             __program: self.instruction.__program,
@@ -486,7 +486,7 @@ struct AdminRegisterStMintCpiBuilderInstruction<'a, 'b> {
     vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     reward_multiplier_bps: Option<u64>,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

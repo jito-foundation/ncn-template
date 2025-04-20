@@ -208,9 +208,9 @@ pub enum JitoTipRouterError {
     /// 8760 - No rewards to distribute
     #[error("No rewards to distribute")]
     NoRewards = 0x2238,
-    /// 8761 - No Feed Weight not set
-    #[error("No Feed Weight not set")]
-    NoFeedWeightNotSet = 0x2239,
+    /// 8761 - Weight not set
+    #[error("Weight not set")]
+    WeightNotSet = 0x2239,
     /// 8762 - Switchboard not registered
     #[error("Switchboard not registered")]
     SwitchboardNotRegistered = 0x223A,

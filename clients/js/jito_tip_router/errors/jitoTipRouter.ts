@@ -146,8 +146,8 @@ export const JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND = 0x2236; // 8758
 export const JITO_TIP_ROUTER_ERROR__FEE_NOT_ACTIVE = 0x2237; // 8759
 /** NoRewards: No rewards to distribute */
 export const JITO_TIP_ROUTER_ERROR__NO_REWARDS = 0x2238; // 8760
-/** NoFeedWeightNotSet: No Feed Weight not set */
-export const JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_NOT_SET = 0x2239; // 8761
+/** WeightNotSet: Weight not set */
+export const JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_SET = 0x2239; // 8761
 /** SwitchboardNotRegistered: Switchboard not registered */
 export const JITO_TIP_ROUTER_ERROR__SWITCHBOARD_NOT_REGISTERED = 0x223a; // 8762
 /** BadSwitchboardFeed: Bad switchboard feed */
@@ -250,7 +250,6 @@ export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__MODULO_OVERFLOW
   | typeof JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND
   | typeof JITO_TIP_ROUTER_ERROR__NEW_PRECISE_NUMBER_ERROR
-  | typeof JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_NOT_SET
   | typeof JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE
   | typeof JITO_TIP_ROUTER_ERROR__NO_OPERATORS
   | typeof JITO_TIP_ROUTER_ERROR__NO_REWARDS
@@ -284,6 +283,7 @@ export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_MINTS_DO_NOT_MATCH_LENGTH
   | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_MINTS_DO_NOT_MATCH_MINT_HASH
   | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_FOUND
+  | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_SET
   | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_TABLE_ALREADY_INITIALIZED
   | typeof JITO_TIP_ROUTER_ERROR__WEIGHT_TABLE_NOT_FINALIZED;
 
@@ -344,7 +344,6 @@ if (process.env.NODE_ENV !== 'production') {
     [JITO_TIP_ROUTER_ERROR__MODULO_OVERFLOW]: `Modulo Overflow`,
     [JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND]: `Ncn reward route not found`,
     [JITO_TIP_ROUTER_ERROR__NEW_PRECISE_NUMBER_ERROR]: `New precise number error`,
-    [JITO_TIP_ROUTER_ERROR__NO_FEED_WEIGHT_NOT_SET]: `No Feed Weight not set`,
     [JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE]: `There are no mints in the table`,
     [JITO_TIP_ROUTER_ERROR__NO_OPERATORS]: `No operators in ncn`,
     [JITO_TIP_ROUTER_ERROR__NO_REWARDS]: `No rewards to distribute`,
@@ -378,6 +377,7 @@ if (process.env.NODE_ENV !== 'production') {
     [JITO_TIP_ROUTER_ERROR__WEIGHT_MINTS_DO_NOT_MATCH_LENGTH]: `Weight mints do not match - length`,
     [JITO_TIP_ROUTER_ERROR__WEIGHT_MINTS_DO_NOT_MATCH_MINT_HASH]: `Weight mints do not match - mint hash`,
     [JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_FOUND]: `Weight not found`,
+    [JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_SET]: `Weight not set`,
     [JITO_TIP_ROUTER_ERROR__WEIGHT_TABLE_ALREADY_INITIALIZED]: `Weight table already initialized`,
     [JITO_TIP_ROUTER_ERROR__WEIGHT_TABLE_NOT_FINALIZED]: `Weight table not finalized`,
   };

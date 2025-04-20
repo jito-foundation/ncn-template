@@ -11,7 +11,7 @@ pub fn process_admin_register_st_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     reward_multiplier_bps: u64,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
 ) -> ProgramResult {
     let [config, ncn, st_mint, vault_registry, admin] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
@@ -39,9 +39,9 @@ pub fn process_admin_register_st_mint(
     let vault_registry_account =
         VaultRegistry::try_from_slice_unchecked_mut(&mut vault_registry_data)?;
 
-    let no_feed_weight = no_feed_weight.unwrap_or_default();
+    let weight = weight.unwrap_or_default();
 
-    vault_registry_account.register_st_mint(st_mint.key, reward_multiplier_bps, no_feed_weight)?;
+    vault_registry_account.register_st_mint(st_mint.key, reward_multiplier_bps, weight)?;
 
     Ok(())
 }

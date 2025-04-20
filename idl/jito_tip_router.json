@@ -1111,7 +1111,7 @@
           "type": "u64"
         },
         {
-          "name": "noFeedWeight",
+          "name": "weight",
           "type": {
             "option": "u128"
           }
@@ -1158,7 +1158,7 @@
           }
         },
         {
-          "name": "noFeedWeight",
+          "name": "weight",
           "type": {
             "option": "u128"
           }
@@ -2035,7 +2035,7 @@
             }
           },
           {
-            "name": "noFeedWeight",
+            "name": "weight",
             "type": {
               "defined": "PodU128"
             }
@@ -2475,8 +2475,8 @@
     },
     {
       "code": 8761,
-      "name": "NoFeedWeightNotSet",
-      "msg": "No Feed Weight not set"
+      "name": "WeightNotSet",
+      "msg": "Weight not set"
     },
     {
       "code": 8762,

@@ -36,7 +36,7 @@ export type StMintEntry = {
   rewardMultiplierBps: bigint;
   reservedRewardMultiplierBps: bigint;
   reserveSwitchboardFeed: ReadonlyUint8Array;
-  noFeedWeight: bigint;
+  weight: bigint;
   reserved: Array<number>;
 };
 
@@ -45,7 +45,7 @@ export type StMintEntryArgs = {
   rewardMultiplierBps: number | bigint;
   reservedRewardMultiplierBps: number | bigint;
   reserveSwitchboardFeed: ReadonlyUint8Array;
-  noFeedWeight: number | bigint;
+  weight: number | bigint;
   reserved: Array<number>;
 };
 
@@ -55,7 +55,7 @@ export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
     ['rewardMultiplierBps', getU64Encoder()],
     ['reservedRewardMultiplierBps', getU64Encoder()],
     ['reserveSwitchboardFeed', fixEncoderSize(getBytesEncoder(), 32)],
-    ['noFeedWeight', getU128Encoder()],
+    ['weight', getU128Encoder()],
     ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
 }
@@ -66,7 +66,7 @@ export function getStMintEntryDecoder(): Decoder<StMintEntry> {
     ['rewardMultiplierBps', getU64Decoder()],
     ['reservedRewardMultiplierBps', getU64Decoder()],
     ['reserveSwitchboardFeed', fixDecoderSize(getBytesDecoder(), 32)],
-    ['noFeedWeight', getU128Decoder()],
+    ['weight', getU128Decoder()],
     ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);
 }

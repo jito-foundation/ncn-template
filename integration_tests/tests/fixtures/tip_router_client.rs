@@ -598,7 +598,7 @@ impl TipRouterClient {
         ncn: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: u64,
-        no_feed_weight: u128,
+        weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
             VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -615,7 +615,7 @@ impl TipRouterClient {
             admin,
             st_mint,
             reward_multiplier_bps,
-            no_feed_weight,
+            weight,
         )
         .await
     }
@@ -629,7 +629,7 @@ impl TipRouterClient {
         admin: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: u64,
-        no_feed_weight: u128,
+        weight: u128,
     ) -> TestResult<()> {
         let ix = {
             let mut builder = AdminRegisterStMintBuilder::new();
@@ -640,7 +640,7 @@ impl TipRouterClient {
                 .admin(admin)
                 .st_mint(st_mint)
                 .reward_multiplier_bps(reward_multiplier_bps)
-                .no_feed_weight(no_feed_weight);
+                .weight(weight);
 
             builder.instruction()
         };
@@ -660,7 +660,7 @@ impl TipRouterClient {
         ncn: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        no_feed_weight: u128,
+        weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
             VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -677,7 +677,7 @@ impl TipRouterClient {
             admin,
             st_mint,
             reward_multiplier_bps,
-            no_feed_weight,
+            weight,
         )
         .await
     }
@@ -691,7 +691,7 @@ impl TipRouterClient {
         admin: Pubkey,
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        no_feed_weight: u128,
+        weight: u128,
     ) -> TestResult<()> {
         let ix = {
             let mut builder = AdminSetStMintBuilder::new();
@@ -701,7 +701,7 @@ impl TipRouterClient {
                 .vault_registry(vault_registry)
                 .admin(admin)
                 .st_mint(st_mint)
-                .no_feed_weight(no_feed_weight);
+                .weight(weight);
 
             if let Some(reward_multiplier_bps) = reward_multiplier_bps {
                 builder.reward_multiplier_bps(reward_multiplier_bps);

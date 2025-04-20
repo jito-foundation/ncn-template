@@ -83,7 +83,7 @@ impl Default for AdminSetStMintInstructionData {
 pub struct AdminSetStMintInstructionArgs {
     pub st_mint: Pubkey,
     pub reward_multiplier_bps: Option<u64>,
-    pub no_feed_weight: Option<u128>,
+    pub weight: Option<u128>,
 }
 
 /// Instruction builder for `AdminSetStMint`.
@@ -102,7 +102,7 @@ pub struct AdminSetStMintBuilder {
     admin: Option<solana_program::pubkey::Pubkey>,
     st_mint: Option<Pubkey>,
     reward_multiplier_bps: Option<u64>,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -143,8 +143,8 @@ impl AdminSetStMintBuilder {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn no_feed_weight(&mut self, no_feed_weight: u128) -> &mut Self {
-        self.no_feed_weight = Some(no_feed_weight);
+    pub fn weight(&mut self, weight: u128) -> &mut Self {
+        self.weight = Some(weight);
         self
     }
     /// Add an additional account to the instruction.
@@ -176,7 +176,7 @@ impl AdminSetStMintBuilder {
         let args = AdminSetStMintInstructionArgs {
             st_mint: self.st_mint.clone().expect("st_mint is not set"),
             reward_multiplier_bps: self.reward_multiplier_bps.clone(),
-            no_feed_weight: self.no_feed_weight.clone(),
+            weight: self.weight.clone(),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -332,7 +332,7 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
             admin: None,
             st_mint: None,
             reward_multiplier_bps: None,
-            no_feed_weight: None,
+            weight: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -376,8 +376,8 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn no_feed_weight(&mut self, no_feed_weight: u128) -> &mut Self {
-        self.instruction.no_feed_weight = Some(no_feed_weight);
+    pub fn weight(&mut self, weight: u128) -> &mut Self {
+        self.instruction.weight = Some(weight);
         self
     }
     /// Add an additional account to the instruction.
@@ -428,7 +428,7 @@ impl<'a, 'b> AdminSetStMintCpiBuilder<'a, 'b> {
                 .clone()
                 .expect("st_mint is not set"),
             reward_multiplier_bps: self.instruction.reward_multiplier_bps.clone(),
-            no_feed_weight: self.instruction.no_feed_weight.clone(),
+            weight: self.instruction.weight.clone(),
         };
         let instruction = AdminSetStMintCpi {
             __program: self.instruction.__program,
@@ -461,7 +461,7 @@ struct AdminSetStMintCpiBuilderInstruction<'a, 'b> {
     admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     st_mint: Option<Pubkey>,
     reward_multiplier_bps: Option<u64>,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

@@ -187,8 +187,8 @@ pub enum ProgramCommand {
             help = "Reward multiplier in basis points"
         )]
         reward_multiplier_bps: u64,
-        #[arg(long, help = "Weight when no feed is available")]
-        no_feed_weight: Option<u128>,
+        #[arg(long, help = "Weight")]
+        weight: Option<u128>,
     },
     AdminSetWeight {
         #[arg(long, help = "Vault address")]

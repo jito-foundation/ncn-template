@@ -21,10 +21,8 @@ This section covers:
 
 The pricing system ensures that all registered vaults and tokens within the Jito Tip Router NCN operate with accurate and transparent price data, fostering trust and efficiency in the ecosystem.
 
-
 ![alt text](/assets/images/pricing.png)
-*Figure: Overview of the Pricing
-
+\*Figure: Overview of the Pricing
 
 ## VaultRegistry
 
@@ -68,21 +66,17 @@ pub struct StMintEntry {
     /// The reward multiplier in basis points
     reward_multiplier_bps: PodU64,
 
-    /// Either a switchboard feed or a no feed weight must be set
-    /// The switchboard feed for the mint
-    switchboard_feed: Pubkey,
-
-    /// The weight when no feed is available
-    no_feed_weight: PodU128,
+    /// The weight
+    weight: PodU128,
 }
 ```
 
-This field enables the storage of an oracle feed for each underlying asset (supported token or ST) along with a backup price. The `reward_multiplier_bps` is used for mints that receive a multiplier on their relative reward amounts (for example, JitoSOL gets 2x the rewards of other LSTs). Initially, the mints permitted for vaults include **LSTs** and **JTO**. Prices will be quoted in SOL. 
+This field enables the storage of an oracle feed for each underlying asset (supported token or ST) along with a backup price. The `reward_multiplier_bps` is used for mints that receive a multiplier on their relative reward amounts (for example, JitoSOL gets 2x the rewards of other LSTs). Initially, the mints permitted for vaults include **LSTs** and **JTO**. Prices will be quoted in SOL.
 
 ### Register Vault (vault_list)
 
 Permissionless Cranker can register the vault which is associated with Jito Tip Router NCN.
-Before running `process_register_vault` instruction, both `NcnVaultTicket` and `VaultNcnTicket` accounts must be activated 
+Before running `process_register_vault` instruction, both `NcnVaultTicket` and `VaultNcnTicket` accounts must be activated
 
 ```rust
 pub struct VaultEntry {
@@ -99,7 +93,6 @@ pub struct VaultEntry {
     slot_registered: PodU64,
 }
 ```
-
 
 ## WeightTable
 
@@ -135,4 +128,3 @@ pub struct WeightEntry {
     slot_updated: PodU64,
 }
 ```
-

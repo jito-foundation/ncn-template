@@ -24,10 +24,10 @@ mod tests {
             .await?;
         let st_mint = vault.supported_mint;
         let reward_multiplier_bps = Some(10);
-        let no_feed_weight = WEIGHT;
+        let weight = WEIGHT;
 
         tip_router_client
-            .do_admin_set_st_mint(ncn, st_mint, reward_multiplier_bps, no_feed_weight)
+            .do_admin_set_st_mint(ncn, st_mint, reward_multiplier_bps, weight)
             .await?;
 
         let vault_registry = tip_router_client.get_vault_registry(ncn).await?;
@@ -39,10 +39,10 @@ mod tests {
             mint_entry.reward_multiplier_bps(),
             reward_multiplier_bps.unwrap()
         );
-        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight);
+        assert_eq!(mint_entry.weight(), weight);
 
         tip_router_client
-            .do_admin_set_st_mint(ncn, st_mint, None, no_feed_weight)
+            .do_admin_set_st_mint(ncn, st_mint, None, weight)
             .await?;
 
         let mint_entry = vault_registry.get_mint_entry(&st_mint).unwrap();
@@ -52,7 +52,7 @@ mod tests {
             mint_entry.reward_multiplier_bps(),
             reward_multiplier_bps.unwrap()
         );
-        assert_eq!(mint_entry.no_feed_weight(), no_feed_weight);
+        assert_eq!(mint_entry.weight(), weight);
 
         Ok(())
     }

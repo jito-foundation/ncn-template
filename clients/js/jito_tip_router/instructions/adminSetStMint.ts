@@ -76,13 +76,13 @@ export type AdminSetStMintInstructionData = {
   discriminator: number;
   stMint: Address;
   rewardMultiplierBps: Option<bigint>;
-  noFeedWeight: Option<bigint>;
+  weight: Option<bigint>;
 };
 
 export type AdminSetStMintInstructionDataArgs = {
   stMint: Address;
   rewardMultiplierBps: OptionOrNullable<number | bigint>;
-  noFeedWeight: OptionOrNullable<number | bigint>;
+  weight: OptionOrNullable<number | bigint>;
 };
 
 export function getAdminSetStMintInstructionDataEncoder(): Encoder<AdminSetStMintInstructionDataArgs> {
@@ -91,7 +91,7 @@ export function getAdminSetStMintInstructionDataEncoder(): Encoder<AdminSetStMin
       ['discriminator', getU8Encoder()],
       ['stMint', getAddressEncoder()],
       ['rewardMultiplierBps', getOptionEncoder(getU64Encoder())],
-      ['noFeedWeight', getOptionEncoder(getU128Encoder())],
+      ['weight', getOptionEncoder(getU128Encoder())],
     ]),
     (value) => ({ ...value, discriminator: ADMIN_SET_ST_MINT_DISCRIMINATOR })
   );
@@ -102,7 +102,7 @@ export function getAdminSetStMintInstructionDataDecoder(): Decoder<AdminSetStMin
     ['discriminator', getU8Decoder()],
     ['stMint', getAddressDecoder()],
     ['rewardMultiplierBps', getOptionDecoder(getU64Decoder())],
-    ['noFeedWeight', getOptionDecoder(getU128Decoder())],
+    ['weight', getOptionDecoder(getU128Decoder())],
   ]);
 }
 
@@ -128,7 +128,7 @@ export type AdminSetStMintInput<
   admin: TransactionSigner<TAccountAdmin>;
   stMint: AdminSetStMintInstructionDataArgs['stMint'];
   rewardMultiplierBps: AdminSetStMintInstructionDataArgs['rewardMultiplierBps'];
-  noFeedWeight: AdminSetStMintInstructionDataArgs['noFeedWeight'];
+  weight: AdminSetStMintInstructionDataArgs['weight'];
 };
 
 export function getAdminSetStMintInstruction<

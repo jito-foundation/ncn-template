@@ -284,7 +284,7 @@ pub enum TipRouterInstruction {
     #[account(4, signer, writable, name = "admin")]
     AdminRegisterStMint{
         reward_multiplier_bps: u64,
-        no_feed_weight: Option<u128>,
+        weight: Option<u128>,
     },
 
     /// Updates an ST mint in the Vault Registry
@@ -295,6 +295,6 @@ pub enum TipRouterInstruction {
     AdminSetStMint{
         st_mint: Pubkey,
         reward_multiplier_bps: Option<u64>,
-        no_feed_weight: Option<u128>,
+        weight: Option<u128>,
     },
 }

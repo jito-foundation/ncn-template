@@ -103,13 +103,13 @@ mod tests {
                 .await
                 .unwrap();
 
-            for (mint, reward_multiplier_bps, no_feed_weight) in mints.iter() {
+            for (mint, reward_multiplier_bps, weight) in mints.iter() {
                 tip_router_client
                     .do_admin_register_st_mint(
                         ncn,
                         mint.pubkey(),
                         *reward_multiplier_bps as u64,
-                        *no_feed_weight,
+                        *weight,
                     )
                     .await?;
             }
@@ -286,13 +286,13 @@ mod fuzz_tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
     use jito_tip_router_core::constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION};
     use solana_sdk::{
-        msg, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
+        native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
 
     struct MintConfig {
         keypair: Keypair,
         reward_multiplier: u64,
-        no_feed_weight: u128,
+        weight: u128,
         vault_count: usize,
     }
 
@@ -401,7 +401,7 @@ mod fuzz_tests {
                         ncn,
                         mint_config.keypair.pubkey(),
                         mint_config.reward_multiplier,
-                        mint_config.no_feed_weight,
+                        mint_config.weight,
                     )
                     .await?;
             }
@@ -538,25 +538,25 @@ mod fuzz_tests {
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 20_000,
-                    no_feed_weight: WEIGHT,
+                    weight: WEIGHT,
                     vault_count: 3,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 10_000,
-                    no_feed_weight: WEIGHT,
+                    weight: WEIGHT,
                     vault_count: 2,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 10_000,
-                    no_feed_weight: WEIGHT,
+                    weight: WEIGHT,
                     vault_count: 1,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 7_000,
-                    no_feed_weight: WEIGHT_PRECISION,
+                    weight: WEIGHT_PRECISION,
                     vault_count: 1,
                 },
             ],
@@ -584,7 +584,7 @@ mod fuzz_tests {
             mints: vec![MintConfig {
                 keypair: Keypair::new(),
                 reward_multiplier: 20_000,
-                no_feed_weight: WEIGHT,
+                weight: WEIGHT,
                 vault_count: 2,
             }],
             delegations: vec![sol_to_lamports(1000.0), sol_to_lamports(1000.0)],
@@ -606,13 +606,13 @@ mod fuzz_tests {
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 15_000,
-                        no_feed_weight: WEIGHT,
+                        weight: WEIGHT,
                         vault_count: 2,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 12_000,
-                        no_feed_weight: WEIGHT,
+                        weight: WEIGHT,
                         vault_count: 1,
                     },
                 ],
@@ -629,7 +629,7 @@ mod fuzz_tests {
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
                     reward_multiplier: 25_000,
-                    no_feed_weight: 2 * WEIGHT_PRECISION,
+                    weight: 2 * WEIGHT_PRECISION,
                     vault_count: 3,
                 }],
                 delegations: vec![
@@ -646,19 +646,19 @@ mod fuzz_tests {
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 18_000,
-                        no_feed_weight: WEIGHT,
+                        weight: WEIGHT,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 8_000,
-                        no_feed_weight: WEIGHT,
+                        weight: WEIGHT * 2,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
                         reward_multiplier: 5_000,
-                        no_feed_weight: WEIGHT_PRECISION / 2,
+                        weight: WEIGHT_PRECISION / 2,
                         vault_count: 1,
                     },
                 ],

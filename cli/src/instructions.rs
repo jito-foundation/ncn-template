@@ -147,7 +147,7 @@ pub async fn admin_register_st_mint(
     handler: &CliHandler,
     vault: &Pubkey,
     reward_multiplier_bps: u64,
-    no_feed_weight: Option<u128>,
+    weight: Option<u128>,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
 
@@ -171,8 +171,8 @@ pub async fn admin_register_st_mint(
         .st_mint(vault_account.supported_mint)
         .reward_multiplier_bps(reward_multiplier_bps);
 
-    if let Some(no_feed_weight) = no_feed_weight {
-        register_st_mint_builder.no_feed_weight(no_feed_weight);
+    if let Some(weight) = weight {
+        register_st_mint_builder.weight(weight);
     }
 
     let register_st_mint_ix = register_st_mint_builder.instruction();
@@ -186,7 +186,7 @@ pub async fn admin_register_st_mint(
             format!("NCN: {:?}", ncn),
             format!("ST Mint: {:?}", vault_account.supported_mint),
             format!("Reward Multiplier BPS: {:?}", reward_multiplier_bps),
-            format!("No Feed Weight: {:?}", no_feed_weight.unwrap_or_default()),
+            format!("Weight: {:?}", weight.unwrap_or_default()),
         ],
     )
     .await?;

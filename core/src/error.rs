@@ -137,8 +137,8 @@ pub enum TipRouterError {
     FeeNotActive,
     #[error("No rewards to distribute")]
     NoRewards,
-    #[error("No Feed Weight not set")]
-    NoFeedWeightNotSet,
+    #[error("Weight not set")]
+    WeightNotSet,
     #[error("Switchboard not registered")]
     SwitchboardNotRegistered,
     #[error("Bad switchboard feed")]

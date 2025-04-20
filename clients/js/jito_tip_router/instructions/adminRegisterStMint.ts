@@ -77,12 +77,12 @@ export type AdminRegisterStMintInstruction<
 export type AdminRegisterStMintInstructionData = {
   discriminator: number;
   rewardMultiplierBps: bigint;
-  noFeedWeight: Option<bigint>;
+  weight: Option<bigint>;
 };
 
 export type AdminRegisterStMintInstructionDataArgs = {
   rewardMultiplierBps: number | bigint;
-  noFeedWeight: OptionOrNullable<number | bigint>;
+  weight: OptionOrNullable<number | bigint>;
 };
 
 export function getAdminRegisterStMintInstructionDataEncoder(): Encoder<AdminRegisterStMintInstructionDataArgs> {
@@ -90,7 +90,7 @@ export function getAdminRegisterStMintInstructionDataEncoder(): Encoder<AdminReg
     getStructEncoder([
       ['discriminator', getU8Encoder()],
       ['rewardMultiplierBps', getU64Encoder()],
-      ['noFeedWeight', getOptionEncoder(getU128Encoder())],
+      ['weight', getOptionEncoder(getU128Encoder())],
     ]),
     (value) => ({
       ...value,
@@ -103,7 +103,7 @@ export function getAdminRegisterStMintInstructionDataDecoder(): Decoder<AdminReg
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['rewardMultiplierBps', getU64Decoder()],
-    ['noFeedWeight', getOptionDecoder(getU128Decoder())],
+    ['weight', getOptionDecoder(getU128Decoder())],
   ]);
 }
 
@@ -130,7 +130,7 @@ export type AdminRegisterStMintInput<
   vaultRegistry: Address<TAccountVaultRegistry>;
   admin: TransactionSigner<TAccountAdmin>;
   rewardMultiplierBps: AdminRegisterStMintInstructionDataArgs['rewardMultiplierBps'];
-  noFeedWeight: AdminRegisterStMintInstructionDataArgs['noFeedWeight'];
+  weight: AdminRegisterStMintInstructionDataArgs['weight'];
 };
 
 export function getAdminRegisterStMintInstruction<
