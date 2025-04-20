@@ -283,7 +283,6 @@ pub enum TipRouterInstruction {
     #[account(3, writable, name = "vault_registry")]
     #[account(4, signer, writable, name = "admin")]
     AdminRegisterStMint{
-        reward_multiplier_bps: u64,
         weight: Option<u128>,
     },
 
@@ -294,7 +293,6 @@ pub enum TipRouterInstruction {
     #[account(3, signer, writable, name = "admin")]
     AdminSetStMint{
         st_mint: Pubkey,
-        reward_multiplier_bps: Option<u64>,
         weight: Option<u128>,
     },
 }

@@ -597,7 +597,6 @@ impl TipRouterClient {
         &mut self,
         ncn: Pubkey,
         st_mint: Pubkey,
-        reward_multiplier_bps: u64,
         weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
@@ -608,16 +607,8 @@ impl TipRouterClient {
 
         let admin = self.payer.pubkey();
 
-        self.admin_register_st_mint(
-            ncn,
-            ncn_config,
-            vault_registry,
-            admin,
-            st_mint,
-            reward_multiplier_bps,
-            weight,
-        )
-        .await
+        self.admin_register_st_mint(ncn, ncn_config, vault_registry, admin, st_mint, weight)
+            .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -628,7 +619,6 @@ impl TipRouterClient {
         vault_registry: Pubkey,
         admin: Pubkey,
         st_mint: Pubkey,
-        reward_multiplier_bps: u64,
         weight: u128,
     ) -> TestResult<()> {
         let ix = {
@@ -639,7 +629,6 @@ impl TipRouterClient {
                 .vault_registry(vault_registry)
                 .admin(admin)
                 .st_mint(st_mint)
-                .reward_multiplier_bps(reward_multiplier_bps)
                 .weight(weight);
 
             builder.instruction()
@@ -659,7 +648,6 @@ impl TipRouterClient {
         &mut self,
         ncn: Pubkey,
         st_mint: Pubkey,
-        reward_multiplier_bps: Option<u64>,
         weight: u128,
     ) -> TestResult<()> {
         let vault_registry =
@@ -670,16 +658,8 @@ impl TipRouterClient {
 
         let admin = self.payer.pubkey();
 
-        self.admin_set_st_mint(
-            ncn,
-            ncn_config,
-            vault_registry,
-            admin,
-            st_mint,
-            reward_multiplier_bps,
-            weight,
-        )
-        .await
+        self.admin_set_st_mint(ncn, ncn_config, vault_registry, admin, st_mint, weight)
+            .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -690,7 +670,6 @@ impl TipRouterClient {
         vault_registry: Pubkey,
         admin: Pubkey,
         st_mint: Pubkey,
-        reward_multiplier_bps: Option<u64>,
         weight: u128,
     ) -> TestResult<()> {
         let ix = {
@@ -702,10 +681,6 @@ impl TipRouterClient {
                 .admin(admin)
                 .st_mint(st_mint)
                 .weight(weight);
-
-            if let Some(reward_multiplier_bps) = reward_multiplier_bps {
-                builder.reward_multiplier_bps(reward_multiplier_bps);
-            }
 
             builder.instruction()
         };

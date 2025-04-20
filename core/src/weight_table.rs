@@ -350,7 +350,7 @@ mod tests {
         let mut mints = [StMintEntry::default(); MAX_ST_MINTS];
 
         for i in 0..count {
-            mints[i] = StMintEntry::new(&Pubkey::new_unique(), 0, 0);
+            mints[i] = StMintEntry::new(&Pubkey::new_unique(), 0);
         }
 
         mints

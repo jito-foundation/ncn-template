@@ -146,7 +146,6 @@ pub async fn admin_create_config(
 pub async fn admin_register_st_mint(
     handler: &CliHandler,
     vault: &Pubkey,
-    reward_multiplier_bps: u64,
     weight: Option<u128>,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
@@ -168,8 +167,7 @@ pub async fn admin_register_st_mint(
         .admin(keypair.pubkey())
         .vault_registry(vault_registry)
         .ncn(ncn)
-        .st_mint(vault_account.supported_mint)
-        .reward_multiplier_bps(reward_multiplier_bps);
+        .st_mint(vault_account.supported_mint);
 
     if let Some(weight) = weight {
         register_st_mint_builder.weight(weight);
@@ -185,7 +183,6 @@ pub async fn admin_register_st_mint(
         &[
             format!("NCN: {:?}", ncn),
             format!("ST Mint: {:?}", vault_account.supported_mint),
-            format!("Reward Multiplier BPS: {:?}", reward_multiplier_bps),
             format!("Weight: {:?}", weight.unwrap_or_default()),
         ],
     )

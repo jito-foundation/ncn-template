@@ -21,11 +21,11 @@ use crate::{
 pub struct StMintEntry {
     /// The supported token ( ST ) mint
     st_mint: Pubkey,
-    /// The reward multiplier in basis points
-    reward_multiplier_bps: PodU64,
 
     /// Reserved: The reward multiplier in basis points
-    reserved_reward_multiplier_bps: PodU64,
+    reserved_reward_multiplier_bps: [u8; 8],
+
+    reserved_ncn_fee_group: [u8; 1],
 
     // Either a switchboard feed or a weight must be set
     /// The switchboard feed for the mint
@@ -37,11 +37,11 @@ pub struct StMintEntry {
 }
 
 impl StMintEntry {
-    pub fn new(st_mint: &Pubkey, reward_multiplier_bps: u64, weight: u128) -> Self {
+    pub fn new(st_mint: &Pubkey, weight: u128) -> Self {
         Self {
             st_mint: *st_mint,
-            reward_multiplier_bps: PodU64::from(reward_multiplier_bps),
-            reserved_reward_multiplier_bps: PodU64::from(0),
+            reserved_reward_multiplier_bps: [0; 8],
+            reserved_ncn_fee_group: [0; 1],
             reserve_switchboard_feed: [0; 32],
             weight: PodU128::from(weight),
             reserved: [0; 128],
@@ -56,10 +56,6 @@ impl StMintEntry {
         &self.st_mint
     }
 
-    pub fn reward_multiplier_bps(&self) -> u64 {
-        self.reward_multiplier_bps.into()
-    }
-
     pub fn is_empty(&self) -> bool {
         self.st_mint().eq(&Pubkey::default())
     }
@@ -67,7 +63,7 @@ impl StMintEntry {
 
 impl Default for StMintEntry {
     fn default() -> Self {
-        Self::new(&Pubkey::default(), 0, 0)
+        Self::new(&Pubkey::default(), 0)
     }
 }
 
@@ -216,12 +212,7 @@ impl VaultRegistry {
         Ok(())
     }
 
-    pub fn register_st_mint(
-        &mut self,
-        st_mint: &Pubkey,
-        reward_multiplier_bps: u64,
-        weight: u128,
-    ) -> Result<(), ProgramError> {
+    pub fn register_st_mint(&mut self, st_mint: &Pubkey, weight: u128) -> Result<(), ProgramError> {
         // Check if mint is already in the list
         if self.st_mint_list.iter().any(|m| m.st_mint.eq(st_mint)) {
             return Err(TipRouterError::MintInTable.into());
@@ -234,7 +225,7 @@ impl VaultRegistry {
             .find(|m| m.st_mint == StMintEntry::default().st_mint)
             .ok_or(TipRouterError::VaultRegistryListFull)?;
 
-        let new_mint_entry = StMintEntry::new(st_mint, reward_multiplier_bps, weight);
+        let new_mint_entry = StMintEntry::new(st_mint, weight);
 
         Self::check_st_mint_entry(&new_mint_entry)?;
 
@@ -246,7 +237,6 @@ impl VaultRegistry {
     pub fn set_st_mint(
         &mut self,
         st_mint: &Pubkey,
-        reward_multiplier_bps: Option<u64>,
         weight: Option<u128>,
     ) -> Result<(), ProgramError> {
         let mint_entry = self
@@ -256,10 +246,6 @@ impl VaultRegistry {
             .ok_or(TipRouterError::MintEntryNotFound)?;
 
         let mut updated_mint_entry = *mint_entry;
-
-        if let Some(reward_multiplier_bps) = reward_multiplier_bps {
-            updated_mint_entry.reward_multiplier_bps = PodU64::from(reward_multiplier_bps);
-        }
 
         if let Some(weight) = weight {
             updated_mint_entry.weight = PodU128::from(weight);
@@ -346,8 +332,7 @@ impl fmt::Display for VaultRegistry {
         writeln!(f, "  ST Mints:                     ")?;
         for mint in self.get_valid_mint_entries() {
             writeln!(f, "    Mint:                       {}", mint.st_mint())?;
-            writeln!(f, "      Reward Multiplier:        {}", mint.reward_multiplier_bps())?;
-            writeln!(f, "      Weight:                   {}\n", mint.weight())?;
+            writeln!(f, "    Weight:                     {}\n", mint.weight())?;
         }
         writeln!(f, "  Vaults:                     ")?;
         for vault in self.get_valid_vault_entries() {
@@ -391,46 +376,39 @@ mod tests {
 
         // Test 1: Initial registration should succeed
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 0);
-        vault_registry
-            .register_st_mint(&mint, 1000, WEIGHT)
-            .unwrap();
+        vault_registry.register_st_mint(&mint, WEIGHT).unwrap();
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 1);
 
         // Test 2: Trying to add the same mint should fail
-        let result = vault_registry.register_st_mint(&mint, 1000, WEIGHT);
+        let result = vault_registry.register_st_mint(&mint, WEIGHT);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 1);
 
         // Test 3: Adding a different mint should succeed
         let mint2 = Pubkey::new_unique();
-        vault_registry
-            .register_st_mint(&mint2, 1000, WEIGHT)
-            .unwrap();
+        vault_registry.register_st_mint(&mint2, WEIGHT).unwrap();
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 2);
 
         // Test 4: Verify mint entry data is stored correctly
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.st_mint(), &mint);
-        assert_eq!(entry.reward_multiplier_bps(), 1000);
         assert_eq!(entry.weight(), WEIGHT);
 
         // Test 5: Adding a mint with weight 0 should fail
         let mint3 = Pubkey::new_unique();
-        let result = vault_registry.register_st_mint(&mint3, 1000, 0);
+        let result = vault_registry.register_st_mint(&mint3, 0);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), 2);
 
         // Test 6: Fill up the mint list
         for _ in 2..MAX_ST_MINTS {
             let new_mint = Pubkey::new_unique();
-            vault_registry
-                .register_st_mint(&new_mint, 1000, WEIGHT)
-                .unwrap();
+            vault_registry.register_st_mint(&new_mint, WEIGHT).unwrap();
         }
 
         // Test 7: Attempting to add to a full list should fail
         let overflow_mint = Pubkey::new_unique();
-        let result = vault_registry.register_st_mint(&overflow_mint, 1000, WEIGHT);
+        let result = vault_registry.register_st_mint(&overflow_mint, WEIGHT);
         assert!(result.is_err());
         assert_eq!(vault_registry.get_valid_mint_entries().len(), MAX_ST_MINTS);
 
@@ -443,7 +421,7 @@ mod tests {
         let mut fresh_registry = VaultRegistry::new(&Pubkey::default(), 0);
         let mint_with_weight = Pubkey::new_unique();
         fresh_registry
-            .register_st_mint(&mint_with_weight, 1000, WEIGHT)
+            .register_st_mint(&mint_with_weight, WEIGHT)
             .unwrap();
 
         let entry = fresh_registry.get_mint_entry(&mint_with_weight).unwrap();
@@ -456,51 +434,37 @@ mod tests {
         let mint = Pubkey::new_unique();
 
         // First register a mint to update
-        vault_registry
-            .register_st_mint(&mint, 1000, WEIGHT)
-            .unwrap();
+        vault_registry.register_st_mint(&mint, WEIGHT).unwrap();
 
         // Test 1: Verify initial state
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
         assert_eq!(entry.st_mint(), &mint);
-        assert_eq!(entry.reward_multiplier_bps(), 1000);
         assert_eq!(entry.weight(), WEIGHT);
 
-        // Test 3: Update reward_multiplier_bps only
-        vault_registry.set_st_mint(&mint, Some(2000), None).unwrap();
+        // Test 5: Update weight
+        vault_registry.set_st_mint(&mint, Some(100)).unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
-        assert_eq!(entry.reward_multiplier_bps(), 2000);
-        assert_eq!(entry.weight(), WEIGHT); // unchanged
-
-        // Test 5: Update weight only
-        vault_registry.set_st_mint(&mint, None, Some(100)).unwrap();
-        let entry = vault_registry.get_mint_entry(&mint).unwrap();
-        assert_eq!(entry.reward_multiplier_bps(), 2000); // unchanged
         assert_eq!(entry.weight(), 100);
 
         // Test 6: Update multiple fields at once
-        vault_registry
-            .set_st_mint(&mint, Some(3000), Some(200))
-            .unwrap();
+        vault_registry.set_st_mint(&mint, Some(200)).unwrap();
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
-        assert_eq!(entry.reward_multiplier_bps(), 3000);
         assert_eq!(entry.weight(), 200);
 
         // Test 7: Attempt to update non-existent mint
         let nonexistent_mint = Pubkey::new_unique();
-        let result = vault_registry.set_st_mint(&nonexistent_mint, None, None);
+        let result = vault_registry.set_st_mint(&nonexistent_mint, None);
         assert_eq!(
             result.unwrap_err(),
             ProgramError::from(TipRouterError::MintEntryNotFound)
         );
 
         // Test 8: Setting  weight to invalid values should fail
-        let result = vault_registry.set_st_mint(&mint, None, Some(0));
+        let result = vault_registry.set_st_mint(&mint, Some(0));
         assert!(result.is_err());
 
         // Test 9: Verify original values remain after failed update
         let entry = vault_registry.get_mint_entry(&mint).unwrap();
-        assert_eq!(entry.reward_multiplier_bps(), 3000);
         assert_eq!(entry.weight(), 200);
     }
 
@@ -523,10 +487,10 @@ mod tests {
 
         let mint1 = Pubkey::new_unique();
         let mint2 = Pubkey::new_unique();
-        vault_registry.register_st_mint(&mint1, 0, WEIGHT).unwrap();
-        vault_registry.register_st_mint(&mint2, 0, WEIGHT).unwrap();
+        vault_registry.register_st_mint(&mint1, WEIGHT).unwrap();
+        vault_registry.register_st_mint(&mint2, WEIGHT).unwrap();
 
-        let result = vault_registry.register_st_mint(&mint1, 0, WEIGHT);
+        let result = vault_registry.register_st_mint(&mint1, WEIGHT);
 
         assert!(result.is_err());
     }

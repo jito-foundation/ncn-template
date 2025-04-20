@@ -20,10 +20,10 @@ mod tests {
         const OPERATOR_COUNT: usize = 13;
 
         let mints = vec![
-            (Keypair::new(), 20_000, WEIGHT),          // JitoSOL
-            (Keypair::new(), 10_000, WEIGHT),          // JTO
-            (Keypair::new(), 10_000, WEIGHT),          // BnSOL
-            (Keypair::new(), 7_000, WEIGHT_PRECISION), // nSol
+            (Keypair::new(), WEIGHT),           // JitoSOL
+            (Keypair::new(), WEIGHT),           // JTO
+            (Keypair::new(), WEIGHT),           // BnSOL
+            (Keypair::new(), WEIGHT_PRECISION), // nSol
         ];
 
         let delegations = [
@@ -103,14 +103,9 @@ mod tests {
                 .await
                 .unwrap();
 
-            for (mint, reward_multiplier_bps, weight) in mints.iter() {
+            for (mint, weight) in mints.iter() {
                 tip_router_client
-                    .do_admin_register_st_mint(
-                        ncn,
-                        mint.pubkey(),
-                        *reward_multiplier_bps as u64,
-                        *weight,
-                    )
+                    .do_admin_register_st_mint(ncn, mint.pubkey(), *weight)
                     .await?;
             }
 
@@ -291,7 +286,6 @@ mod fuzz_tests {
 
     struct MintConfig {
         keypair: Keypair,
-        reward_multiplier: u64,
         weight: u128,
         vault_count: usize,
     }
@@ -400,7 +394,6 @@ mod fuzz_tests {
                     .do_admin_register_st_mint(
                         ncn,
                         mint_config.keypair.pubkey(),
-                        mint_config.reward_multiplier,
                         mint_config.weight,
                     )
                     .await?;
@@ -537,25 +530,21 @@ mod fuzz_tests {
             mints: vec![
                 MintConfig {
                     keypair: Keypair::new(),
-                    reward_multiplier: 20_000,
                     weight: WEIGHT,
                     vault_count: 3,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    reward_multiplier: 10_000,
                     weight: WEIGHT,
                     vault_count: 2,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    reward_multiplier: 10_000,
                     weight: WEIGHT,
                     vault_count: 1,
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    reward_multiplier: 7_000,
                     weight: WEIGHT_PRECISION,
                     vault_count: 1,
                 },
@@ -576,14 +565,13 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
-    #[ignore = "20-30 minute test"]
+    // #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_high_operator_count_simulation() -> TestResult<()> {
         let config = SimConfig {
             operator_count: 50,
             mints: vec![MintConfig {
                 keypair: Keypair::new(),
-                reward_multiplier: 20_000,
                 weight: WEIGHT,
                 vault_count: 2,
             }],
@@ -594,7 +582,7 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
-    #[ignore = "20-30 minute test"]
+    // #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_fuzz_simulation() -> TestResult<()> {
         // Create multiple test configurations with different parameters
@@ -605,13 +593,11 @@ mod fuzz_tests {
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
-                        reward_multiplier: 15_000,
                         weight: WEIGHT,
                         vault_count: 2,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        reward_multiplier: 12_000,
                         weight: WEIGHT,
                         vault_count: 1,
                     },
@@ -628,7 +614,6 @@ mod fuzz_tests {
                 operator_count: 20,
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
-                    reward_multiplier: 25_000,
                     weight: 2 * WEIGHT_PRECISION,
                     vault_count: 3,
                 }],
@@ -645,19 +630,16 @@ mod fuzz_tests {
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
-                        reward_multiplier: 18_000,
                         weight: WEIGHT,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        reward_multiplier: 8_000,
                         weight: WEIGHT * 2,
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        reward_multiplier: 5_000,
                         weight: WEIGHT_PRECISION / 2,
                         vault_count: 1,
                     },

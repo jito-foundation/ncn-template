@@ -181,12 +181,6 @@ pub enum ProgramCommand {
     AdminRegisterStMint {
         #[arg(long, help = "Vault address")]
         vault: String,
-        #[arg(
-            long,
-            default_value_t = 100,
-            help = "Reward multiplier in basis points"
-        )]
-        reward_multiplier_bps: u64,
         #[arg(long, help = "Weight")]
         weight: Option<u128>,
     },

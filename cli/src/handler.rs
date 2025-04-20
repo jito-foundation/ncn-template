@@ -211,13 +211,9 @@ impl CliHandler {
                 )
                 .await
             }
-            ProgramCommand::AdminRegisterStMint {
-                vault,
-                reward_multiplier_bps,
-                weight,
-            } => {
+            ProgramCommand::AdminRegisterStMint { vault, weight } => {
                 let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-                admin_register_st_mint(self, &vault, reward_multiplier_bps, weight).await
+                admin_register_st_mint(self, &vault, weight).await
             }
             ProgramCommand::AdminSetWeight { vault, weight } => {
                 let vault = Pubkey::from_str(&vault).expect("error parsing vault");

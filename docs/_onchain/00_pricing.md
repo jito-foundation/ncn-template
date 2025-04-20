@@ -63,8 +63,8 @@ pub struct StMintEntry {
     /// The fee group for the mint
     ncn_fee_group: NcnFeeGroup,
 
-    /// The reward multiplier in basis points
-    reward_multiplier_bps: PodU64,
+    /// Reserved space for the reward multiplier in basis points
+    reserved_reward_multiplier_bps: PodU64,
 
     /// The weight
     weight: PodU128,

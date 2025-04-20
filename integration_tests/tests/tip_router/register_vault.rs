@@ -55,7 +55,7 @@ mod tests {
 
         // Register ST Mint
         tip_router_client
-            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, 10_000, WEIGHT)
+            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, WEIGHT)
             .await?;
 
         // Register mint
@@ -146,7 +146,7 @@ mod tests {
 
         // Register ST Mint
         tip_router_client
-            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, 10_000, WEIGHT)
+            .do_admin_register_st_mint(ncn_root.ncn_pubkey, st_mint, WEIGHT)
             .await?;
 
         // Register mint first time

@@ -1107,10 +1107,6 @@
       ],
       "args": [
         {
-          "name": "rewardMultiplierBps",
-          "type": "u64"
-        },
-        {
           "name": "weight",
           "type": {
             "option": "u128"
@@ -1150,12 +1146,6 @@
         {
           "name": "stMint",
           "type": "publicKey"
-        },
-        {
-          "name": "rewardMultiplierBps",
-          "type": {
-            "option": "u64"
-          }
         },
         {
           "name": "weight",
@@ -2014,15 +2004,21 @@
             "type": "publicKey"
           },
           {
-            "name": "rewardMultiplierBps",
+            "name": "reservedRewardMultiplierBps",
             "type": {
-              "defined": "PodU64"
+              "array": [
+                "u8",
+                8
+              ]
             }
           },
           {
-            "name": "reservedRewardMultiplierBps",
+            "name": "reservedNcnFeeGroup",
             "type": {
-              "defined": "PodU64"
+              "array": [
+                "u8",
+                1
+              ]
             }
           },
           {

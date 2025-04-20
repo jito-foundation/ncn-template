@@ -10,7 +10,6 @@ use solana_program::{
 pub fn process_admin_register_st_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    reward_multiplier_bps: u64,
     weight: Option<u128>,
 ) -> ProgramResult {
     let [config, ncn, st_mint, vault_registry, admin] = accounts else {
@@ -41,7 +40,7 @@ pub fn process_admin_register_st_mint(
 
     let weight = weight.unwrap_or_default();
 
-    vault_registry_account.register_st_mint(st_mint.key, reward_multiplier_bps, weight)?;
+    vault_registry_account.register_st_mint(st_mint.key, weight)?;
 
     Ok(())
 }

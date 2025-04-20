@@ -88,7 +88,6 @@ impl Default for AdminRegisterStMintInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AdminRegisterStMintInstructionArgs {
-    pub reward_multiplier_bps: u64,
     pub weight: Option<u128>,
 }
 
@@ -108,7 +107,6 @@ pub struct AdminRegisterStMintBuilder {
     st_mint: Option<solana_program::pubkey::Pubkey>,
     vault_registry: Option<solana_program::pubkey::Pubkey>,
     admin: Option<solana_program::pubkey::Pubkey>,
-    reward_multiplier_bps: Option<u64>,
     weight: Option<u128>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -140,11 +138,6 @@ impl AdminRegisterStMintBuilder {
     #[inline(always)]
     pub fn admin(&mut self, admin: solana_program::pubkey::Pubkey) -> &mut Self {
         self.admin = Some(admin);
-        self
-    }
-    #[inline(always)]
-    pub fn reward_multiplier_bps(&mut self, reward_multiplier_bps: u64) -> &mut Self {
-        self.reward_multiplier_bps = Some(reward_multiplier_bps);
         self
     }
     /// `[optional argument]`
@@ -181,10 +174,6 @@ impl AdminRegisterStMintBuilder {
             admin: self.admin.expect("admin is not set"),
         };
         let args = AdminRegisterStMintInstructionArgs {
-            reward_multiplier_bps: self
-                .reward_multiplier_bps
-                .clone()
-                .expect("reward_multiplier_bps is not set"),
             weight: self.weight.clone(),
         };
 
@@ -353,7 +342,6 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
             st_mint: None,
             vault_registry: None,
             admin: None,
-            reward_multiplier_bps: None,
             weight: None,
             __remaining_accounts: Vec::new(),
         });
@@ -391,11 +379,6 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn admin(&mut self, admin: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.admin = Some(admin);
-        self
-    }
-    #[inline(always)]
-    pub fn reward_multiplier_bps(&mut self, reward_multiplier_bps: u64) -> &mut Self {
-        self.instruction.reward_multiplier_bps = Some(reward_multiplier_bps);
         self
     }
     /// `[optional argument]`
@@ -446,11 +429,6 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = AdminRegisterStMintInstructionArgs {
-            reward_multiplier_bps: self
-                .instruction
-                .reward_multiplier_bps
-                .clone()
-                .expect("reward_multiplier_bps is not set"),
             weight: self.instruction.weight.clone(),
         };
         let instruction = AdminRegisterStMintCpi {
@@ -485,7 +463,6 @@ struct AdminRegisterStMintCpiBuilderInstruction<'a, 'b> {
     st_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    reward_multiplier_bps: Option<u64>,
     weight: Option<u128>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

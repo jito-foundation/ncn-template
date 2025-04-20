@@ -20,8 +20,6 @@ import {
   getStructEncoder,
   getU128Decoder,
   getU128Encoder,
-  getU64Decoder,
-  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   type Address,
@@ -33,8 +31,8 @@ import {
 
 export type StMintEntry = {
   stMint: Address;
-  rewardMultiplierBps: bigint;
-  reservedRewardMultiplierBps: bigint;
+  reservedRewardMultiplierBps: Array<number>;
+  reservedNcnFeeGroup: Array<number>;
   reserveSwitchboardFeed: ReadonlyUint8Array;
   weight: bigint;
   reserved: Array<number>;
@@ -42,8 +40,8 @@ export type StMintEntry = {
 
 export type StMintEntryArgs = {
   stMint: Address;
-  rewardMultiplierBps: number | bigint;
-  reservedRewardMultiplierBps: number | bigint;
+  reservedRewardMultiplierBps: Array<number>;
+  reservedNcnFeeGroup: Array<number>;
   reserveSwitchboardFeed: ReadonlyUint8Array;
   weight: number | bigint;
   reserved: Array<number>;
@@ -52,8 +50,11 @@ export type StMintEntryArgs = {
 export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
   return getStructEncoder([
     ['stMint', getAddressEncoder()],
-    ['rewardMultiplierBps', getU64Encoder()],
-    ['reservedRewardMultiplierBps', getU64Encoder()],
+    [
+      'reservedRewardMultiplierBps',
+      getArrayEncoder(getU8Encoder(), { size: 8 }),
+    ],
+    ['reservedNcnFeeGroup', getArrayEncoder(getU8Encoder(), { size: 1 })],
     ['reserveSwitchboardFeed', fixEncoderSize(getBytesEncoder(), 32)],
     ['weight', getU128Encoder()],
     ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
@@ -63,8 +64,11 @@ export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
 export function getStMintEntryDecoder(): Decoder<StMintEntry> {
   return getStructDecoder([
     ['stMint', getAddressDecoder()],
-    ['rewardMultiplierBps', getU64Decoder()],
-    ['reservedRewardMultiplierBps', getU64Decoder()],
+    [
+      'reservedRewardMultiplierBps',
+      getArrayDecoder(getU8Decoder(), { size: 8 }),
+    ],
+    ['reservedNcnFeeGroup', getArrayDecoder(getU8Decoder(), { size: 1 })],
     ['reserveSwitchboardFeed', fixDecoderSize(getBytesDecoder(), 32)],
     ['weight', getU128Decoder()],
     ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],

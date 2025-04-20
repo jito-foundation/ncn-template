@@ -505,7 +505,7 @@ impl TestBuilder {
                 NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
 
             tip_router_client
-                .do_admin_register_st_mint(ncn, st_mint, 10_000, WEIGHT)
+                .do_admin_register_st_mint(ncn, st_mint, WEIGHT)
                 .await?;
 
             tip_router_client

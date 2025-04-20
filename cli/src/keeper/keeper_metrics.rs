@@ -351,11 +351,6 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
             ("current-slot", current_slot, i64),
             ("st-mint", st_mint.st_mint().to_string(), String),
             ("weight", st_mint.weight().to_string(), String),
-            (
-                "reward-multiplier-bps",
-                st_mint.reward_multiplier_bps(),
-                i64
-            ),
         );
     }
 

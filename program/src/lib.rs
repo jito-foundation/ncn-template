@@ -233,26 +233,13 @@ pub fn process_instruction(
             msg!("Instruction: AdminSetWeight");
             process_admin_set_weight(program_id, accounts, &st_mint, epoch, weight)
         }
-        TipRouterInstruction::AdminRegisterStMint {
-            reward_multiplier_bps,
-            weight,
-        } => {
+        TipRouterInstruction::AdminRegisterStMint { weight } => {
             msg!("Instruction: AdminRegisterStMint");
-            process_admin_register_st_mint(program_id, accounts, reward_multiplier_bps, weight)
+            process_admin_register_st_mint(program_id, accounts, weight)
         }
-        TipRouterInstruction::AdminSetStMint {
-            st_mint,
-            reward_multiplier_bps,
-            weight,
-        } => {
+        TipRouterInstruction::AdminSetStMint { st_mint, weight } => {
             msg!("Instruction: AdminSetStMint");
-            process_admin_set_st_mint(
-                program_id,
-                accounts,
-                &st_mint,
-                reward_multiplier_bps,
-                weight,
-            )
+            process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
         }
     }
 }
