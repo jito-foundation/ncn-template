@@ -570,7 +570,12 @@ impl TestBuilder {
 
             let st_mint = entry.st_mint();
             tip_router_client
-                .do_admin_set_weight(test_ncn.ncn_root.ncn_pubkey, epoch, *st_mint, WEIGHT)
+                .do_admin_set_weight(
+                    test_ncn.ncn_root.ncn_pubkey,
+                    epoch,
+                    *st_mint,
+                    entry.weight(),
+                )
                 .await?;
         }
 
