@@ -38,7 +38,7 @@ import {
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 22;
+export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 21;
 
 export function getAdminSetStMintDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_SET_ST_MINT_DISCRIMINATOR);

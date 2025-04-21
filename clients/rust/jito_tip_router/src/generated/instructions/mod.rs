@@ -26,7 +26,6 @@ pub(crate) mod r#realloc_operator_snapshot;
 pub(crate) mod r#realloc_vault_registry;
 pub(crate) mod r#realloc_weight_table;
 pub(crate) mod r#register_vault;
-pub(crate) mod r#set_merkle_root;
 pub(crate) mod r#snapshot_vault_operator_delegation;
 
 pub use self::r#admin_register_st_mint::*;
@@ -50,5 +49,4 @@ pub use self::r#realloc_operator_snapshot::*;
 pub use self::r#realloc_vault_registry::*;
 pub use self::r#realloc_weight_table::*;
 pub use self::r#register_vault::*;
-pub use self::r#set_merkle_root::*;
 pub use self::r#snapshot_vault_operator_delegation::*;

@@ -1,26 +1,17 @@
 use std::sync::Arc;
-use std::time::Duration;
 use std::{path::PathBuf, str::FromStr};
 
-use anchor_lang::AccountDeserialize;
 use ellipsis_client::EllipsisClient;
 use jito_bytemuck::AccountDeserialize as JitoAccountDeserialize;
-use jito_tip_distribution_sdk::TipDistributionAccount;
 use jito_tip_router_core::{ballot_box::BallotBox, config::Config};
 use log::{debug, error, info};
 use meta_merkle_tree::meta_merkle_tree::MetaMerkleTree;
-use solana_account_decoder::UiAccountEncoding;
-use solana_client::nonblocking::rpc_client::RpcClient as AsyncRpcClient;
-use solana_client::{
-    rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-    rpc_filter::{Memcmp, RpcFilterType},
-};
 use solana_metrics::{datapoint_error, datapoint_info};
 use solana_sdk::{pubkey::Pubkey, signature::Keypair};
 
 use crate::{meta_merkle_tree_file_name, Version};
 use crate::{
-    tip_router::{cast_vote, get_ncn_config, set_merkle_roots_batched},
+    tip_router::{cast_vote, get_ncn_config},
     Cli,
 };
 
@@ -85,7 +76,6 @@ pub async fn submit_to_ncn(
 ) -> Result<(), anyhow::Error> {
     let epoch_info = client.get_epoch_info().await?;
     let meta_merkle_tree = MetaMerkleTree::new_from_file(meta_merkle_tree_path)?;
-    let config_pda = Config::find_program_address(tip_router_program_id, ncn_address).0;
     let config = get_ncn_config(client, tip_router_program_id, ncn_address).await?;
 
     // The meta merkle root files are tagged with the epoch they have created the snapshot for
@@ -199,122 +189,5 @@ pub async fn submit_to_ncn(
         }
     }
 
-    if ballot_box.is_consensus_reached() && set_merkle_roots {
-        // Fetch TipDistributionAccounts filtered by epoch and upload authority
-        // Tip distribution accounts are derived from the epoch they are for
-        let tip_distribution_accounts = get_tip_distribution_accounts_to_upload(
-            client,
-            merkle_root_epoch,
-            &config_pda,
-            tip_distribution_program_id,
-        )
-        .await?;
-
-        info!(
-            "Setting merkle roots for {} tip distribution accounts",
-            tip_distribution_accounts.len()
-        );
-
-        // For each TipDistributionAccount returned, if it has no root uploaded, upload root with set_merkle_root
-        match set_merkle_roots_batched(
-            client,
-            ncn_address,
-            keypair,
-            tip_distribution_program_id,
-            tip_router_program_id,
-            tip_router_target_epoch,
-            tip_distribution_accounts,
-            meta_merkle_tree,
-        )
-        .await
-        {
-            Ok(res) => {
-                let num_success = res.iter().filter(|r| r.is_ok()).count();
-                let num_failed = res.iter().filter(|r| r.is_err()).count();
-
-                datapoint_info!(
-                    "tip_router_cli.set_merkle_root",
-                    ("operator_address", operator_address.to_string(), String),
-                    ("epoch", tip_router_target_epoch, i64),
-                    ("num_success", num_success, i64),
-                    ("num_failed", num_failed, i64)
-                );
-                info!(
-                    "Set merkle root for {} tip distribution accounts, failed for {}",
-                    num_success, num_failed
-                );
-            }
-            Err(e) => {
-                datapoint_error!(
-                    "tip_router_cli.set_merkle_root",
-                    ("operator_address", operator_address.to_string(), String),
-                    ("epoch", tip_router_target_epoch, i64),
-                    ("status", "error", String),
-                    ("error", format!("{:?}", e), String)
-                );
-                error!("Failed to set merkle roots: {:?}", e);
-            }
-        }
-    }
-
     Ok(())
-}
-
-async fn get_tip_distribution_accounts_to_upload(
-    client: &EllipsisClient,
-    epoch: u64,
-    tip_router_config_address: &Pubkey,
-    tip_distribution_program_id: &Pubkey,
-) -> Result<Vec<(Pubkey, TipDistributionAccount)>, anyhow::Error> {
-    let rpc_client = AsyncRpcClient::new_with_timeout(client.url(), Duration::from_secs(1800));
-
-    // Filters assume merkle root is None
-    let filters = vec![
-        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
-            8     // Discriminator
-            + 32, // Pubkey - validator_vote_account
-            tip_router_config_address.to_bytes().to_vec(),
-        )),
-        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
-            8    // Discriminator
-            + 32 // Pubkey - validator_vote_account
-            + 32 // Pubkey - merkle_root_upload_authority
-            + 1, // Option - "None" merkle_root
-            epoch.to_le_bytes().to_vec(),
-        )),
-    ];
-
-    let tip_distribution_accounts = rpc_client
-        .get_program_accounts_with_config(
-            tip_distribution_program_id,
-            RpcProgramAccountsConfig {
-                filters: Some(filters),
-                account_config: RpcAccountInfoConfig {
-                    encoding: Some(UiAccountEncoding::Base64),
-                    ..RpcAccountInfoConfig::default()
-                },
-                ..RpcProgramAccountsConfig::default()
-            },
-        )
-        .await?;
-
-    let tip_distribution_accounts = tip_distribution_accounts
-        .into_iter()
-        .filter_map(|(pubkey, account)| {
-            let tip_distribution_account =
-                TipDistributionAccount::try_deserialize(&mut account.data.as_slice());
-            tip_distribution_account.map_or(None, |tip_distribution_account| {
-                if tip_distribution_account.epoch_created_at == epoch
-                    && tip_distribution_account.merkle_root_upload_authority
-                        == *tip_router_config_address
-                {
-                    Some((pubkey, tip_distribution_account))
-                } else {
-                    None
-                }
-            })
-        })
-        .collect::<Vec<_>>();
-
-    Ok(tip_distribution_accounts)
 }

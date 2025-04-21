@@ -19,7 +19,6 @@ mod realloc_operator_snapshot;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
-mod set_merkle_root;
 mod snapshot_vault_operator_delegation;
 
 use admin_set_new_admin::process_admin_set_new_admin;
@@ -51,7 +50,6 @@ use crate::{
     realloc_operator_snapshot::process_realloc_operator_snapshot,
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
-    set_merkle_root::process_set_merkle_root,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
@@ -167,24 +165,6 @@ pub fn process_instruction(
         } => {
             msg!("Instruction: CastVote");
             process_cast_vote(program_id, accounts, &meta_merkle_root, epoch)
-        }
-        TipRouterInstruction::SetMerkleRoot {
-            proof,
-            merkle_root,
-            max_total_claim,
-            max_num_nodes,
-            epoch,
-        } => {
-            msg!("Instruction: SetMerkleRoot");
-            process_set_merkle_root(
-                program_id,
-                accounts,
-                proof,
-                merkle_root,
-                max_total_claim,
-                max_num_nodes,
-                epoch,
-            )
         }
 
         // ---------------------------------------------------- //

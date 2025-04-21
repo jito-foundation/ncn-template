@@ -34,7 +34,6 @@ import {
   type ParsedReallocVaultRegistryInstruction,
   type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
-  type ParsedSetMerkleRootInstruction,
   type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
 
@@ -68,7 +67,6 @@ export enum JitoTipRouterInstruction {
   InitializeBallotBox,
   ReallocBallotBox,
   CastVote,
-  SetMerkleRoot,
   CloseEpochAccount,
   AdminSetParameters,
   AdminSetNewAdmin,
@@ -128,27 +126,24 @@ export function identifyJitoTipRouterInstruction(
     return JitoTipRouterInstruction.CastVote;
   }
   if (containsBytes(data, getU8Encoder().encode(15), 0)) {
-    return JitoTipRouterInstruction.SetMerkleRoot;
-  }
-  if (containsBytes(data, getU8Encoder().encode(16), 0)) {
     return JitoTipRouterInstruction.CloseEpochAccount;
   }
-  if (containsBytes(data, getU8Encoder().encode(17), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(16), 0)) {
     return JitoTipRouterInstruction.AdminSetParameters;
   }
-  if (containsBytes(data, getU8Encoder().encode(18), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(17), 0)) {
     return JitoTipRouterInstruction.AdminSetNewAdmin;
   }
-  if (containsBytes(data, getU8Encoder().encode(19), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(18), 0)) {
     return JitoTipRouterInstruction.AdminSetTieBreaker;
   }
-  if (containsBytes(data, getU8Encoder().encode(20), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(19), 0)) {
     return JitoTipRouterInstruction.AdminSetWeight;
   }
-  if (containsBytes(data, getU8Encoder().encode(21), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(20), 0)) {
     return JitoTipRouterInstruction.AdminRegisterStMint;
   }
-  if (containsBytes(data, getU8Encoder().encode(22), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(21), 0)) {
     return JitoTipRouterInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -204,9 +199,6 @@ export type ParsedJitoTipRouterInstruction<
   | ({
       instructionType: JitoTipRouterInstruction.CastVote;
     } & ParsedCastVoteInstruction<TProgram>)
-  | ({
-      instructionType: JitoTipRouterInstruction.SetMerkleRoot;
-    } & ParsedSetMerkleRootInstruction<TProgram>)
   | ({
       instructionType: JitoTipRouterInstruction.CloseEpochAccount;
     } & ParsedCloseEpochAccountInstruction<TProgram>)

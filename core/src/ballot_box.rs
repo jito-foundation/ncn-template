@@ -6,11 +6,8 @@ use jito_bytemuck::{
     types::{PodBool, PodU16, PodU64},
     AccountDeserialize, Discriminator,
 };
-use meta_merkle_tree::{meta_merkle_tree::LEAF_PREFIX, tree_node::TreeNode};
 use shank::{ShankAccount, ShankType};
-use solana_program::{
-    account_info::AccountInfo, hash::hashv, msg, program_error::ProgramError, pubkey::Pubkey,
-};
+use solana_program::{account_info::AccountInfo, msg, program_error::ProgramError, pubkey::Pubkey};
 use spl_math::precise_number::PreciseNumber;
 
 use crate::{
@@ -610,34 +607,6 @@ impl BallotBox {
 
         Ok(true)
     }
-
-    pub fn verify_merkle_root(
-        &self,
-        tip_distribution_account: &Pubkey,
-        proof: Vec<[u8; 32]>,
-        merkle_root: &[u8; 32],
-        max_total_claim: u64,
-        max_num_nodes: u64,
-    ) -> Result<(), TipRouterError> {
-        let tree_node = TreeNode::new(
-            tip_distribution_account,
-            merkle_root,
-            max_total_claim,
-            max_num_nodes,
-        );
-
-        let node_hash = hashv(&[LEAF_PREFIX, &tree_node.hash().to_bytes()]);
-
-        if !meta_merkle_tree::verify::verify(
-            proof,
-            self.winning_ballot.root(),
-            node_hash.to_bytes(),
-        ) {
-            return Err(TipRouterError::InvalidMerkleProof);
-        }
-
-        Ok(())
-    }
 }
 
 #[rustfmt::skip]
@@ -674,7 +643,7 @@ impl fmt::Display for BallotBox {
                writeln!(f, "  Index {}:", tally.index())?;
                writeln!(f, "    Ballot:                     {}", tally.ballot())?;
                writeln!(f, "    Tally:                      {}", tally.tally())?;
-               writeln!(f, "    Stake Weights:")?;
+               writeln!(f, "    Stake Weights:              {}", tally.stake_weights().stake_weight())?;
            }
        }
 
@@ -710,69 +679,6 @@ mod tests {
         let ballot_box = BallotBox::new(&Pubkey::default(), 0, 0, 0);
         assert_eq!(ballot_box.operator_votes.len(), MAX_OPERATORS);
         assert_eq!(ballot_box.ballot_tallies.len(), MAX_OPERATORS);
-    }
-
-    #[test]
-    fn test_verify_merkle_root() {
-        use meta_merkle_tree::meta_merkle_tree::MetaMerkleTree;
-
-        // Create test data with unique pubkeys
-        let tip_distribution1 = Pubkey::new_unique();
-        let tip_distribution2 = Pubkey::new_unique();
-        let tip_distribution3 = Pubkey::new_unique();
-        let max_total_claim = 1000;
-        let max_num_nodes = 10;
-
-        // Create tree nodes with unique tip_distribution_accounts
-        let mut tree_nodes = vec![
-            TreeNode::new(&tip_distribution1, &[1; 32], max_total_claim, max_num_nodes),
-            TreeNode::new(&tip_distribution2, &[2; 32], max_total_claim, max_num_nodes),
-            TreeNode::new(&tip_distribution3, &[3; 32], max_total_claim, max_num_nodes),
-        ];
-
-        // Sort nodes by hash (required for consistent tree creation)
-        tree_nodes.sort_by_key(|node| node.hash());
-
-        // Build the merkle tree
-        let meta_merkle_tree = MetaMerkleTree::new(tree_nodes).unwrap();
-
-        // Initialize ballot box and set the winning ballot with the merkle root
-        let mut ballot_box = BallotBox::new(&Pubkey::default(), 0, 0, 0);
-        let winning_ballot = Ballot::new(&meta_merkle_tree.merkle_root);
-        ballot_box.set_winning_ballot(&winning_ballot);
-
-        // Get the first node and its proof from the merkle tree
-        let test_node = &meta_merkle_tree.tree_nodes[0];
-        let valid_proof = test_node.proof.clone().unwrap();
-
-        // Test with valid proof - use the specific tip_distribution_account from the test node
-        let result = ballot_box.verify_merkle_root(
-            &test_node.tip_distribution_account,
-            valid_proof.clone(),
-            &test_node.validator_merkle_root,
-            max_total_claim,
-            max_num_nodes,
-        );
-        assert!(result.is_ok(), "Valid proof should succeed");
-
-        // Test with invalid proof (modify one hash in the proof)
-        let mut invalid_proof = valid_proof;
-        if let Some(first_hash) = invalid_proof.first_mut() {
-            first_hash[0] ^= 0xFF; // Flip some bits to make it invalid
-        }
-
-        let result = ballot_box.verify_merkle_root(
-            &test_node.tip_distribution_account,
-            invalid_proof,
-            &test_node.validator_merkle_root,
-            max_total_claim,
-            max_num_nodes,
-        );
-        assert_eq!(
-            result,
-            Err(TipRouterError::InvalidMerkleProof),
-            "Invalid proof should fail"
-        );
     }
 
     #[test]

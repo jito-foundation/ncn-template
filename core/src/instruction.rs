@@ -198,23 +198,6 @@ pub enum TipRouterInstruction {
         epoch: u64,
     },
 
-    /// Set the merkle root after consensus is reached
-    #[account(0, writable, name = "epoch_state")]
-    #[account(1, writable, name = "config")]
-    #[account(2, name = "ncn")]
-    #[account(3, name = "ballot_box")]
-    #[account(4, name = "vote_account")]
-    #[account(5, writable, name = "tip_distribution_account")]
-    #[account(6, name = "tip_distribution_config")]
-    #[account(7, name = "tip_distribution_program")]
-    SetMerkleRoot {
-        proof: Vec<[u8; 32]>,
-        merkle_root: [u8; 32],
-        max_total_claim: u64,
-        max_num_nodes: u64,
-        epoch: u64,
-    },
-
     // ---------------------------------------------------- //
     //                ROUTE AND DISTRIBUTE                  //
     // ---------------------------------------------------- //

@@ -1,7 +1,6 @@
 mod admin_set_parameters;
 mod admin_set_st_mint;
 mod admin_update_weight_table;
-mod bpf;
 mod cast_vote;
 mod close_epoch_accounts;
 mod epoch_state;
