@@ -2393,116 +2393,96 @@
     },
     {
       "code": 8762,
-      "name": "SwitchboardNotRegistered",
-      "msg": "Switchboard not registered"
-    },
-    {
-      "code": 8763,
-      "name": "BadSwitchboardFeed",
-      "msg": "Bad switchboard feed"
-    },
-    {
-      "code": 8764,
-      "name": "BadSwitchboardValue",
-      "msg": "Bad switchboard value"
-    },
-    {
-      "code": 8765,
-      "name": "StaleSwitchboardFeed",
-      "msg": "Stale switchboard feed"
-    },
-    {
-      "code": 8766,
       "name": "RouterStillRouting",
       "msg": "Router still routing"
     },
     {
-      "code": 8767,
+      "code": 8763,
       "name": "InvalidEpochsBeforeStall",
       "msg": "Invalid epochs before stall"
     },
     {
-      "code": 8768,
+      "code": 8764,
       "name": "InvalidEpochsBeforeClose",
       "msg": "Invalid epochs before accounts can close"
     },
     {
-      "code": 8769,
+      "code": 8765,
       "name": "InvalidSlotsAfterConsensus",
       "msg": "Invalid slots after consensus"
     },
     {
-      "code": 8770,
+      "code": 8766,
       "name": "VaultNeedsUpdate",
       "msg": "Vault needs to be updated"
     },
     {
-      "code": 8771,
+      "code": 8767,
       "name": "InvalidAccountStatus",
       "msg": "Invalid Account Status"
     },
     {
-      "code": 8772,
+      "code": 8768,
       "name": "AccountAlreadyInitialized",
       "msg": "Account already initialized"
     },
     {
-      "code": 8773,
+      "code": 8769,
       "name": "BadBallot",
       "msg": "Cannot vote with uninitialized account"
     },
     {
-      "code": 8774,
+      "code": 8770,
       "name": "VotingIsNotOver",
       "msg": "Cannot route until voting is over"
     },
     {
-      "code": 8775,
+      "code": 8771,
       "name": "OperatorIsNotInSnapshot",
       "msg": "Operator is not in snapshot"
     },
     {
-      "code": 8776,
+      "code": 8772,
       "name": "InvalidAccountToCloseDiscriminator",
       "msg": "Invalid account_to_close Discriminator"
     },
     {
-      "code": 8777,
+      "code": 8773,
       "name": "CannotCloseAccount",
       "msg": "Cannot close account"
     },
     {
-      "code": 8778,
+      "code": 8774,
       "name": "CannotCloseAccountAlreadyClosed",
       "msg": "Cannot close account - Already closed"
     },
     {
-      "code": 8779,
+      "code": 8775,
       "name": "CannotCloseAccountNotEnoughEpochs",
       "msg": "Cannot close account - Not enough epochs have passed since consensus reached"
     },
     {
-      "code": 8780,
+      "code": 8776,
       "name": "CannotCloseAccountNoReceiverProvided",
       "msg": "Cannot close account - No receiver provided"
     },
     {
-      "code": 8781,
+      "code": 8777,
       "name": "CannotCloseEpochStateAccount",
       "msg": "Cannot close epoch state account - Epoch state needs all other accounts to be closed first"
     },
     {
-      "code": 8782,
+      "code": 8778,
       "name": "InvalidDaoWallet",
       "msg": "Invalid DAO wallet"
     },
     {
-      "code": 8783,
+      "code": 8779,
       "name": "EpochIsClosingDown",
       "msg": "Epoch is closing down"
     },
     {
-      "code": 8784,
+      "code": 8780,
       "name": "MarkerExists",
       "msg": "Marker exists"
     }

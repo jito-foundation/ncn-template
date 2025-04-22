@@ -24,8 +24,8 @@ use solana_sdk::{
 use spl_stake_pool::find_withdraw_authority_program_address;
 
 use super::{
-    generated_switchboard_accounts::get_switchboard_accounts, restaking_client::NcnRoot,
-    stake_pool_client::StakePoolClient, tip_router_client::TipRouterClient,
+    restaking_client::NcnRoot, stake_pool_client::StakePoolClient,
+    tip_router_client::TipRouterClient,
 };
 use crate::fixtures::{
     restaking_client::{OperatorRoot, RestakingProgramClient},
@@ -121,15 +121,6 @@ impl TestBuilder {
             );
             program_test
         };
-
-        // Add switchboard account
-        {
-            let switchboard_accounts = get_switchboard_accounts();
-
-            for (address, account) in switchboard_accounts.iter() {
-                program_test.add_account(*address, account.clone());
-            }
-        }
 
         // Stake pool keypair is needed to create the pool, and JitoSOL mint authority is based on this keypair
         let stake_pool_keypair = Keypair::new();

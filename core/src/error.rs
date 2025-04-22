@@ -139,14 +139,6 @@ pub enum TipRouterError {
     NoRewards,
     #[error("Weight not set")]
     WeightNotSet,
-    #[error("Switchboard not registered")]
-    SwitchboardNotRegistered,
-    #[error("Bad switchboard feed")]
-    BadSwitchboardFeed,
-    #[error("Bad switchboard value")]
-    BadSwitchboardValue,
-    #[error("Stale switchboard feed")]
-    StaleSwitchboardFeed,
     #[error("Router still routing")]
     RouterStillRouting,
     #[error("Invalid epochs before stall")]

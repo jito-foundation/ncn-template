@@ -37,6 +37,7 @@ use solana_program::{
 use solana_program_test::{BanksClient, ProgramTestBanksClientExt};
 use solana_sdk::{
     commitment_config::CommitmentLevel,
+    msg,
     signature::{Keypair, Signer},
     system_program,
     transaction::{Transaction, TransactionError},

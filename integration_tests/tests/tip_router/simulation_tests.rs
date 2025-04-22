@@ -8,7 +8,7 @@ mod tests {
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
-    #[ignore = "20-30 minute test"]
+    // #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn simulation_test() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
@@ -266,9 +266,6 @@ mod tests {
             );
         }
 
-        stake_pool_client
-            .update_stake_pool_balance(&pool_root)
-            .await?;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
         Ok(())
