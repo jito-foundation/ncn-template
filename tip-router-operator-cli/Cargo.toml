@@ -17,13 +17,10 @@ hex = "0.4"
 im = "15.1"
 itertools = "0.11"
 jito-bytemuck = { workspace = true }
-jito-tip-distribution-sdk = { workspace = true }
-jito-tip-payment-sdk = { workspace = true }
 jito-tip-router-client = { workspace = true }
 jito-tip-router-core = { workspace = true }
 jito-tip-router-program = { workspace = true }
 log = { workspace = true }
-meta-merkle-tree = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

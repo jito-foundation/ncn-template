@@ -1556,29 +1556,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
-name = "cloud-storage"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7602ac4363f68ac757d6b87dd5d850549a14d37489902ae639c06ecec06ad275"
-dependencies = [
- "async-trait",
- "base64 0.13.1",
- "bytes",
- "chrono",
- "dotenv",
- "futures-util",
- "hex",
- "jsonwebtoken",
- "lazy_static",
- "openssl",
- "percent-encoding 2.3.1",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2641,20 +2618,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gcp_uploader"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap 4.5.23",
- "cloud-storage",
- "futures-util",
- "hostname",
- "regex",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2974,17 +2937,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
 dependencies = [
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "hostname"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c731c3e10504cc8ed35cfe2f1db4c9274c3d35fa486e3b31df46f068ef3e867"
-dependencies = [
- "libc",
- "match_cfg",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -3681,13 +3633,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jito-tip-distribution-sdk"
-version = "0.0.1"
-dependencies = [
- "anchor-lang 0.30.1",
-]
-
-[[package]]
 name = "jito-tip-payment"
 version = "0.1.5"
 source = "git+https://github.com/jito-foundation/jito-solana.git?rev=87dcd086af931d81a0a71ad49cbea38e9655f166#87dcd086af931d81a0a71ad49cbea38e9655f166"
@@ -3695,13 +3640,6 @@ dependencies = [
  "anchor-lang 0.24.2",
  "default-env",
  "solana-security-txt",
-]
-
-[[package]]
-name = "jito-tip-payment-sdk"
-version = "0.0.1"
-dependencies = [
- "anchor-lang 0.30.1",
 ]
 
 [[package]]
@@ -3727,7 +3665,6 @@ dependencies = [
  "jito-restaking-core",
  "jito-restaking-program",
  "jito-restaking-sdk",
- "jito-tip-distribution-sdk",
  "jito-tip-router-client",
  "jito-tip-router-core",
  "jito-tip-router-program",
@@ -3779,10 +3716,8 @@ dependencies = [
  "jito-jsm-core",
  "jito-restaking-core",
  "jito-restaking-sdk",
- "jito-tip-distribution-sdk",
  "jito-vault-core",
  "jito-vault-sdk",
- "meta-merkle-tree",
  "serde",
  "serde_with",
  "shank",
@@ -3805,7 +3740,6 @@ dependencies = [
  "jito-restaking-core",
  "jito-restaking-program",
  "jito-restaking-sdk",
- "jito-tip-distribution-sdk",
  "jito-tip-router-client",
  "jito-tip-router-core",
  "jito-tip-router-program",
@@ -3813,7 +3747,6 @@ dependencies = [
  "jito-vault-program",
  "jito-vault-sdk",
  "log",
- "meta-merkle-tree",
  "shank",
  "solana-program",
  "solana-program-test",
@@ -3840,7 +3773,6 @@ dependencies = [
  "jito-restaking-core",
  "jito-restaking-program",
  "jito-restaking-sdk",
- "jito-tip-distribution-sdk",
  "jito-tip-router-core",
  "jito-vault-core",
  "jito-vault-program",
@@ -4105,20 +4037,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util 0.6.10",
  "unicase",
-]
-
-[[package]]
-name = "jsonwebtoken"
-version = "7.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afabcc15e437a6484fc4f12d0fd63068fe457bf93f1c148d3d9649c60b103f32"
-dependencies = [
- "base64 0.12.3",
- "pem 0.8.3",
- "ring 0.16.20",
- "serde",
- "serde_json",
- "simple_asn1",
 ]
 
 [[package]]
@@ -4398,12 +4316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "match_cfg"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffbee8634e0d45d258acb448e7eaab3fce7a0a467395d4d9f228e3c1f01fb2e4"
-
-[[package]]
 name = "matches"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4449,36 +4361,6 @@ dependencies = [
  "keccak",
  "rand_core 0.6.4",
  "zeroize",
-]
-
-[[package]]
-name = "meta-merkle-tree"
-version = "0.0.1"
-dependencies = [
- "anchor-lang 0.30.1",
- "borsh 0.10.4",
- "bytemuck",
- "fast-math",
- "hex",
- "jito-bytemuck",
- "jito-jsm-core",
- "jito-restaking-core",
- "jito-restaking-sdk",
- "jito-tip-distribution-sdk",
- "jito-tip-payment-sdk",
- "jito-vault-core",
- "jito-vault-sdk",
- "log",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "shank",
- "solana-program",
- "solana-sdk",
- "spl-associated-token-account 6.0.0",
- "spl-math",
- "spl-token 7.0.0",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -5036,17 +4918,6 @@ dependencies = [
 
 [[package]]
 name = "pem"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd56cbd21fea48d0c440b41cd69c589faacade08c992d9a54e471b79d0fd13eb"
-dependencies = [
- "base64 0.13.1",
- "once_cell",
- "regex",
-]
-
-[[package]]
-name = "pem"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8835c273a76a90455d7344889b0964598e3316e2a79ede8e36f16bdcf2228b8"
@@ -5556,7 +5427,7 @@ dependencies = [
  "bytes",
  "getrandom 0.2.15",
  "rand 0.8.5",
- "ring 0.17.14",
+ "ring",
  "rustc-hash 2.1.1",
  "rustls 0.23.22",
  "rustls-pki-types",
@@ -5765,7 +5636,7 @@ dependencies = [
  "lru",
  "parking_lot 0.11.2",
  "smallvec",
- "spin 0.9.8",
+ "spin",
 ]
 
 [[package]]
@@ -5848,7 +5719,6 @@ dependencies = [
  "url 2.5.4",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
  "web-sys",
  "webpki-roots 0.25.4",
  "winreg",
@@ -5871,21 +5741,6 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.16.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
-dependencies = [
- "cc",
- "libc",
- "once_cell",
- "spin 0.5.2",
- "untrusted 0.7.1",
- "web-sys",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
@@ -5894,7 +5749,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "getrandom 0.2.15",
  "libc",
- "untrusted 0.9.0",
+ "untrusted",
  "windows-sys 0.52.0",
 ]
 
@@ -6039,7 +5894,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f56a14d1f48b391359b22f731fd4bd7e43c97f3c50eee276f3aa09c94784d3e"
 dependencies = [
  "log",
- "ring 0.17.14",
+ "ring",
  "rustls-webpki 0.101.7",
  "sct",
 ]
@@ -6052,7 +5907,7 @@ checksum = "9fb9263ab4eb695e42321db096e3b8fbd715a59b154d5c88d82db2175b681ba7"
 dependencies = [
  "log",
  "once_cell",
- "ring 0.17.14",
+ "ring",
  "rustls-pki-types",
  "rustls-webpki 0.102.8",
  "subtle",
@@ -6144,8 +5999,8 @@ version = "0.101.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
 dependencies = [
- "ring 0.17.14",
- "untrusted 0.9.0",
+ "ring",
+ "untrusted",
 ]
 
 [[package]]
@@ -6154,9 +6009,9 @@ version = "0.102.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
 dependencies = [
- "ring 0.17.14",
+ "ring",
  "rustls-pki-types",
- "untrusted 0.9.0",
+ "untrusted",
 ]
 
 [[package]]
@@ -6219,8 +6074,8 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da046153aa2352493d6cb7da4b6e5c0c057d8a1d0a9aa8560baffdd945acd414"
 dependencies = [
- "ring 0.17.14",
- "untrusted 0.9.0",
+ "ring",
+ "untrusted",
 ]
 
 [[package]]
@@ -6579,17 +6434,6 @@ name = "simpl"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a30f10c911c0355f80f1c2faa8096efc4a58cdf8590b954d5b395efa071c711"
-
-[[package]]
-name = "simple_asn1"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692ca13de57ce0613a363c8c2f1de925adebc81b04c923ac60c5488bb44abe4b"
-dependencies = [
- "chrono",
- "num-bigint 0.2.6",
- "num-traits",
-]
 
 [[package]]
 name = "siphasher"
@@ -8594,7 +8438,7 @@ dependencies = [
  "libc",
  "log",
  "nix",
- "pem 1.1.1",
+ "pem",
  "percentage",
  "quinn",
  "quinn-proto",
@@ -9066,12 +8910,6 @@ dependencies = [
  "thiserror 1.0.69",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "spin"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "spin"
@@ -10260,13 +10098,10 @@ dependencies = [
  "im",
  "itertools 0.11.0",
  "jito-bytemuck",
- "jito-tip-distribution-sdk",
- "jito-tip-payment-sdk",
  "jito-tip-router-client",
  "jito-tip-router-core",
  "jito-tip-router-program",
  "log",
- "meta-merkle-tree",
  "rand 0.8.5",
  "serde",
  "serde_json",
@@ -10882,12 +10717,6 @@ checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
-
-[[package]]
-name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
@@ -11132,19 +10961,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "943aab3fdaaa029a6e0271b35ea10b72b943135afe9bffca82384098ad0e06a6"
-
-[[package]]
-name = "wasm-streams"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15053d8d85c7eccdbefef60f06769760a563c7f0a9d6902a13d35c7800b0ad65"
-dependencies = [
- "futures-util",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
 
 [[package]]
 name = "web-sys"

@@ -4,12 +4,12 @@ use std::{collections::HashMap, str::FromStr};
 use crate::{
     args::{Args, ProgramCommand},
     getters::{
-        get_account_payer, get_all_operators_in_ncn, get_all_opted_in_validators, get_all_tickets,
-        get_all_vaults, get_all_vaults_in_ncn, get_ballot_box, get_current_slot,
-        get_epoch_snapshot, get_epoch_state, get_is_epoch_completed, get_ncn,
-        get_ncn_operator_state, get_ncn_vault_ticket, get_operator_snapshot, get_stake_pool,
-        get_tip_router_config, get_total_epoch_rent_cost, get_vault_ncn_ticket,
-        get_vault_operator_delegation, get_vault_registry, get_weight_table, OptedInValidatorInfo,
+        get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
+        get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot,
+        get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
+        get_ncn_vault_ticket, get_operator_snapshot, get_stake_pool, get_tip_router_config,
+        get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
+        get_vault_registry, get_weight_table,
     },
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
@@ -45,7 +45,6 @@ pub struct CliHandler {
     pub restaking_program_id: Pubkey,
     pub vault_program_id: Pubkey,
     pub tip_router_program_id: Pubkey,
-    pub tip_distribution_program_id: Pubkey,
     pub token_program_id: Pubkey,
     ncn: Option<Pubkey>,
     pub epoch: u64,
@@ -72,8 +71,6 @@ impl CliHandler {
 
         let tip_router_program_id = Pubkey::from_str(&args.tip_router_program_id)?;
 
-        let tip_distribution_program_id = Pubkey::from_str(&args.tip_distribution_program_id)?;
-
         let token_program_id = Pubkey::from_str(&args.token_program_id)?;
 
         let ncn = args
@@ -91,7 +88,6 @@ impl CliHandler {
             restaking_program_id,
             vault_program_id,
             tip_router_program_id,
-            tip_distribution_program_id,
             token_program_id,
             ncn,
             epoch: u64::MAX,
@@ -599,29 +595,29 @@ impl CliHandler {
 
                 Ok(())
             }
-            ProgramCommand::GetAllOptedInValidators {} => {
-                let results = get_all_opted_in_validators(self).await?;
-
-                fn validators_to_csv_string(validators: &Vec<OptedInValidatorInfo>) -> String {
-                    let mut csv = String::from("identity,stake,active,vote\n");
-
-                    for validator in validators {
-                        csv.push_str(&format!(
-                            "{},{},{},{}\n",
-                            validator.identity, validator.stake, validator.active, validator.vote,
-                        ));
-                    }
-
-                    csv
-                }
-
-                info!(
-                    "Validator Info: \n\n{}\n\n",
-                    validators_to_csv_string(&results)
-                );
-
-                Ok(())
-            }
+            // ProgramCommand::GetAllOptedInValidators {} => {
+            //     let results = get_all_opted_in_validators(self).await?;
+            //
+            //     fn validators_to_csv_string(validators: &Vec<OptedInValidatorInfo>) -> String {
+            //         let mut csv = String::from("identity,stake,active,vote\n");
+            //
+            //         for validator in validators {
+            //             csv.push_str(&format!(
+            //                 "{},{},{},{}\n",
+            //                 validator.identity, validator.stake, validator.active, validator.vote,
+            //             ));
+            //         }
+            //
+            //         csv
+            //     }
+            //
+            //     info!(
+            //         "Validator Info: \n\n{}\n\n",
+            //         validators_to_csv_string(&results)
+            //     );
+            //
+            //     Ok(())
+            // }
             ProgramCommand::FullUpdateVaults { vault } => {
                 let mut vaults_to_update = vec![];
 

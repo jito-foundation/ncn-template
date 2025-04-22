@@ -75,15 +75,6 @@ pub struct Args {
     #[arg(
         long,
         global = true,
-        env = "TIP_DISTRIBUTION_PROGRAM_ID",
-        default_value_t = jito_tip_distribution_sdk::jito_tip_distribution::ID.to_string(),
-        help = "Tip distribution program ID"
-    )]
-    pub tip_distribution_program_id: String,
-
-    #[arg(
-        long,
-        global = true,
         env = "TOKEN_PROGRAM_ID",
         default_value_t = spl_token::id().to_string(),
         help = "Token Program ID"
@@ -290,8 +281,7 @@ pub enum ProgramCommand {
     GetOperatorStakes,
     GetVaultStakes,
     GetVaultOperatorStakes,
-    GetAllOptedInValidators,
-
+    // GetAllOptedInValidators,
     FullUpdateVaults {
         #[arg(long, help = "Vault address")]
         vault: Option<String>,

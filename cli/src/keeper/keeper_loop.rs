@@ -6,7 +6,7 @@ use crate::{
     instructions::{
         crank_close_epoch_accounts, crank_post_vote_cooldown, crank_register_vaults,
         crank_set_weight, crank_snapshot, crank_vote, create_epoch_state,
-        migrate_tda_merkle_root_upload_authorities, update_all_vaults_in_network,
+        update_all_vaults_in_network,
     },
     keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
@@ -276,29 +276,29 @@ pub async fn startup_keeper(
             }
         }
 
-        // Calls the migrate TDA Merkle Root
-        if run_migration {
-            info!(
-                "\n\nC. Migrate TDA Merkle Root Upload Authorities - {}\n",
-                current_keeper_epoch
-            );
-
-            // If complete, reset loop
-            if state.is_epoch_completed {
-                continue;
-            }
-
-            let result =
-                migrate_tda_merkle_root_upload_authorities(handler, current_keeper_epoch).await;
-
-            check_and_timeout_error(
-                "Migrate TDA Merkle Root Upload Authorities".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-            .await;
-        }
+        // // Calls the migrate TDA Merkle Root
+        // if run_migration {
+        //     info!(
+        //         "\n\nC. Migrate TDA Merkle Root Upload Authorities - {}\n",
+        //         current_keeper_epoch
+        //     );
+        //
+        //     // If complete, reset loop
+        //     if state.is_epoch_completed {
+        //         continue;
+        //     }
+        //
+        //     let result =
+        //         migrate_tda_merkle_root_upload_authorities(handler, current_keeper_epoch).await;
+        //
+        //     check_and_timeout_error(
+        //         "Migrate TDA Merkle Root Upload Authorities".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //     .await;
+        // }
 
         // This is where the real work is done. Depending on the state, the keeper will crank through
         // whatever is needed to be done for the given epoch.

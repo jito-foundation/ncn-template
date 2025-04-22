@@ -1,26 +1,14 @@
-use std::{
-    path::PathBuf,
-    str::FromStr,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{path::PathBuf, str::FromStr, time::Duration};
 
 use anyhow::Result;
 use ellipsis_client::EllipsisClient;
 use log::{error, info};
-use meta_merkle_tree::generated_merkle_tree::{GeneratedMerkleTreeCollection, StakeMetaCollection};
-use solana_metrics::{datapoint_error, datapoint_info};
+use solana_metrics::datapoint_info;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_runtime::bank::Bank;
 use solana_sdk::{epoch_info::EpochInfo, pubkey::Pubkey, signature::read_keypair_file};
 use tokio::time;
 
-use crate::{
-    backup_snapshots::SnapshotInfo, cli::SnapshotPaths, create_merkle_tree_collection,
-    create_meta_merkle_tree, create_stake_meta, ledger_utils::get_bank_from_snapshot_at_slot,
-    load_bank_from_snapshot, meta_merkle_tree_path, read_merkle_tree_collection,
-    read_stake_meta_collection, submit::submit_to_ncn, Cli, OperatorState, Version,
-};
+use crate::{backup_snapshots::SnapshotInfo, submit::submit_to_ncn, Cli, OperatorState, Version};
 
 const MAX_WAIT_FOR_INCREMENTAL_SNAPSHOT_TICKS: u64 = 1200; // Experimentally determined
 const OPTIMAL_INCREMENTAL_SNAPSHOT_SLOT_RANGE: u64 = 800; // Experimentally determined
@@ -105,11 +93,8 @@ pub async fn loop_stages(
     starting_stage: OperatorState,
     override_target_slot: Option<u64>,
     tip_router_program_id: &Pubkey,
-    tip_distribution_program_id: &Pubkey,
-    tip_payment_program_id: &Pubkey,
     ncn_address: &Pubkey,
-    enable_snapshots: bool,
-    save_stages: bool,
+    _enable_snapshots: bool,
 ) -> Result<()> {
     let keypair = read_keypair_file(&cli.keypair_path).expect("Failed to read keypair file");
     let mut current_epoch_info = rpc_client.get_epoch_info().await?;
@@ -117,9 +102,6 @@ pub async fn loop_stages(
     // Track runs that are starting right at the beginning of a new epoch
     let operator_address = cli.operator_address.clone();
     let mut stage = starting_stage;
-    let mut bank: Option<Arc<Bank>> = None;
-    let mut stake_meta_collection: Option<StakeMetaCollection> = None;
-    let mut merkle_tree_collection: Option<GeneratedMerkleTreeCollection> = None;
     let mut epoch_to_process = current_epoch_info.epoch.saturating_sub(1);
     let mut slot_to_process = if let Some(slot) = override_target_slot {
         slot
@@ -134,134 +116,31 @@ pub async fn loop_stages(
                 wait_for_optimal_incremental_snapshot(incremental_snapshots_path, slot_to_process)
                     .await?;
 
-                bank = Some(load_bank_from_snapshot(
-                    cli.clone(),
-                    slot_to_process,
-                    enable_snapshots,
-                ));
-                // Transition to the next stage
-                stage = OperatorState::CreateStakeMeta;
-            }
-            OperatorState::CreateStakeMeta => {
-                let start = Instant::now();
-                if bank.is_none() {
-                    let SnapshotPaths {
-                        ledger_path,
-                        account_paths,
-                        full_snapshots_path: _,
-                        incremental_snapshots_path: _,
-                        backup_snapshots_dir,
-                    } = cli.get_snapshot_paths();
-
-                    // We can safely expect to use the backup_snapshots_dir as the full snapshot path because
-                    //  _get_bank_from_snapshot_at_slot_ expects the snapshot at the exact `slot` to have
-                    //  already been taken.
-                    let maybe_bank = get_bank_from_snapshot_at_slot(
-                        slot_to_process,
-                        &backup_snapshots_dir,
-                        &backup_snapshots_dir,
-                        account_paths,
-                        ledger_path.as_path(),
-                    );
-                    match maybe_bank {
-                        Ok(some_bank) => bank = Some(Arc::new(some_bank)),
-                        Err(e) => {
-                            datapoint_error!(
-                                "tip_router_cli.create_stake_meta",
-                                ("operator_address", operator_address, String),
-                                ("epoch", epoch_to_process, i64),
-                                ("status", "error", String),
-                                ("error", e.to_string(), String),
-                                ("state", "create_stake_meta", String),
-                                ("duration_ms", start.elapsed().as_millis() as i64, i64)
-                            );
-                            panic!("{}", e.to_string());
-                        }
-                    }
-                }
-                stake_meta_collection = Some(create_stake_meta(
-                    operator_address.clone(),
-                    epoch_to_process,
-                    bank.as_ref().expect("Bank was not set"),
-                    tip_distribution_program_id,
-                    tip_payment_program_id,
-                    &cli.get_save_path(),
-                    save_stages,
-                ));
-                // we should be able to safely drop the bank in this loop
-                bank = None;
-                // Transition to the next stage
-                stage = OperatorState::CreateMerkleTreeCollection;
-            }
-            OperatorState::CreateMerkleTreeCollection => {
-                let some_stake_meta_collection = stake_meta_collection.to_owned().map_or_else(
-                    || read_stake_meta_collection(epoch_to_process, &cli.get_save_path()),
-                    |collection| collection,
-                );
-
-                // Generate the merkle tree collection
-                merkle_tree_collection = Some(create_merkle_tree_collection(
-                    cli.operator_address.clone(),
-                    tip_router_program_id,
-                    some_stake_meta_collection,
-                    epoch_to_process,
-                    ncn_address,
-                    0, // TODO: remove hardcoded protocol_fee_bps, or remove the whole merkle tree
-                    &cli.get_save_path(),
-                    save_stages,
-                ));
-
-                stake_meta_collection = None;
                 // Transition to the next stage
                 stage = OperatorState::CreateMetaMerkleTree;
             }
             OperatorState::CreateMetaMerkleTree => {
-                let some_merkle_tree_collection = merkle_tree_collection.to_owned().map_or_else(
-                    || read_merkle_tree_collection(epoch_to_process, &cli.get_save_path()),
-                    |collection| collection,
-                );
-
-                let merkle_tree = create_meta_merkle_tree(
-                    cli.operator_address.clone(),
-                    some_merkle_tree_collection,
-                    epoch_to_process,
-                    &cli.get_save_path(),
-                    // This is defaulted to true because the output file is required by the
-                    //  task that sets TipDistributionAccounts' merkle roots
-                    true,
-                );
                 datapoint_info!(
                     "tip_router_cli.process_epoch",
                     ("operator_address", operator_address, String),
                     ("epoch", epoch_to_process, i64),
                     ("status", "success", String),
                     ("state", "epoch_processing_completed", String),
-                    (
-                        "meta_merkle_root",
-                        format!("{:?}", merkle_tree.merkle_root),
-                        String
-                    ),
                     ("version", Version::default().to_string(), String),
                 );
                 stage = OperatorState::CastVote;
             }
             OperatorState::CastVote => {
-                let meta_merkle_tree_path =
-                    meta_merkle_tree_path(epoch_to_process, &cli.get_save_path());
-
                 let operator_address = Pubkey::from_str(&cli.operator_address)?;
                 submit_to_ncn(
                     &rpc_client,
                     &keypair,
                     &operator_address,
-                    &meta_merkle_tree_path,
                     epoch_to_process,
                     ncn_address,
                     tip_router_program_id,
-                    tip_distribution_program_id,
+                    [1; 32],
                     cli.submit_as_memo,
-                    // We let the submit task handle setting merkle roots
-                    false,
                 )
                 .await?;
                 stage = OperatorState::WaitForNextEpoch;

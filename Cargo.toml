@@ -3,13 +3,10 @@ members = [
     "cli",
     "clients/rust/jito_tip_router",
     "core",
-    "gcp_uploader",
     "integration_tests",
     "program",
     "shank_cli",
     "tip-router-operator-cli",
-    "tip_distribution_sdk",
-    "tip_payment_sdk",
 ]
 
 resolver = "2"
@@ -108,9 +105,6 @@ switchboard-on-demand = "0.3.4"
 syn = "2.0.72"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
-meta-merkle-tree = { path = "./meta_merkle_tree", version = "=0.0.1" }
-jito-tip-distribution-sdk = { path = "./tip_distribution_sdk", version = "=0.0.1" }
-jito-tip-payment-sdk = { path = "./tip_payment_sdk", version = "=0.0.1" }
 jito-tip-router-client = { path = "./clients/rust/jito_tip_router", version = "0.0.1" }
 jito-tip-router-core = { path = "./core", version = "=0.0.1" }
 jito-tip-router-program = { path = "./program", version = "=0.0.1" }

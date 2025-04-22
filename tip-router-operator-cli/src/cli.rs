@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use log::info;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::OperatorState;
@@ -37,44 +36,11 @@ pub struct Cli {
     #[arg(long, env, default_value_t = 1)]
     pub micro_lamports: u64,
 
-    #[arg(long, env, help = "Path to save data (formerly meta-merkle-tree-dir)")]
-    pub save_path: Option<PathBuf>,
-
-    #[arg(short, long, env, help = "Path to save data (deprecated)")]
-    #[deprecated(since = "1.1.0", note = "use --save-path instead")]
-    pub meta_merkle_tree_dir: Option<PathBuf>,
-
     #[command(subcommand)]
     pub command: Commands,
 }
 
 impl Cli {
-    #[allow(deprecated)]
-    pub fn get_save_path(&self) -> PathBuf {
-        self.save_path.to_owned().map_or_else(
-            || {
-                self.meta_merkle_tree_dir.to_owned().map_or_else(
-                    || {
-                        panic!("--save-path argument must be set");
-                    },
-                    |save_path| save_path,
-                )
-            },
-            |save_path| save_path,
-        )
-    }
-
-    pub fn create_save_path(&self) {
-        let save_path = self.get_save_path();
-        if !save_path.exists() {
-            info!(
-                "Creating Tip Router save directory at {}",
-                save_path.display()
-            );
-            std::fs::create_dir_all(&save_path).unwrap();
-        }
-    }
-
     pub fn get_snapshot_paths(&self) -> SnapshotPaths {
         let ledger_path = self.ledger_path.clone();
         let account_paths = None;
@@ -116,12 +82,6 @@ pub enum Commands {
         ncn_address: Pubkey,
 
         #[arg(long, env)]
-        tip_distribution_program_id: Pubkey,
-
-        #[arg(long, env)]
-        tip_payment_program_id: Pubkey,
-
-        #[arg(long, env)]
         tip_router_program_id: Pubkey,
 
         #[arg(long, env, default_value = "3")]
@@ -130,14 +90,8 @@ pub enum Commands {
         #[arg(long, env)]
         override_target_slot: Option<u64>,
 
-        #[arg(long, env, default_value = "false")]
-        set_merkle_roots: bool,
-
         #[arg(long, env, default_value = "wait-for-next-epoch")]
         starting_stage: OperatorState,
-
-        #[arg(long, env, default_value = "true")]
-        save_stages: bool,
 
         #[arg(
             long,
@@ -157,51 +111,9 @@ pub enum Commands {
         ncn_address: Pubkey,
 
         #[arg(long, env)]
-        tip_distribution_program_id: Pubkey,
-
-        #[arg(long, env)]
         tip_router_program_id: Pubkey,
 
         #[arg(long, env)]
         epoch: u64,
-
-        #[arg(long, env, default_value = "false")]
-        set_merkle_roots: bool,
-    },
-    CreateStakeMeta {
-        #[arg(long, env)]
-        slot: u64,
-
-        #[arg(long, env)]
-        epoch: u64,
-
-        #[arg(long, env)]
-        tip_distribution_program_id: Pubkey,
-
-        #[arg(long, env)]
-        tip_payment_program_id: Pubkey,
-
-        #[arg(long, env, default_value = "true")]
-        save: bool,
-    },
-    CreateMerkleTreeCollection {
-        #[arg(long, env)]
-        tip_router_program_id: Pubkey,
-
-        #[arg(short, long, env)]
-        ncn_address: Pubkey,
-
-        #[arg(long, env)]
-        epoch: u64,
-
-        #[arg(long, env, default_value = "true")]
-        save: bool,
-    },
-    CreateMetaMerkleTree {
-        #[arg(long, env)]
-        epoch: u64,
-
-        #[arg(long, env, default_value = "true")]
-        save: bool,
     },
 }

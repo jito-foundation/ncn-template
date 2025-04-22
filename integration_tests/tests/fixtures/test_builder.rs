@@ -1,10 +1,6 @@
-use std::{
-    borrow::BorrowMut,
-    fmt::{Debug, Formatter},
-};
+use std::fmt::{Debug, Formatter};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-use jito_tip_distribution_sdk::jito_tip_distribution;
 use jito_tip_router_core::{
     ballot_box::BallotBox,
     constants::{JITOSOL_MINT, WEIGHT},
@@ -29,8 +25,7 @@ use spl_stake_pool::find_withdraw_authority_program_address;
 
 use super::{
     generated_switchboard_accounts::get_switchboard_accounts, restaking_client::NcnRoot,
-    stake_pool_client::StakePoolClient, tip_distribution_client::TipDistributionClient,
-    tip_router_client::TipRouterClient,
+    stake_pool_client::StakePoolClient, tip_router_client::TipRouterClient,
 };
 use crate::fixtures::{
     restaking_client::{OperatorRoot, RestakingProgramClient},
@@ -101,10 +96,6 @@ impl TestBuilder {
             program_test.add_program("jito_vault_program", jito_vault_program::id(), None);
             program_test.add_program("jito_restaking_program", jito_restaking_program::id(), None);
             program_test.add_program("spl_stake_pool", spl_stake_pool::id(), None);
-
-            // Tests that invoke this program should be in the "bpf" module so we can run them separately with the bpf vm.
-            // Anchor programs do not expose a compatible entrypoint for solana_program_test::processor!
-            program_test.add_program("jito_tip_distribution", jito_tip_distribution::ID, None);
 
             program_test
         } else {
@@ -189,12 +180,6 @@ impl TestBuilder {
         Ok(())
     }
 
-    pub async fn set_account(&mut self, address: Pubkey, account: Account) {
-        self.context
-            .borrow_mut()
-            .set_account(&address, &account.into())
-    }
-
     pub async fn clock(&mut self) -> Clock {
         self.context.banks_client.get_sysvar().await.unwrap()
     }
@@ -226,13 +211,6 @@ impl TestBuilder {
 
     pub fn vault_program_client(&self) -> VaultProgramClient {
         VaultProgramClient::new(
-            self.context.banks_client.clone(),
-            self.context.payer.insecure_clone(),
-        )
-    }
-
-    pub fn tip_distribution_client(&self) -> TipDistributionClient {
-        TipDistributionClient::new(
             self.context.banks_client.clone(),
             self.context.payer.insecure_clone(),
         )

@@ -1,4 +1,3 @@
-use meta_merkle_tree::{error::MerkleTreeError, generated_merkle_tree::MerkleRootGeneratorError};
 use solana_program::{instruction::InstructionError, program_error::ProgramError};
 use solana_program_test::BanksClientError;
 use solana_sdk::transaction::TransactionError;
@@ -8,7 +7,6 @@ pub mod generated_switchboard_accounts;
 pub mod restaking_client;
 pub mod stake_pool_client;
 pub mod test_builder;
-pub mod tip_distribution_client;
 pub mod tip_router_client;
 pub mod vault_client;
 
@@ -20,10 +18,6 @@ pub enum TestError {
     BanksClientError(#[from] BanksClientError),
     #[error(transparent)]
     ProgramError(#[from] ProgramError),
-    #[error(transparent)]
-    MerkleTreeError(#[from] MerkleTreeError),
-    #[error(transparent)]
-    MerkleRootGeneratorError(#[from] MerkleRootGeneratorError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]

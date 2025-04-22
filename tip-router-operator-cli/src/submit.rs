@@ -1,15 +1,14 @@
+use std::str::FromStr;
 use std::sync::Arc;
-use std::{path::PathBuf, str::FromStr};
 
 use ellipsis_client::EllipsisClient;
 use jito_bytemuck::AccountDeserialize as JitoAccountDeserialize;
-use jito_tip_router_core::{ballot_box::BallotBox, config::Config};
+use jito_tip_router_core::ballot_box::BallotBox;
 use log::{debug, error, info};
-use meta_merkle_tree::meta_merkle_tree::MetaMerkleTree;
 use solana_metrics::{datapoint_error, datapoint_info};
 use solana_sdk::{pubkey::Pubkey, signature::Keypair};
 
-use crate::{meta_merkle_tree_file_name, Version};
+use crate::Version;
 use crate::{
     tip_router::{cast_vote, get_ncn_config},
     Cli,
@@ -21,10 +20,9 @@ pub async fn submit_recent_epochs_to_ncn(
     keypair: &Arc<Keypair>,
     ncn_address: &Pubkey,
     tip_router_program_id: &Pubkey,
-    tip_distribution_program_id: &Pubkey,
     num_monitored_epochs: u64,
+    merkle_root: [u8; 32],
     cli_args: &Cli,
-    set_merkle_roots: bool,
 ) -> Result<(), anyhow::Error> {
     let epoch = client.get_epoch_info().await?;
     let operator_address = Pubkey::from_str(&cli_args.operator_address)?;
@@ -32,24 +30,15 @@ pub async fn submit_recent_epochs_to_ncn(
     for i in 0..num_monitored_epochs {
         let process_epoch = epoch.epoch.checked_sub(i).unwrap();
 
-        let meta_merkle_tree_dir = cli_args.get_save_path();
-        let target_meta_merkle_tree_file = meta_merkle_tree_file_name(process_epoch);
-        let target_meta_merkle_tree_path = meta_merkle_tree_dir.join(target_meta_merkle_tree_file);
-        if !target_meta_merkle_tree_path.exists() {
-            continue;
-        }
-
         match submit_to_ncn(
             client,
             keypair,
             &operator_address,
-            &target_meta_merkle_tree_path,
             process_epoch,
             ncn_address,
             tip_router_program_id,
-            tip_distribution_program_id,
+            merkle_root,
             cli_args.submit_as_memo,
-            set_merkle_roots,
         )
         .await
         {
@@ -66,16 +55,13 @@ pub async fn submit_to_ncn(
     client: &EllipsisClient,
     keypair: &Keypair,
     operator_address: &Pubkey,
-    meta_merkle_tree_path: &PathBuf,
     merkle_root_epoch: u64,
     ncn_address: &Pubkey,
     tip_router_program_id: &Pubkey,
-    tip_distribution_program_id: &Pubkey,
+    merkle_root: [u8; 32],
     submit_as_memo: bool,
-    set_merkle_roots: bool,
 ) -> Result<(), anyhow::Error> {
     let epoch_info = client.get_epoch_info().await?;
-    let meta_merkle_tree = MetaMerkleTree::new_from_file(meta_merkle_tree_path)?;
     let config = get_ncn_config(client, tip_router_program_id, ncn_address).await?;
 
     // The meta merkle root files are tagged with the epoch they have created the snapshot for
@@ -122,7 +108,7 @@ pub async fn submit_to_ncn(
                 .get(vote.ballot_index() as usize)
                 .ok_or_else(|| anyhow::anyhow!("Ballot tally not found"))?;
 
-            tally.ballot().root() != meta_merkle_tree.merkle_root
+            tally.ballot().root() != merkle_root
         }
         None => true,
     };
@@ -143,7 +129,7 @@ pub async fn submit_to_ncn(
             ncn_address,
             operator_address,
             keypair,
-            meta_merkle_tree.merkle_root,
+            merkle_root,
             tip_router_target_epoch,
             submit_as_memo,
         )
@@ -155,11 +141,7 @@ pub async fn submit_to_ncn(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
                     ("epoch", tip_router_target_epoch, i64),
-                    (
-                        "merkle_root",
-                        format!("{:?}", meta_merkle_tree.merkle_root),
-                        String
-                    ),
+                    ("merkle_root", format!("{:?}", merkle_root), String),
                     ("version", Version::default().to_string(), String),
                     ("tx_sig", format!("{:?}", signature), String)
                 );
@@ -173,11 +155,7 @@ pub async fn submit_to_ncn(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
                     ("epoch", tip_router_target_epoch, i64),
-                    (
-                        "merkle_root",
-                        format!("{:?}", meta_merkle_tree.merkle_root),
-                        String
-                    ),
+                    ("merkle_root", format!("{:?}", merkle_root), String),
                     ("status", "error", String),
                     ("error", format!("{:?}", e), String)
                 );

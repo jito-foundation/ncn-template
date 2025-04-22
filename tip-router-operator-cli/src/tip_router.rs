@@ -8,7 +8,7 @@ use jito_tip_router_core::{
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
 };
-use log::{error, info};
+use log::info;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signature},

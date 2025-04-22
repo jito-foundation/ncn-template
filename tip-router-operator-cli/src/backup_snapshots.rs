@@ -7,7 +7,6 @@ use std::time::Duration;
 use tokio::time;
 
 use crate::process_epoch::get_previous_epoch_last_slot;
-use crate::{merkle_tree_collection_file_name, meta_merkle_tree_file_name, stake_meta_file_name};
 
 const MAXIMUM_BACKUP_INCREMENTAL_SNAPSHOTS_PER_EPOCH: usize = 3;
 
@@ -67,26 +66,8 @@ pub struct SavedTipRouterFile {
 
 impl SavedTipRouterFile {
     /// Try to parse a TipRouter saved filename with epoch information
-    pub fn from_path(path: PathBuf) -> Option<Self> {
-        let file_name = path.file_name()?.to_str()?;
-
-        // Split on underscore to get epoch
-        let parts: Vec<&str> = file_name.split('_').collect();
-        let epoch: u64 = parts[0].parse().ok()?;
-
-        let is_tip_router_file = [
-            stake_meta_file_name(epoch),
-            merkle_tree_collection_file_name(epoch),
-            meta_merkle_tree_file_name(epoch),
-        ]
-        .iter()
-        .any(|x| *x == file_name);
-
-        if is_tip_router_file {
-            Some(Self { path, epoch })
-        } else {
-            None
-        }
+    pub fn from_path() -> Option<Self> {
+        None
     }
 }
 
@@ -229,7 +210,7 @@ impl BackupSnapshotMonitor {
         // Filter the files and evict files that are <= epoch
         dir_entries
             .filter_map(Result::ok)
-            .filter_map(|entry| SavedTipRouterFile::from_path(entry.path()))
+            .filter_map(|_entry| SavedTipRouterFile::from_path())
             .filter(|saved_file| saved_file.epoch <= epoch)
             .try_for_each(|saved_file| {
                 log::debug!(
@@ -352,10 +333,6 @@ impl BackupSnapshotMonitor {
 #[cfg(test)]
 mod tests {
     use std::fs::File;
-
-    use crate::{
-        merkle_tree_collection_file_name, meta_merkle_tree_file_name, stake_meta_file_name,
-    };
 
     use super::*;
     use std::io::Write;
@@ -532,11 +509,6 @@ mod tests {
         let current_epoch = 749;
         let first_epoch = current_epoch - 5;
 
-        for i in first_epoch..current_epoch {
-            File::create(&monitor.save_path.join(stake_meta_file_name(i))).unwrap();
-            File::create(&monitor.save_path.join(merkle_tree_collection_file_name(i))).unwrap();
-            File::create(&monitor.save_path.join(meta_merkle_tree_file_name(i))).unwrap();
-        }
         let dir_entries: Vec<PathBuf> = std::fs::read_dir(&monitor.save_path)
             .unwrap()
             .map(|x| x.unwrap().path())
