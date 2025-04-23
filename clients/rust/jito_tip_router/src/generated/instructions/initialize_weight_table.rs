@@ -88,7 +88,7 @@ pub struct InitializeWeightTableInstructionData {
 
 impl InitializeWeightTableInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 6 }
+        Self { discriminator: 5 }
     }
 }
 

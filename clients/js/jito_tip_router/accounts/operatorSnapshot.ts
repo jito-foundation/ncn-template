@@ -65,7 +65,6 @@ export type OperatorSnapshot = {
   vaultOperatorDelegationsRegistered: bigint;
   validOperatorVaultDelegations: bigint;
   stakeWeights: StakeWeights;
-  reserved: Array<number>;
   vaultOperatorStakeWeight: Array<VaultOperatorStakeWeight>;
 };
 
@@ -85,7 +84,6 @@ export type OperatorSnapshotArgs = {
   vaultOperatorDelegationsRegistered: number | bigint;
   validOperatorVaultDelegations: number | bigint;
   stakeWeights: StakeWeightsArgs;
-  reserved: Array<number>;
   vaultOperatorStakeWeight: Array<VaultOperatorStakeWeightArgs>;
 };
 
@@ -106,7 +104,6 @@ export function getOperatorSnapshotEncoder(): Encoder<OperatorSnapshotArgs> {
     ['vaultOperatorDelegationsRegistered', getU64Encoder()],
     ['validOperatorVaultDelegations', getU64Encoder()],
     ['stakeWeights', getStakeWeightsEncoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 256 })],
     [
       'vaultOperatorStakeWeight',
       getArrayEncoder(getVaultOperatorStakeWeightEncoder(), { size: 64 }),
@@ -131,7 +128,6 @@ export function getOperatorSnapshotDecoder(): Decoder<OperatorSnapshot> {
     ['vaultOperatorDelegationsRegistered', getU64Decoder()],
     ['validOperatorVaultDelegations', getU64Decoder()],
     ['stakeWeights', getStakeWeightsDecoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 256 })],
     [
       'vaultOperatorStakeWeight',
       getArrayDecoder(getVaultOperatorStakeWeightDecoder(), { size: 64 }),

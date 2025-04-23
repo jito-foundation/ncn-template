@@ -37,7 +37,7 @@ import {
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const CAST_VOTE_DISCRIMINATOR = 14;
+export const CAST_VOTE_DISCRIMINATOR = 12;
 
 export function getCastVoteDiscriminatorBytes() {
   return getU8Encoder().encode(CAST_VOTE_DISCRIMINATOR);

@@ -64,9 +64,7 @@ export type EpochState = {
   votingProgress: Progress;
   validationProgress: Progress;
   uploadProgress: Progress;
-  reservedDistributionSpace: Array<number>;
   isClosing: number;
-  reserved: Array<number>;
 };
 
 export type EpochStateArgs = {
@@ -86,9 +84,7 @@ export type EpochStateArgs = {
   votingProgress: ProgressArgs;
   validationProgress: ProgressArgs;
   uploadProgress: ProgressArgs;
-  reservedDistributionSpace: Array<number>;
   isClosing: number;
-  reserved: Array<number>;
 };
 
 export function getEpochStateEncoder(): Encoder<EpochStateArgs> {
@@ -112,12 +108,7 @@ export function getEpochStateEncoder(): Encoder<EpochStateArgs> {
     ['votingProgress', getProgressEncoder()],
     ['validationProgress', getProgressEncoder()],
     ['uploadProgress', getProgressEncoder()],
-    [
-      'reservedDistributionSpace',
-      getArrayEncoder(getU8Encoder(), { size: 2064 }),
-    ],
     ['isClosing', getBoolEncoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 1023 })],
   ]);
 }
 
@@ -142,12 +133,7 @@ export function getEpochStateDecoder(): Decoder<EpochState> {
     ['votingProgress', getProgressDecoder()],
     ['validationProgress', getProgressDecoder()],
     ['uploadProgress', getProgressDecoder()],
-    [
-      'reservedDistributionSpace',
-      getArrayDecoder(getU8Decoder(), { size: 2064 }),
-    ],
     ['isClosing', getBoolDecoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 1023 })],
   ]);
 }
 

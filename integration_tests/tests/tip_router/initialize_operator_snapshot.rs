@@ -41,18 +41,7 @@ mod tests {
         )
         .0;
         let raw_account = fixture.get_account(&address).await?.unwrap();
-        assert_eq!(raw_account.data.len(), MAX_REALLOC_BYTES as usize);
         assert_eq!(raw_account.owner, jito_tip_router_program::id());
-        assert_eq!(raw_account.data[0], 0);
-
-        // Calculate number of reallocs needed
-        let num_reallocs =
-            (OperatorSnapshot::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-
-        // Realloc to full size
-        tip_router_client
-            .do_realloc_operator_snapshot(operator, ncn, epoch, num_reallocs)
-            .await?;
 
         // Get operator snapshot and verify it was initialized correctly
         let operator_snapshot = tip_router_client

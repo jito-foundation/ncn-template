@@ -29,9 +29,8 @@ use jito_tip_router_client::{
         InitializeConfigBuilder as InitializeTipRouterConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
-        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocEpochStateBuilder,
-        ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
-        RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
+        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocVaultRegistryBuilder,
+        ReallocWeightTableBuilder, RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -440,7 +439,8 @@ pub async fn create_vault_registry(handler: &CliHandler) -> Result<()> {
     }
 
     // Number of reallocations needed based on VaultRegistry::SIZE
-    let num_reallocs = (VaultRegistry::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+    let num_reallocs =
+        ((VaultRegistry::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1).max(1);
 
     let realloc_vault_registry_ix = ReallocVaultRegistryBuilder::new()
         .config(config)
@@ -524,7 +524,7 @@ pub async fn create_epoch_state(handler: &CliHandler, epoch: u64) -> Result<()> 
     // Skip if ballot box already exists
     if epoch_state_account.is_none() {
         // Initialize ballot box
-        let initialize_ballot_box_ix = InitializeEpochStateBuilder::new()
+        let initialize_epoch_state_ix = InitializeEpochStateBuilder::new()
             .epoch_marker(epoch_marker)
             .config(config)
             .epoch_state(epoch_state)
@@ -536,45 +536,13 @@ pub async fn create_epoch_state(handler: &CliHandler, epoch: u64) -> Result<()> 
 
         send_and_log_transaction(
             handler,
-            &[initialize_ballot_box_ix],
+            &[initialize_epoch_state_ix],
             &[],
             "Initialized Epoch State",
             &[format!("NCN: {:?}", ncn), format!("Epoch: {:?}", epoch)],
         )
         .await?;
     }
-
-    // Number of reallocations needed based on BallotBox::SIZE
-    let num_reallocs = (EpochState::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-
-    // Realloc ballot box
-    let realloc_ballot_box_ix = ReallocEpochStateBuilder::new()
-        .config(config)
-        .epoch_state(epoch_state)
-        .ncn(ncn)
-        .epoch(epoch)
-        .account_payer(account_payer)
-        .system_program(system_program::id())
-        .instruction();
-
-    let mut realloc_ixs = Vec::with_capacity(num_reallocs as usize);
-    realloc_ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(1_400_000));
-    for _ in 0..num_reallocs {
-        realloc_ixs.push(realloc_ballot_box_ix.clone());
-    }
-
-    send_and_log_transaction(
-        handler,
-        &realloc_ixs,
-        &[],
-        "Reallocated Epoch State",
-        &[
-            format!("NCN: {:?}", ncn),
-            format!("Epoch: {:?}", epoch),
-            format!("Number of reallocations: {:?}", num_reallocs),
-        ],
-    )
-    .await?;
 
     Ok(())
 }
@@ -747,6 +715,9 @@ pub async fn create_operator_snapshot(
         let initialize_operator_snapshot_ix = InitializeOperatorSnapshotBuilder::new()
             .epoch_marker(epoch_marker)
             .config(config)
+            .restaking_config(
+                RestakingConfig::find_program_address(&handler.restaking_program_id).0,
+            )
             .ncn(ncn)
             .operator(operator)
             .epoch_state(epoch_state)
@@ -771,44 +742,6 @@ pub async fn create_operator_snapshot(
         )
         .await?;
     }
-
-    // Number of reallocations needed based on OperatorSnapshot::SIZE
-    let num_reallocs = (OperatorSnapshot::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-
-    // Realloc operator snapshot
-    let realloc_operator_snapshot_ix = ReallocOperatorSnapshotBuilder::new()
-        .config(config)
-        .restaking_config(RestakingConfig::find_program_address(&handler.restaking_program_id).0)
-        .ncn(ncn)
-        .operator(operator)
-        .epoch_state(epoch_state)
-        .ncn_operator_state(ncn_operator_state)
-        .epoch_snapshot(epoch_snapshot)
-        .operator_snapshot(operator_snapshot)
-        .account_payer(account_payer)
-        .system_program(system_program::id())
-        .epoch(epoch)
-        .instruction();
-
-    let mut realloc_ixs = Vec::with_capacity(num_reallocs as usize);
-    realloc_ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(1_400_000));
-    for _ in 0..num_reallocs {
-        realloc_ixs.push(realloc_operator_snapshot_ix.clone());
-    }
-
-    send_and_log_transaction(
-        handler,
-        &realloc_ixs,
-        &[],
-        "Reallocated Operator Snapshot",
-        &[
-            format!("NCN: {:?}", ncn),
-            format!("Operator: {:?}", operator),
-            format!("Epoch: {:?}", epoch),
-            format!("Number of reallocations: {:?}", num_reallocs),
-        ],
-    )
-    .await?;
 
     Ok(())
 }
@@ -2134,6 +2067,8 @@ pub fn log_transaction(title: &str, signature: Signature, log_items: &[String]) 
     for item in log_items {
         log_message.push_str(&format!("\n{}", item));
     }
+
+    // msg!(log_message.clone());
 
     log_message.push('\n');
     info!("{}", log_message);

@@ -52,7 +52,6 @@ export type WeightTable = {
   slotCreated: bigint;
   vaultCount: bigint;
   bump: number;
-  reserved: Array<number>;
   vaultRegistry: Array<VaultEntry>;
   table: Array<WeightEntry>;
 };
@@ -64,7 +63,6 @@ export type WeightTableArgs = {
   slotCreated: number | bigint;
   vaultCount: number | bigint;
   bump: number;
-  reserved: Array<number>;
   vaultRegistry: Array<VaultEntryArgs>;
   table: Array<WeightEntryArgs>;
 };
@@ -77,7 +75,6 @@ export function getWeightTableEncoder(): Encoder<WeightTableArgs> {
     ['slotCreated', getU64Encoder()],
     ['vaultCount', getU64Encoder()],
     ['bump', getU8Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
     ['vaultRegistry', getArrayEncoder(getVaultEntryEncoder(), { size: 64 })],
     ['table', getArrayEncoder(getWeightEntryEncoder(), { size: 64 })],
   ]);
@@ -91,7 +88,6 @@ export function getWeightTableDecoder(): Decoder<WeightTable> {
     ['slotCreated', getU64Decoder()],
     ['vaultCount', getU64Decoder()],
     ['bump', getU8Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
     ['vaultRegistry', getArrayDecoder(getVaultEntryDecoder(), { size: 64 })],
     ['table', getArrayDecoder(getWeightEntryDecoder(), { size: 64 })],
   ]);

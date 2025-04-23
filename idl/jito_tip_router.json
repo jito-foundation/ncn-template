@@ -206,46 +206,6 @@
       }
     },
     {
-      "name": "ReallocEpochState",
-      "accounts": [
-        {
-          "name": "epochState",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "ncn",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "accountPayer",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "epoch",
-          "type": "u64"
-        }
-      ],
-      "discriminant": {
-        "type": "u8",
-        "value": 5
-      }
-    },
-    {
       "name": "InitializeWeightTable",
       "accounts": [
         {
@@ -292,7 +252,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 6
+        "value": 5
       }
     },
     {
@@ -342,7 +302,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 7
+        "value": 6
       }
     },
     {
@@ -397,7 +357,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 8
+        "value": 7
       }
     },
     {
@@ -408,66 +368,6 @@
           "isMut": false,
           "isSigner": false
         },
-        {
-          "name": "epochState",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "ncn",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "operator",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "ncnOperatorState",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "epochSnapshot",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "operatorSnapshot",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "accountPayer",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "epoch",
-          "type": "u64"
-        }
-      ],
-      "discriminant": {
-        "type": "u8",
-        "value": 9
-      }
-    },
-    {
-      "name": "ReallocOperatorSnapshot",
-      "accounts": [
         {
           "name": "epochState",
           "isMut": true,
@@ -527,7 +427,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 10
+        "value": 8
       }
     },
     {
@@ -602,7 +502,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 11
+        "value": 9
       }
     },
     {
@@ -652,7 +552,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 12
+        "value": 10
       }
     },
     {
@@ -697,7 +597,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 13
+        "value": 11
       }
     },
     {
@@ -761,7 +661,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 14
+        "value": 12
       }
     },
     {
@@ -811,7 +711,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 15
+        "value": 13
       }
     },
     {
@@ -861,7 +761,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 16
+        "value": 14
       }
     },
     {
@@ -898,7 +798,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 17
+        "value": 15
       }
     },
     {
@@ -947,7 +847,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 18
+        "value": 16
       }
     },
     {
@@ -990,7 +890,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 17
       }
     },
     {
@@ -1032,7 +932,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 18
       }
     },
     {
@@ -1073,7 +973,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 19
       }
     }
   ],
@@ -1175,15 +1075,6 @@
             "type": "publicKey"
           },
           {
-            "name": "reservedFeeAdmin",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "validSlotsAfterConsensus",
             "type": {
               "defined": "PodU64"
@@ -1209,15 +1100,6 @@
             "name": "startingValidEpoch",
             "type": {
               "defined": "PodU64"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                111
-              ]
             }
           }
         ]
@@ -1279,15 +1161,6 @@
             }
           },
           {
-            "name": "reservedForFees",
-            "type": {
-              "array": [
-                "u8",
-                168
-              ]
-            }
-          },
-          {
             "name": "operatorCount",
             "type": {
               "defined": "PodU64"
@@ -1315,15 +1188,6 @@
             "name": "stakeWeights",
             "type": {
               "defined": "StakeWeights"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
             }
           }
         ]
@@ -1410,15 +1274,6 @@
             "name": "stakeWeights",
             "type": {
               "defined": "StakeWeights"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                256
-              ]
             }
           },
           {
@@ -1532,27 +1387,9 @@
             }
           },
           {
-            "name": "reservedDistributionSpace",
-            "type": {
-              "array": [
-                "u8",
-                2064
-              ]
-            }
-          },
-          {
             "name": "isClosing",
             "type": {
               "defined": "PodBool"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                1023
-              ]
             }
           }
         ]
@@ -1570,15 +1407,6 @@
           {
             "name": "bump",
             "type": "u8"
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                127
-              ]
-            }
           },
           {
             "name": "stMintList",
@@ -1635,15 +1463,6 @@
           {
             "name": "bump",
             "type": "u8"
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           },
           {
             "name": "vaultRegistry",
@@ -1791,27 +1610,9 @@
             }
           },
           {
-            "name": "reservedFeeGroup",
-            "type": {
-              "array": [
-                "u8",
-                1
-              ]
-            }
-          },
-          {
             "name": "stakeWeight",
             "type": {
               "defined": "StakeWeights"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
             }
           }
         ]
@@ -1846,15 +1647,6 @@
           {
             "name": "ballotBox",
             "type": "u8"
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                2049
-              ]
-            }
           }
         ]
       }
@@ -1898,15 +1690,6 @@
             "type": {
               "defined": "PodU128"
             }
-          },
-          {
-            "name": "reservedForNcnFeeGroupStakeWeights",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -1921,24 +1704,6 @@
             "type": "publicKey"
           },
           {
-            "name": "reservedRewardMultiplierBps",
-            "type": {
-              "array": [
-                "u8",
-                8
-              ]
-            }
-          },
-          {
-            "name": "reservedNcnFeeGroup",
-            "type": {
-              "array": [
-                "u8",
-                1
-              ]
-            }
-          },
-          {
             "name": "reserveSwitchboardFeed",
             "type": {
               "array": [
@@ -1951,15 +1716,6 @@
             "name": "weight",
             "type": {
               "defined": "PodU128"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
             }
           }
         ]
@@ -1988,15 +1744,6 @@
             "name": "slotRegistered",
             "type": {
               "defined": "PodU64"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
             }
           }
         ]

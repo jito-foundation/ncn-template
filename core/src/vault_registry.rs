@@ -22,29 +22,19 @@ pub struct StMintEntry {
     /// The supported token ( ST ) mint
     st_mint: Pubkey,
 
-    /// Reserved: The reward multiplier in basis points
-    reserved_reward_multiplier_bps: [u8; 8],
-
-    reserved_ncn_fee_group: [u8; 1],
-
     // Either a switchboard feed or a weight must be set
     /// The switchboard feed for the mint
     reserve_switchboard_feed: [u8; 32],
     /// The weight when
     weight: PodU128,
-    /// Reserved space
-    reserved: [u8; 128],
 }
 
 impl StMintEntry {
     pub fn new(st_mint: &Pubkey, weight: u128) -> Self {
         Self {
             st_mint: *st_mint,
-            reserved_reward_multiplier_bps: [0; 8],
-            reserved_ncn_fee_group: [0; 1],
             reserve_switchboard_feed: [0; 32],
             weight: PodU128::from(weight),
-            reserved: [0; 128],
         }
     }
 
@@ -78,8 +68,6 @@ pub struct VaultEntry {
     vault_index: PodU64,
     /// The slot the vault was registered
     slot_registered: PodU64,
-    /// Reserved space
-    reserved: [u8; 128],
 }
 
 impl VaultEntry {
@@ -92,7 +80,6 @@ impl VaultEntry {
             st_mint: *st_mint,
             vault_index: PodU64::from(vault_index),
             slot_registered: PodU64::from(slot_registered),
-            reserved: [0; 128],
         }
     }
 
@@ -135,8 +122,6 @@ pub struct VaultRegistry {
     pub ncn: Pubkey,
     /// The bump seed for the PDA
     pub bump: u8,
-    /// Reserved space
-    pub reserved: [u8; 127],
     /// The list of supported token ( ST ) mints
     pub st_mint_list: [StMintEntry; 64],
     /// The list of vaults
@@ -154,7 +139,6 @@ impl VaultRegistry {
         Self {
             ncn: *ncn,
             bump,
-            reserved: [0; 127],
             st_mint_list: [StMintEntry::default(); MAX_ST_MINTS],
             vault_list: [VaultEntry::default(); MAX_VAULTS],
         }
@@ -164,7 +148,6 @@ impl VaultRegistry {
         // Initializes field by field to avoid overflowing stack
         self.ncn = *ncn;
         self.bump = bump;
-        self.reserved = [0; 127];
         self.st_mint_list = [StMintEntry::default(); MAX_ST_MINTS];
         self.vault_list = [VaultEntry::default(); MAX_VAULTS];
     }
@@ -359,7 +342,6 @@ mod tests {
 
         let expected_total = size_of::<Pubkey>() // ncn
             + 1 // bump
-            + 127 // reserved
             + size_of::<StMintEntry>() * MAX_ST_MINTS // st_mint_list
             + size_of::<VaultEntry>() * MAX_VAULTS; // vault_list
 

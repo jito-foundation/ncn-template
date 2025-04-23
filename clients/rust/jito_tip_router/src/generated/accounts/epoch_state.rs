@@ -35,11 +35,7 @@ pub struct EpochState {
     pub voting_progress: Progress,
     pub validation_progress: Progress,
     pub upload_progress: Progress,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved_distribution_space: [u8; 2064],
     pub is_closing: bool,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 1023],
 }
 
 impl EpochState {

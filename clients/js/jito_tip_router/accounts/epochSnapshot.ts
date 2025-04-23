@@ -15,8 +15,6 @@ import {
   fetchEncodedAccounts,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -48,13 +46,11 @@ export type EpochSnapshot = {
   bump: number;
   slotCreated: bigint;
   slotFinalized: bigint;
-  reservedForFees: Array<number>;
   operatorCount: bigint;
   vaultCount: bigint;
   operatorsRegistered: bigint;
   validOperatorVaultDelegations: bigint;
   stakeWeights: StakeWeights;
-  reserved: Array<number>;
 };
 
 export type EpochSnapshotArgs = {
@@ -64,13 +60,11 @@ export type EpochSnapshotArgs = {
   bump: number;
   slotCreated: number | bigint;
   slotFinalized: number | bigint;
-  reservedForFees: Array<number>;
   operatorCount: number | bigint;
   vaultCount: number | bigint;
   operatorsRegistered: number | bigint;
   validOperatorVaultDelegations: number | bigint;
   stakeWeights: StakeWeightsArgs;
-  reserved: Array<number>;
 };
 
 export function getEpochSnapshotEncoder(): Encoder<EpochSnapshotArgs> {
@@ -81,13 +75,11 @@ export function getEpochSnapshotEncoder(): Encoder<EpochSnapshotArgs> {
     ['bump', getU8Encoder()],
     ['slotCreated', getU64Encoder()],
     ['slotFinalized', getU64Encoder()],
-    ['reservedForFees', getArrayEncoder(getU8Encoder(), { size: 168 })],
     ['operatorCount', getU64Encoder()],
     ['vaultCount', getU64Encoder()],
     ['operatorsRegistered', getU64Encoder()],
     ['validOperatorVaultDelegations', getU64Encoder()],
     ['stakeWeights', getStakeWeightsEncoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
 }
 
@@ -99,13 +91,11 @@ export function getEpochSnapshotDecoder(): Decoder<EpochSnapshot> {
     ['bump', getU8Decoder()],
     ['slotCreated', getU64Decoder()],
     ['slotFinalized', getU64Decoder()],
-    ['reservedForFees', getArrayDecoder(getU8Decoder(), { size: 168 })],
     ['operatorCount', getU64Decoder()],
     ['vaultCount', getU64Decoder()],
     ['operatorsRegistered', getU64Decoder()],
     ['validOperatorVaultDelegations', getU64Decoder()],
     ['stakeWeights', getStakeWeightsDecoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);
 }
 

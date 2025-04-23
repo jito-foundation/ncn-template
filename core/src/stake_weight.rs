@@ -9,15 +9,12 @@ use crate::error::TipRouterError;
 pub struct StakeWeights {
     /// The total stake weight - used for voting
     stake_weight: PodU128,
-    /// Reserved_space: The components that make up the total stake weight - used for rewards
-    reserved_for_ncn_fee_group_stake_weights: [u8; 128],
 }
 
 impl Default for StakeWeights {
     fn default() -> Self {
         Self {
             stake_weight: PodU128::from(0),
-            reserved_for_ncn_fee_group_stake_weights: [0; 128],
         }
     }
 }
@@ -26,7 +23,6 @@ impl StakeWeights {
     pub fn new(stake_weight: u128) -> Self {
         Self {
             stake_weight: PodU128::from(stake_weight),
-            reserved_for_ncn_fee_group_stake_weights: [0; 128],
         }
     }
 

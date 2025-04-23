@@ -19,7 +19,5 @@ pub struct VaultOperatorStakeWeight {
     )]
     pub vault: Pubkey,
     pub vault_index: u64,
-    pub reserved_fee_group: [u8; 1],
     pub stake_weight: StakeWeights,
-    pub reserved: [u8; 32],
 }

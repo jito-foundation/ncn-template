@@ -8,47 +8,25 @@
 
 import {
   combineCodec,
-  getArrayDecoder,
-  getArrayEncoder,
   getStructDecoder,
   getStructEncoder,
   getU128Decoder,
   getU128Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Codec,
   type Decoder,
   type Encoder,
 } from '@solana/web3.js';
 
-export type StakeWeights = {
-  stakeWeight: bigint;
-  reservedForNcnFeeGroupStakeWeights: Array<number>;
-};
+export type StakeWeights = { stakeWeight: bigint };
 
-export type StakeWeightsArgs = {
-  stakeWeight: number | bigint;
-  reservedForNcnFeeGroupStakeWeights: Array<number>;
-};
+export type StakeWeightsArgs = { stakeWeight: number | bigint };
 
 export function getStakeWeightsEncoder(): Encoder<StakeWeightsArgs> {
-  return getStructEncoder([
-    ['stakeWeight', getU128Encoder()],
-    [
-      'reservedForNcnFeeGroupStakeWeights',
-      getArrayEncoder(getU8Encoder(), { size: 128 }),
-    ],
-  ]);
+  return getStructEncoder([['stakeWeight', getU128Encoder()]]);
 }
 
 export function getStakeWeightsDecoder(): Decoder<StakeWeights> {
-  return getStructDecoder([
-    ['stakeWeight', getU128Decoder()],
-    [
-      'reservedForNcnFeeGroupStakeWeights',
-      getArrayDecoder(getU8Decoder(), { size: 128 }),
-    ],
-  ]);
+  return getStructDecoder([['stakeWeight', getU128Decoder()]]);
 }
 
 export function getStakeWeightsCodec(): Codec<StakeWeightsArgs, StakeWeights> {

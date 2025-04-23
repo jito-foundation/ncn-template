@@ -68,7 +68,7 @@ pub struct AdminSetStMintInstructionData {
 
 impl AdminSetStMintInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 21 }
+        Self { discriminator: 19 }
     }
 }
 

@@ -9,9 +9,8 @@ use jito_tip_router_client::{
         CloseEpochAccountBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
-        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocEpochStateBuilder,
-        ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
-        RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
+        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocVaultRegistryBuilder,
+        ReallocWeightTableBuilder, RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -37,7 +36,6 @@ use solana_program::{
 use solana_program_test::{BanksClient, ProgramTestBanksClientExt};
 use solana_sdk::{
     commitment_config::CommitmentLevel,
-    msg,
     signature::{Keypair, Signer},
     system_program,
     transaction::{Transaction, TransactionError},
@@ -290,9 +288,6 @@ impl TipRouterClient {
         epoch: u64,
     ) -> TestResult<()> {
         self.do_intialize_epoch_state(ncn, epoch).await?;
-        let num_reallocs = (EpochState::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-        self.do_realloc_epoch_state(ncn, epoch, num_reallocs)
-            .await?;
         Ok(())
     }
 
@@ -324,50 +319,6 @@ impl TipRouterClient {
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
             &[ix],
-            Some(&self.payer.pubkey()),
-            &[&self.payer],
-            blockhash,
-        ))
-        .await
-    }
-
-    pub async fn do_realloc_epoch_state(
-        &mut self,
-        ncn: Pubkey,
-        epoch: u64,
-        num_reallocations: u64,
-    ) -> TestResult<()> {
-        self.realloc_epoch_state(ncn, epoch, num_reallocations)
-            .await
-    }
-
-    pub async fn realloc_epoch_state(
-        &mut self,
-        ncn: Pubkey,
-        epoch: u64,
-        num_reallocations: u64,
-    ) -> TestResult<()> {
-        let epoch_state =
-            EpochState::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
-        let config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
-
-        let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
-
-        let ix = ReallocEpochStateBuilder::new()
-            .epoch_state(epoch_state)
-            .config(config)
-            .ncn(ncn)
-            .account_payer(account_payer)
-            .system_program(system_program::id())
-            .epoch(epoch)
-            .instruction();
-
-        let ixs = vec![ix; num_reallocations as usize];
-
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        self.process_transaction(&Transaction::new_signed_with_payer(
-            &ixs,
             Some(&self.payer.pubkey()),
             &[&self.payer],
             blockhash,
@@ -747,10 +698,6 @@ impl TipRouterClient {
     ) -> TestResult<()> {
         self.do_initialize_operator_snapshot(operator, ncn, epoch)
             .await?;
-        let num_reallocs =
-            (OperatorSnapshot::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-        self.do_realloc_operator_snapshot(operator, ncn, epoch, num_reallocs)
-            .await?;
         Ok(())
     }
 
@@ -791,10 +738,13 @@ impl TipRouterClient {
         let (account_payer, _, _) =
             AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
 
+        let restaking_config = Config::find_program_address(&jito_restaking_program::id()).0;
+
         let ix = InitializeOperatorSnapshotBuilder::new()
             .epoch_marker(epoch_marker)
             .epoch_state(epoch_state)
             .config(config_pda)
+            .restaking_config(restaking_config)
             .ncn(ncn)
             .operator(operator)
             .ncn_operator_state(ncn_operator_state)
@@ -1144,87 +1094,6 @@ impl TipRouterClient {
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
             &[ix],
-            Some(&self.payer.pubkey()),
-            &[&self.payer],
-            blockhash,
-        ))
-        .await
-    }
-
-    pub async fn do_realloc_operator_snapshot(
-        &mut self,
-        operator: Pubkey,
-        ncn: Pubkey,
-        epoch: u64,
-        num_reallocations: u64,
-    ) -> Result<(), TestError> {
-        let config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
-        let restaking_config = Config::find_program_address(&jito_restaking_program::id()).0;
-        let ncn_operator_state =
-            NcnOperatorState::find_program_address(&jito_restaking_program::id(), &ncn, &operator)
-                .0;
-        let epoch_snapshot =
-            EpochSnapshot::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
-        let operator_snapshot = OperatorSnapshot::find_program_address(
-            &jito_tip_router_program::id(),
-            &operator,
-            &ncn,
-            epoch,
-        )
-        .0;
-
-        self.realloc_operator_snapshot(
-            config,
-            restaking_config,
-            ncn,
-            operator,
-            ncn_operator_state,
-            epoch_snapshot,
-            operator_snapshot,
-            epoch,
-            num_reallocations,
-        )
-        .await
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub async fn realloc_operator_snapshot(
-        &mut self,
-        config: Pubkey,
-        restaking_config: Pubkey,
-        ncn: Pubkey,
-        operator: Pubkey,
-        ncn_operator_state: Pubkey,
-        epoch_snapshot: Pubkey,
-        operator_snapshot: Pubkey,
-        epoch: u64,
-        num_reallocations: u64,
-    ) -> Result<(), TestError> {
-        let epoch_state =
-            EpochState::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
-
-        let (account_payer, _, _) =
-            AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
-
-        let ix = ReallocOperatorSnapshotBuilder::new()
-            .epoch_state(epoch_state)
-            .config(config)
-            .restaking_config(restaking_config)
-            .ncn(ncn)
-            .operator(operator)
-            .ncn_operator_state(ncn_operator_state)
-            .epoch_snapshot(epoch_snapshot)
-            .operator_snapshot(operator_snapshot)
-            .account_payer(account_payer)
-            .system_program(system_program::id())
-            .epoch(epoch)
-            .instruction();
-
-        let ixs = vec![ix; num_reallocations as usize];
-
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        self.process_transaction(&Transaction::new_signed_with_payer(
-            &ixs,
             Some(&self.payer.pubkey()),
             &[&self.payer],
             blockhash,

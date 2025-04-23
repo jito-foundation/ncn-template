@@ -17,10 +17,6 @@ pub struct StMintEntry {
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
     )]
     pub st_mint: Pubkey,
-    pub reserved_reward_multiplier_bps: [u8; 8],
-    pub reserved_ncn_fee_group: [u8; 1],
     pub reserve_switchboard_feed: [u8; 32],
     pub weight: u128,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 128],
 }

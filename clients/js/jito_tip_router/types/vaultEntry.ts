@@ -10,14 +10,10 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Address,
   type Codec,
   type Decoder,
@@ -29,7 +25,6 @@ export type VaultEntry = {
   stMint: Address;
   vaultIndex: bigint;
   slotRegistered: bigint;
-  reserved: Array<number>;
 };
 
 export type VaultEntryArgs = {
@@ -37,7 +32,6 @@ export type VaultEntryArgs = {
   stMint: Address;
   vaultIndex: number | bigint;
   slotRegistered: number | bigint;
-  reserved: Array<number>;
 };
 
 export function getVaultEntryEncoder(): Encoder<VaultEntryArgs> {
@@ -46,7 +40,6 @@ export function getVaultEntryEncoder(): Encoder<VaultEntryArgs> {
     ['stMint', getAddressEncoder()],
     ['vaultIndex', getU64Encoder()],
     ['slotRegistered', getU64Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
 }
 
@@ -56,7 +49,6 @@ export function getVaultEntryDecoder(): Decoder<VaultEntry> {
     ['stMint', getAddressDecoder()],
     ['vaultIndex', getU64Decoder()],
     ['slotRegistered', getU64Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);
 }
 

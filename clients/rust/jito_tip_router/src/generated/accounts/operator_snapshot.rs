@@ -38,8 +38,6 @@ pub struct OperatorSnapshot {
     pub valid_operator_vault_delegations: u64,
     pub stake_weights: StakeWeights,
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 256],
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub vault_operator_stake_weight: [VaultOperatorStakeWeight; 64],
 }
 

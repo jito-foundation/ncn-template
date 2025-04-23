@@ -8,25 +8,16 @@
 
 import {
   combineCodec,
-  fixDecoderSize,
-  fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
-  getBytesDecoder,
-  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Address,
   type Codec,
   type Decoder,
   type Encoder,
-  type ReadonlyUint8Array,
 } from '@solana/web3.js';
 import {
   getStakeWeightsDecoder,
@@ -38,26 +29,20 @@ import {
 export type VaultOperatorStakeWeight = {
   vault: Address;
   vaultIndex: bigint;
-  reservedFeeGroup: Array<number>;
   stakeWeight: StakeWeights;
-  reserved: ReadonlyUint8Array;
 };
 
 export type VaultOperatorStakeWeightArgs = {
   vault: Address;
   vaultIndex: number | bigint;
-  reservedFeeGroup: Array<number>;
   stakeWeight: StakeWeightsArgs;
-  reserved: ReadonlyUint8Array;
 };
 
 export function getVaultOperatorStakeWeightEncoder(): Encoder<VaultOperatorStakeWeightArgs> {
   return getStructEncoder([
     ['vault', getAddressEncoder()],
     ['vaultIndex', getU64Encoder()],
-    ['reservedFeeGroup', getArrayEncoder(getU8Encoder(), { size: 1 })],
     ['stakeWeight', getStakeWeightsEncoder()],
-    ['reserved', fixEncoderSize(getBytesEncoder(), 32)],
   ]);
 }
 
@@ -65,9 +50,7 @@ export function getVaultOperatorStakeWeightDecoder(): Decoder<VaultOperatorStake
   return getStructDecoder([
     ['vault', getAddressDecoder()],
     ['vaultIndex', getU64Decoder()],
-    ['reservedFeeGroup', getArrayDecoder(getU8Decoder(), { size: 1 })],
     ['stakeWeight', getStakeWeightsDecoder()],
-    ['reserved', fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 

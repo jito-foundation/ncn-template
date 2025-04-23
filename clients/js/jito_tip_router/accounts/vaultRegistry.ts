@@ -49,7 +49,6 @@ export type VaultRegistry = {
   discriminator: bigint;
   ncn: Address;
   bump: number;
-  reserved: Array<number>;
   stMintList: Array<StMintEntry>;
   vaultList: Array<VaultEntry>;
 };
@@ -58,7 +57,6 @@ export type VaultRegistryArgs = {
   discriminator: number | bigint;
   ncn: Address;
   bump: number;
-  reserved: Array<number>;
   stMintList: Array<StMintEntryArgs>;
   vaultList: Array<VaultEntryArgs>;
 };
@@ -68,7 +66,6 @@ export function getVaultRegistryEncoder(): Encoder<VaultRegistryArgs> {
     ['discriminator', getU64Encoder()],
     ['ncn', getAddressEncoder()],
     ['bump', getU8Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 127 })],
     ['stMintList', getArrayEncoder(getStMintEntryEncoder(), { size: 64 })],
     ['vaultList', getArrayEncoder(getVaultEntryEncoder(), { size: 64 })],
   ]);
@@ -79,7 +76,6 @@ export function getVaultRegistryDecoder(): Decoder<VaultRegistry> {
     ['discriminator', getU64Decoder()],
     ['ncn', getAddressDecoder()],
     ['bump', getU8Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 127 })],
     ['stMintList', getArrayDecoder(getStMintEntryDecoder(), { size: 64 })],
     ['vaultList', getArrayDecoder(getVaultEntryDecoder(), { size: 64 })],
   ]);

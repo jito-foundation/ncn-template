@@ -29,8 +29,6 @@ pub struct WeightTable {
     vault_count: PodU64,
     /// Bump seed for the PDA
     bump: u8,
-    /// Reserved space
-    reserved: [u8; 128],
     /// A snapshot of the Vault Registry
     vault_registry: [VaultEntry; 64],
     /// The weight table
@@ -51,7 +49,6 @@ impl WeightTable {
             slot_created: PodU64::from(slot_created),
             vault_count: PodU64::from(vault_count),
             bump,
-            reserved: [0; 128],
             vault_registry: [VaultEntry::default(); MAX_VAULTS],
             table: [WeightEntry::default(); MAX_ST_MINTS],
         }
@@ -97,7 +94,6 @@ impl WeightTable {
         self.slot_created = PodU64::from(slot_created);
         self.vault_count = PodU64::from(vault_count);
         self.bump = bump;
-        self.reserved = [0; 128];
         self.vault_registry = [VaultEntry::default(); MAX_VAULTS];
         self.table = [WeightEntry::default(); MAX_ST_MINTS];
         self.set_vault_entries(vault_entries)?;
@@ -363,7 +359,6 @@ mod tests {
             + size_of::<PodU64>() // slot_created
             + size_of::<PodU64>() // vault_count
             + 1 // bump
-            + 128 // reserved
             + size_of::<[VaultEntry; MAX_VAULTS]>() // vault registry
             + size_of::<[WeightEntry; MAX_ST_MINTS]>(); // weight table
 

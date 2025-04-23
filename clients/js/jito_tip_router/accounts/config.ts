@@ -13,14 +13,8 @@ import {
   decodeAccount,
   fetchEncodedAccount,
   fetchEncodedAccounts,
-  fixDecoderSize,
-  fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
-  getBytesDecoder,
-  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -37,33 +31,28 @@ import {
   type FetchAccountsConfig,
   type MaybeAccount,
   type MaybeEncodedAccount,
-  type ReadonlyUint8Array,
 } from '@solana/web3.js';
 
 export type Config = {
   discriminator: bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
-  reservedFeeAdmin: ReadonlyUint8Array;
   validSlotsAfterConsensus: bigint;
   epochsBeforeStall: bigint;
   bump: number;
   epochsAfterConsensusBeforeClose: bigint;
   startingValidEpoch: bigint;
-  reserved: Array<number>;
 };
 
 export type ConfigArgs = {
   discriminator: number | bigint;
   ncn: Address;
   tieBreakerAdmin: Address;
-  reservedFeeAdmin: ReadonlyUint8Array;
   validSlotsAfterConsensus: number | bigint;
   epochsBeforeStall: number | bigint;
   bump: number;
   epochsAfterConsensusBeforeClose: number | bigint;
   startingValidEpoch: number | bigint;
-  reserved: Array<number>;
 };
 
 export function getConfigEncoder(): Encoder<ConfigArgs> {
@@ -71,13 +60,11 @@ export function getConfigEncoder(): Encoder<ConfigArgs> {
     ['discriminator', getU64Encoder()],
     ['ncn', getAddressEncoder()],
     ['tieBreakerAdmin', getAddressEncoder()],
-    ['reservedFeeAdmin', fixEncoderSize(getBytesEncoder(), 32)],
     ['validSlotsAfterConsensus', getU64Encoder()],
     ['epochsBeforeStall', getU64Encoder()],
     ['bump', getU8Encoder()],
     ['epochsAfterConsensusBeforeClose', getU64Encoder()],
     ['startingValidEpoch', getU64Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 111 })],
   ]);
 }
 
@@ -86,13 +73,11 @@ export function getConfigDecoder(): Decoder<Config> {
     ['discriminator', getU64Decoder()],
     ['ncn', getAddressDecoder()],
     ['tieBreakerAdmin', getAddressDecoder()],
-    ['reservedFeeAdmin', fixDecoderSize(getBytesDecoder(), 32)],
     ['validSlotsAfterConsensus', getU64Decoder()],
     ['epochsBeforeStall', getU64Decoder()],
     ['bump', getU8Decoder()],
     ['epochsAfterConsensusBeforeClose', getU64Decoder()],
     ['startingValidEpoch', getU64Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 111 })],
   ]);
 }
 

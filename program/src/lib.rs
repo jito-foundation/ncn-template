@@ -14,8 +14,6 @@ mod initialize_operator_snapshot;
 mod initialize_vault_registry;
 mod initialize_weight_table;
 mod realloc_ballot_box;
-mod realloc_epoch_state;
-mod realloc_operator_snapshot;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
@@ -25,7 +23,6 @@ use admin_set_new_admin::process_admin_set_new_admin;
 use borsh::BorshDeserialize;
 use initialize_epoch_state::process_initialize_epoch_state;
 use jito_tip_router_core::instruction::TipRouterInstruction;
-use realloc_epoch_state::process_realloc_epoch_state;
 use solana_program::{
     account_info::AccountInfo, declare_id, entrypoint::ProgramResult, msg,
     program_error::ProgramError, pubkey::Pubkey,
@@ -47,7 +44,6 @@ use crate::{
     initialize_vault_registry::process_initialize_vault_registry,
     initialize_weight_table::process_initialize_weight_table,
     realloc_ballot_box::process_realloc_ballot_box,
-    realloc_operator_snapshot::process_realloc_operator_snapshot,
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
@@ -119,10 +115,6 @@ pub fn process_instruction(
             msg!("Instruction: InitializeEpochState");
             process_initialize_epoch_state(program_id, accounts, epoch)
         }
-        TipRouterInstruction::ReallocEpochState { epoch } => {
-            msg!("Instruction: ReallocEpochState");
-            process_realloc_epoch_state(program_id, accounts, epoch)
-        }
         TipRouterInstruction::InitializeWeightTable { epoch } => {
             msg!("Instruction: InitializeWeightTable");
             process_initialize_weight_table(program_id, accounts, epoch)
@@ -138,10 +130,6 @@ pub fn process_instruction(
         TipRouterInstruction::InitializeOperatorSnapshot { epoch } => {
             msg!("Instruction: InitializeOperatorSnapshot");
             process_initialize_operator_snapshot(program_id, accounts, epoch)
-        }
-        TipRouterInstruction::ReallocOperatorSnapshot { epoch } => {
-            msg!("Instruction: ReallocOperatorSnapshot");
-            process_realloc_operator_snapshot(program_id, accounts, epoch)
         }
         TipRouterInstruction::SnapshotVaultOperatorDelegation { epoch } => {
             msg!("Instruction: SnapshotVaultOperatorDelegation");

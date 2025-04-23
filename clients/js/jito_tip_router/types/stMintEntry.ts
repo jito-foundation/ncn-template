@@ -12,16 +12,12 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU128Decoder,
   getU128Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Address,
   type Codec,
   type Decoder,
@@ -31,47 +27,29 @@ import {
 
 export type StMintEntry = {
   stMint: Address;
-  reservedRewardMultiplierBps: Array<number>;
-  reservedNcnFeeGroup: Array<number>;
   reserveSwitchboardFeed: ReadonlyUint8Array;
   weight: bigint;
-  reserved: Array<number>;
 };
 
 export type StMintEntryArgs = {
   stMint: Address;
-  reservedRewardMultiplierBps: Array<number>;
-  reservedNcnFeeGroup: Array<number>;
   reserveSwitchboardFeed: ReadonlyUint8Array;
   weight: number | bigint;
-  reserved: Array<number>;
 };
 
 export function getStMintEntryEncoder(): Encoder<StMintEntryArgs> {
   return getStructEncoder([
     ['stMint', getAddressEncoder()],
-    [
-      'reservedRewardMultiplierBps',
-      getArrayEncoder(getU8Encoder(), { size: 8 }),
-    ],
-    ['reservedNcnFeeGroup', getArrayEncoder(getU8Encoder(), { size: 1 })],
     ['reserveSwitchboardFeed', fixEncoderSize(getBytesEncoder(), 32)],
     ['weight', getU128Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
 }
 
 export function getStMintEntryDecoder(): Decoder<StMintEntry> {
   return getStructDecoder([
     ['stMint', getAddressDecoder()],
-    [
-      'reservedRewardMultiplierBps',
-      getArrayDecoder(getU8Decoder(), { size: 8 }),
-    ],
-    ['reservedNcnFeeGroup', getArrayDecoder(getU8Decoder(), { size: 1 })],
     ['reserveSwitchboardFeed', fixDecoderSize(getBytesDecoder(), 32)],
     ['weight', getU128Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);
 }
 

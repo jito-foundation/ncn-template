@@ -30,8 +30,6 @@ pub struct EpochSnapshot {
     slot_created: PodU64,
     /// Slot Epoch snapshot was finalized
     slot_finalized: PodU64,
-    /// Reserved space for Fees
-    reserved_for_fees: [u8; 168],
     /// Number of operators in the epoch
     operator_count: PodU64,
     /// Number of vaults in the epoch
@@ -42,8 +40,6 @@ pub struct EpochSnapshot {
     valid_operator_vault_delegations: PodU64,
     /// Tallies the total stake weights for all vault operator delegations
     stake_weights: StakeWeights,
-    /// Reserved space
-    reserved: [u8; 128],
 }
 
 impl Discriminator for EpochSnapshot {
@@ -66,14 +62,12 @@ impl EpochSnapshot {
             epoch: PodU64::from(ncn_epoch),
             slot_created: PodU64::from(current_slot),
             slot_finalized: PodU64::from(0),
-            reserved_for_fees: [0; 168],
             bump,
             operator_count: PodU64::from(operator_count),
             vault_count: PodU64::from(vault_count),
             operators_registered: PodU64::from(0),
             valid_operator_vault_delegations: PodU64::from(0),
             stake_weights: StakeWeights::default(),
-            reserved: [0; 128],
         }
     }
 
@@ -213,7 +207,6 @@ pub struct OperatorSnapshot {
     valid_operator_vault_delegations: PodU64,
 
     stake_weights: StakeWeights,
-    reserved: [u8; 256],
 
     vault_operator_stake_weight: [VaultOperatorStakeWeight; 64],
 }
@@ -257,7 +250,6 @@ impl OperatorSnapshot {
             vault_operator_delegations_registered: PodU64::from(0),
             valid_operator_vault_delegations: PodU64::from(0),
             stake_weights: StakeWeights::default(),
-            reserved: [0; 256],
             vault_operator_stake_weight: [VaultOperatorStakeWeight::default(); MAX_VAULTS],
         })
     }
@@ -302,7 +294,6 @@ impl OperatorSnapshot {
         self.vault_operator_delegations_registered = PodU64::from(0);
         self.valid_operator_vault_delegations = PodU64::from(0);
         self.stake_weights = StakeWeights::default();
-        self.reserved = [0; 256];
         self.vault_operator_stake_weight = [VaultOperatorStakeWeight::default(); MAX_VAULTS];
 
         Ok(())
@@ -520,9 +511,7 @@ impl OperatorSnapshot {
 pub struct VaultOperatorStakeWeight {
     vault: Pubkey,
     vault_index: PodU64,
-    reserved_fee_group: [u8; 1],
     stake_weight: StakeWeights,
-    reserved: [u8; 32],
 }
 
 impl Default for VaultOperatorStakeWeight {
@@ -530,9 +519,7 @@ impl Default for VaultOperatorStakeWeight {
         Self {
             vault: Pubkey::default(),
             vault_index: PodU64::from(u64::MAX),
-            reserved_fee_group: [0; 1],
             stake_weight: StakeWeights::default(),
-            reserved: [0; 32],
         }
     }
 }
@@ -542,9 +529,7 @@ impl VaultOperatorStakeWeight {
         Self {
             vault: *vault,
             vault_index: PodU64::from(vault_index),
-            reserved_fee_group: [0; 1],
             stake_weight: *stake_weight,
-            reserved: [0; 32],
         }
     }
 
@@ -641,7 +626,6 @@ mod tests {
             + size_of::<PodU64>() // vault_operator_delegations_registered
             + size_of::<PodU64>() // valid_operator_vault_delegations
             + size_of::<StakeWeights>() // stake_weight
-            + 256 // reserved
             + size_of::<VaultOperatorStakeWeight>() * MAX_VAULTS; // vault_operator_stake_weight
 
         assert_eq!(size_of::<OperatorSnapshot>(), expected_total);

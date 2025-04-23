@@ -62,15 +62,6 @@ pub enum TipRouterInstruction {
         epoch: u64,
     },
 
-    /// Reallocation of the Epoch State
-    #[account(0, writable, name = "epoch_state")]
-    #[account(1, name = "config")]
-    #[account(2, name = "ncn")]
-    #[account(3, writable, name = "account_payer")]
-    #[account(4, name = "system_program")]
-    ReallocEpochState {
-        epoch: u64,
-    },
 
     /// Initializes the weight table for a given epoch
     #[account(0, name = "epoch_marker")]
@@ -113,31 +104,17 @@ pub enum TipRouterInstruction {
 
     /// Initializes the Operator Snapshot
     #[account(0, name = "epoch_marker")]
-    #[account(1, name = "epoch_state")]
+    #[account(1, writable, name = "epoch_state")]
     #[account(2, name = "config")]
-    #[account(3, name = "ncn")]
-    #[account(4, name = "operator")]
-    #[account(5, name = "ncn_operator_state")]
-    #[account(6, name = "epoch_snapshot")]
-    #[account(7, writable, name = "operator_snapshot")]
-    #[account(8, writable, name = "account_payer")]
-    #[account(9, name = "system_program")]
+    #[account(3, name = "restaking_config")]
+    #[account(4, name = "ncn")]
+    #[account(5, name = "operator")]
+    #[account(6, name = "ncn_operator_state")]
+    #[account(7, writable, name = "epoch_snapshot")]
+    #[account(8, writable, name = "operator_snapshot")]
+    #[account(9, writable, name = "account_payer")]
+    #[account(10, name = "system_program")]
     InitializeOperatorSnapshot{
-        epoch: u64,
-    },
-
-    /// Resizes the operator snapshot account
-    #[account(0, writable, name = "epoch_state")]
-    #[account(1, name = "config")]
-    #[account(2, name = "restaking_config")]
-    #[account(3, name = "ncn")]
-    #[account(4, name = "operator")]
-    #[account(5, name = "ncn_operator_state")]
-    #[account(6, writable, name = "epoch_snapshot")]
-    #[account(7, writable, name = "operator_snapshot")]
-    #[account(8, writable, name = "account_payer")]
-    #[account(9, name = "system_program")]
-    ReallocOperatorSnapshot {
         epoch: u64,
     },
     

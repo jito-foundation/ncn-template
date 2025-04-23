@@ -22,8 +22,6 @@ export * from './initializeOperatorSnapshot';
 export * from './initializeVaultRegistry';
 export * from './initializeWeightTable';
 export * from './reallocBallotBox';
-export * from './reallocEpochState';
-export * from './reallocOperatorSnapshot';
 export * from './reallocVaultRegistry';
 export * from './reallocWeightTable';
 export * from './registerVault';

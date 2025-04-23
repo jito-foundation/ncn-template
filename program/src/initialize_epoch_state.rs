@@ -1,9 +1,8 @@
-use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::{load_system_account, load_system_program};
 use jito_restaking_core::ncn::Ncn;
 use jito_tip_router_core::{
-    account_payer::AccountPayer, config::Config, constants::MAX_REALLOC_BYTES,
-    epoch_marker::EpochMarker, epoch_state::EpochState,
+    account_payer::AccountPayer, config::Config, epoch_marker::EpochMarker, epoch_state::EpochState,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -55,9 +54,16 @@ pub fn process_initialize_epoch_state(
         epoch_state,
         system_program,
         program_id,
-        MAX_REALLOC_BYTES as usize,
+        EpochState::SIZE,
         &epoch_state_seeds,
     )?;
+
+    let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
+    epoch_state_data[0] = EpochState::DISCRIMINATOR;
+    let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
+    epoch_state_account.initialize(ncn.key, epoch, epoch_state_bump, Clock::get()?.slot);
+
+    epoch_state_account.update_realloc_epoch_state();
 
     Ok(())
 }
