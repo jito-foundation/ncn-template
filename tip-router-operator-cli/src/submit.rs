@@ -21,7 +21,7 @@ pub async fn submit_recent_epochs_to_ncn(
     ncn_address: &Pubkey,
     tip_router_program_id: &Pubkey,
     num_monitored_epochs: u64,
-    merkle_root: [u8; 32],
+    weather_status: u8,
     cli_args: &Cli,
 ) -> Result<(), anyhow::Error> {
     let epoch = client.get_epoch_info().await?;
@@ -37,7 +37,7 @@ pub async fn submit_recent_epochs_to_ncn(
             process_epoch,
             ncn_address,
             tip_router_program_id,
-            merkle_root,
+            weather_status,
             cli_args.submit_as_memo,
         )
         .await
@@ -58,7 +58,7 @@ pub async fn submit_to_ncn(
     merkle_root_epoch: u64,
     ncn_address: &Pubkey,
     tip_router_program_id: &Pubkey,
-    merkle_root: [u8; 32],
+    weather_status: u8,
     submit_as_memo: bool,
 ) -> Result<(), anyhow::Error> {
     let epoch_info = client.get_epoch_info().await?;
@@ -108,7 +108,7 @@ pub async fn submit_to_ncn(
                 .get(vote.ballot_index() as usize)
                 .ok_or_else(|| anyhow::anyhow!("Ballot tally not found"))?;
 
-            tally.ballot().root() != merkle_root
+            tally.ballot().weather_status() != weather_status
         }
         None => true,
     };
@@ -129,7 +129,7 @@ pub async fn submit_to_ncn(
             ncn_address,
             operator_address,
             keypair,
-            merkle_root,
+            weather_status,
             tip_router_target_epoch,
             submit_as_memo,
         )
@@ -141,7 +141,7 @@ pub async fn submit_to_ncn(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
                     ("epoch", tip_router_target_epoch, i64),
-                    ("merkle_root", format!("{:?}", merkle_root), String),
+                    ("weather_status", format!("{:?}", weather_status), String),
                     ("version", Version::default().to_string(), String),
                     ("tx_sig", format!("{:?}", signature), String)
                 );
@@ -155,7 +155,7 @@ pub async fn submit_to_ncn(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
                     ("epoch", tip_router_target_epoch, i64),
-                    ("merkle_root", format!("{:?}", merkle_root), String),
+                    ("weather_status", format!("{:?}", weather_status), String),
                     ("status", "error", String),
                     ("error", format!("{:?}", e), String)
                 );

@@ -105,7 +105,7 @@ impl Default for CastVoteInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CastVoteInstructionArgs {
-    pub meta_merkle_root: [u8; 32],
+    pub weather_status: u8,
     pub epoch: u64,
 }
 
@@ -131,7 +131,7 @@ pub struct CastVoteBuilder {
     operator_snapshot: Option<solana_program::pubkey::Pubkey>,
     operator: Option<solana_program::pubkey::Pubkey>,
     operator_voter: Option<solana_program::pubkey::Pubkey>,
-    meta_merkle_root: Option<[u8; 32]>,
+    weather_status: Option<u8>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -184,8 +184,8 @@ impl CastVoteBuilder {
         self
     }
     #[inline(always)]
-    pub fn meta_merkle_root(&mut self, meta_merkle_root: [u8; 32]) -> &mut Self {
-        self.meta_merkle_root = Some(meta_merkle_root);
+    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
+        self.weather_status = Some(weather_status);
         self
     }
     #[inline(always)]
@@ -226,10 +226,10 @@ impl CastVoteBuilder {
             operator_voter: self.operator_voter.expect("operator_voter is not set"),
         };
         let args = CastVoteInstructionArgs {
-            meta_merkle_root: self
-                .meta_merkle_root
+            weather_status: self
+                .weather_status
                 .clone()
-                .expect("meta_merkle_root is not set"),
+                .expect("weather_status is not set"),
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -432,7 +432,7 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
             operator_snapshot: None,
             operator: None,
             operator_voter: None,
-            meta_merkle_root: None,
+            weather_status: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -500,8 +500,8 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn meta_merkle_root(&mut self, meta_merkle_root: [u8; 32]) -> &mut Self {
-        self.instruction.meta_merkle_root = Some(meta_merkle_root);
+    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
+        self.instruction.weather_status = Some(weather_status);
         self
     }
     #[inline(always)]
@@ -551,11 +551,11 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = CastVoteInstructionArgs {
-            meta_merkle_root: self
+            weather_status: self
                 .instruction
-                .meta_merkle_root
+                .weather_status
                 .clone()
-                .expect("meta_merkle_root is not set"),
+                .expect("weather_status is not set"),
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
         let instruction = CastVoteCpi {
@@ -608,7 +608,7 @@ struct CastVoteCpiBuilderInstruction<'a, 'b> {
     operator_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     operator_voter: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    meta_merkle_root: Option<[u8; 32]>,
+    weather_status: Option<u8>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

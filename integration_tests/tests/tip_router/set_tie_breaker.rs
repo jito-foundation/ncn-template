@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod tests {
 
-    use jito_tip_router_core::{ballot_box::Ballot, constants::DEFAULT_CONSENSUS_REACHED_SLOT};
+    use jito_tip_router_core::{
+        ballot_box::{Ballot, WeatherStatus},
+        constants::DEFAULT_CONSENSUS_REACHED_SLOT,
+    };
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
@@ -24,7 +27,7 @@ mod tests {
             .do_full_initialize_ballot_box(ncn, epoch)
             .await?;
 
-        let meta_merkle_root = [1; 32];
+        let weather_status = WeatherStatus::Sunny as u8;
 
         let operator = test_ncn.operators[0].operator_pubkey;
         let operator_admin = &test_ncn.operators[0].operator_admin;
@@ -32,11 +35,11 @@ mod tests {
         // Cast a vote so that this vote is one of the valid options
         // Gets to 50% consensus weight
         tip_router_client
-            .do_cast_vote(ncn, operator, operator_admin, meta_merkle_root, epoch)
+            .do_cast_vote(ncn, operator, operator_admin, weather_status, epoch)
             .await?;
 
         let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
-        assert!(ballot_box.has_ballot(&Ballot::new(&meta_merkle_root)));
+        assert!(ballot_box.has_ballot(&Ballot::new(weather_status)));
         assert_eq!(
             ballot_box.slot_consensus_reached(),
             DEFAULT_CONSENSUS_REACHED_SLOT
@@ -47,12 +50,12 @@ mod tests {
         fixture.warp_slot_incremental(1000000).await?;
 
         tip_router_client
-            .do_admin_set_tie_breaker(ncn, meta_merkle_root, epoch)
+            .do_admin_set_tie_breaker(ncn, weather_status, epoch)
             .await?;
 
         let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
 
-        let ballot = Ballot::new(&meta_merkle_root);
+        let ballot = Ballot::new(weather_status);
         assert!(ballot_box.has_ballot(&ballot));
         assert_eq!(
             *ballot_box.get_winning_ballot_tally().unwrap().ballot(),

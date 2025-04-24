@@ -36,7 +36,7 @@ pub async fn cast_vote(
     ncn: &Pubkey,
     operator: &Pubkey,
     operator_voter: &Keypair,
-    meta_merkle_root: [u8; 32],
+    weather_status: u8,
     tip_router_epoch: u64,
     submit_as_memo: bool,
 ) -> EllipsisClientResult<Signature> {
@@ -60,7 +60,7 @@ pub async fn cast_vote(
     .0;
 
     let ix = if submit_as_memo {
-        spl_memo::build_memo(meta_merkle_root.as_ref(), &[&operator_voter.pubkey()])
+        spl_memo::build_memo(&[weather_status], &[&operator_voter.pubkey()])
     } else {
         CastVoteBuilder::new()
             .epoch_state(epoch_state)
@@ -71,12 +71,12 @@ pub async fn cast_vote(
             .operator_snapshot(operator_snapshot)
             .operator(*operator)
             .operator_voter(operator_voter.pubkey())
-            .meta_merkle_root(meta_merkle_root)
+            .weather_status(weather_status)
             .epoch(tip_router_epoch)
             .instruction()
     };
 
-    info!("Submitting meta merkle root {:?}", meta_merkle_root);
+    info!("Submitting meta merkle root {:?}", weather_status);
 
     let tx = Transaction::new_with_payer(&[ix], Some(&payer.pubkey()));
     client

@@ -2,6 +2,7 @@ use std::{path::PathBuf, str::FromStr, time::Duration};
 
 use anyhow::Result;
 use ellipsis_client::EllipsisClient;
+use jito_tip_router_core::ballot_box::WeatherStatus;
 use log::{error, info};
 use solana_metrics::datapoint_info;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
@@ -139,7 +140,7 @@ pub async fn loop_stages(
                     epoch_to_process,
                     ncn_address,
                     tip_router_program_id,
-                    [1; 32],
+                    WeatherStatus::default() as u8,
                     cli.submit_as_memo,
                 )
                 .await?;

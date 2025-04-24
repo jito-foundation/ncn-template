@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION};
-    use solana_sdk::{
-        native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
+    use jito_tip_router_core::{
+        ballot_box::{Ballot, WeatherStatus},
+        constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION},
     };
+    use solana_sdk::{native_token::sol_to_lamports, signature::Keypair, signer::Signer};
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
@@ -12,7 +13,6 @@ mod tests {
     #[tokio::test]
     async fn simulation_test() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
-        let mut stake_pool_client = fixture.stake_pool_client();
         let mut tip_router_client = fixture.tip_router_client();
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
@@ -38,7 +38,6 @@ mod tests {
         // Setup NCN
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
-        let pool_root = stake_pool_client.do_initialize_stake_pool().await?;
 
         // Add operators and vaults
         {
@@ -144,46 +143,28 @@ mod tests {
             let second_operator = &test_ncn.operators[1];
             let third_operator = &test_ncn.operators[2];
 
-            for _ in 0..MAX_OPERATORS + 5 {
-                let meta_merkle_root = Pubkey::new_unique().to_bytes();
+            // zero_delegation_operator cast vote
+            {
+                let weather_status = WeatherStatus::Rainy as u8;
 
                 tip_router_client
                     .do_cast_vote(
                         ncn,
                         zero_delegation_operator.operator_pubkey,
                         &zero_delegation_operator.operator_admin,
-                        meta_merkle_root,
+                        weather_status,
                         epoch,
                     )
                     .await?;
             }
 
-            let meta_merkle_root = Pubkey::new_unique().to_bytes();
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    zero_delegation_operator.operator_pubkey,
-                    &zero_delegation_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
+            let weather_status = WeatherStatus::Sunny as u8;
             tip_router_client
                 .do_cast_vote(
                     ncn,
                     first_operator.operator_pubkey,
                     &first_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
-            let meta_merkle_root = Pubkey::new_unique().to_bytes();
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    zero_delegation_operator.operator_pubkey,
-                    &zero_delegation_operator.operator_admin,
-                    meta_merkle_root,
+                    weather_status,
                     epoch,
                 )
                 .await?;
@@ -192,7 +173,7 @@ mod tests {
                     ncn,
                     second_operator.operator_pubkey,
                     &second_operator.operator_admin,
-                    meta_merkle_root,
+                    weather_status,
                     epoch,
                 )
                 .await?;
@@ -201,49 +182,12 @@ mod tests {
                     ncn,
                     third_operator.operator_pubkey,
                     &third_operator.operator_admin,
-                    meta_merkle_root,
+                    weather_status,
                     epoch,
                 )
                 .await?;
-            let meta_merkle_root = Pubkey::new_unique().to_bytes();
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    zero_delegation_operator.operator_pubkey,
-                    &zero_delegation_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    first_operator.operator_pubkey,
-                    &first_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    second_operator.operator_pubkey,
-                    &second_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    third_operator.operator_pubkey,
-                    &third_operator.operator_admin,
-                    meta_merkle_root,
-                    epoch,
-                )
-                .await?;
-            let meta_merkle_root = Pubkey::new_unique().to_bytes();
-            for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1) {
+
+            for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
                 let operator = operator_root.operator_pubkey;
 
                 tip_router_client
@@ -251,7 +195,7 @@ mod tests {
                         ncn,
                         operator,
                         &operator_root.operator_admin,
-                        meta_merkle_root,
+                        weather_status,
                         epoch,
                     )
                     .await?;
@@ -261,8 +205,8 @@ mod tests {
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
             assert_eq!(
-                ballot_box.get_winning_ballot().unwrap().root(),
-                meta_merkle_root
+                ballot_box.get_winning_ballot().unwrap().weather_status(),
+                weather_status
             );
         }
 
@@ -276,7 +220,10 @@ mod tests {
 mod fuzz_tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION};
+    use jito_tip_router_core::{
+        ballot_box::Ballot,
+        constants::{WEIGHT, WEIGHT_PRECISION},
+    };
     use solana_sdk::{
         native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
@@ -431,72 +378,16 @@ mod fuzz_tests {
         // Cast votes
         {
             let epoch = fixture.clock().await.epoch;
+            let weather_status = Ballot::generate_ballot_weather_status();
 
-            // Do some random voting first
-            let zero_delegation_operator = test_ncn.operators.last().unwrap();
-            let vote_operators = &test_ncn.operators.clone(); // Take first few operators for random voting
-
-            for _ in 0..MAX_OPERATORS + 55 {
-                // Generate random merkle root
-                let random_merkle_root = Pubkey::new_unique().to_bytes();
-                let offset = random_merkle_root
-                    .iter()
-                    .map(|&x| x as usize)
-                    .sum::<usize>();
-
-                // Random operator votes for it
-                let random_operator = &vote_operators[offset % vote_operators.len()];
-                tip_router_client
-                    .do_cast_vote(
-                        ncn,
-                        random_operator.operator_pubkey,
-                        &random_operator.operator_admin,
-                        random_merkle_root,
-                        epoch,
-                    )
-                    .await?;
-
-                // Zero delegation operator also votes
-                tip_router_client
-                    .do_cast_vote(
-                        ncn,
-                        zero_delegation_operator.operator_pubkey,
-                        &zero_delegation_operator.operator_admin,
-                        random_merkle_root,
-                        epoch,
-                    )
-                    .await?;
-            }
-
-            // Then do the consensus vote
-            let meta_merkle_root = Pubkey::new_unique().to_bytes();
-            // First create a mutable copy of the operators that we can shuffle
-            let mut operators_to_shuffle = test_ncn.operators.clone();
-
-            // Use the merkle root bytes to create a deterministic shuffle
-            let shuffle_seed: u64 = meta_merkle_root
-                .iter()
-                .enumerate()
-                .fold(0u64, |acc, (i, &byte)| {
-                    acc.wrapping_add((byte as u64) << (i % 8 * 8))
-                });
-
-            // Fisher-Yates shuffle using the seed
-            for i in (1..operators_to_shuffle.len()).rev() {
-                // Use the seed to generate a deterministic index
-                let j = (shuffle_seed.wrapping_mul(i as u64) % (i as u64 + 1)) as usize;
-                operators_to_shuffle.swap(i, j);
-            }
-
-            // Now use the shuffled operators
-            for operator_root in operators_to_shuffle.iter() {
+            for operator_root in test_ncn.operators.iter() {
                 let operator = operator_root.operator_pubkey;
                 let _ = tip_router_client
                     .do_cast_vote(
                         ncn,
                         operator,
                         &operator_root.operator_admin,
-                        meta_merkle_root,
+                        weather_status,
                         epoch,
                     )
                     .await;
@@ -506,8 +397,8 @@ mod fuzz_tests {
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
             assert_eq!(
-                ballot_box.get_winning_ballot().unwrap().root(),
-                meta_merkle_root
+                ballot_box.get_winning_ballot().unwrap().weather_status(),
+                weather_status
             );
         }
 

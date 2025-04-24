@@ -36,7 +36,7 @@ use jito_tip_router_client::{
 };
 use jito_tip_router_core::{
     account_payer::AccountPayer,
-    ballot_box::BallotBox,
+    ballot_box::{BallotBox, WeatherStatus},
     config::Config as TipRouterConfig,
     constants::{MAX_REALLOC_BYTES, WEIGHT},
     epoch_marker::EpochMarker,
@@ -243,7 +243,7 @@ pub async fn admin_set_weight_with_st_mint(
 pub async fn admin_set_tie_breaker(
     handler: &CliHandler,
     epoch: u64,
-    meta_merkle_root: [u8; 32],
+    weather_status: u8,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
 
@@ -264,7 +264,7 @@ pub async fn admin_set_tie_breaker(
         .ballot_box(ballot_box)
         .ncn(ncn)
         .tie_breaker_admin(keypair.pubkey())
-        .meta_merkle_root(meta_merkle_root)
+        .weather_status(weather_status)
         .epoch(epoch)
         .instruction();
 
@@ -275,7 +275,7 @@ pub async fn admin_set_tie_breaker(
         "Set Tie Breaker",
         &[
             format!("NCN: {:?}", ncn),
-            format!("Meta Merkle Root: {:?}", meta_merkle_root),
+            format!("weather_status: {:?}", weather_status),
             format!("Epoch: {:?}", epoch),
         ],
     )
@@ -904,7 +904,7 @@ pub async fn operator_cast_vote(
     handler: &CliHandler,
     operator: &Pubkey,
     epoch: u64,
-    meta_merkle_root: [u8; 32],
+    weather_status: u8,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
 
@@ -940,7 +940,7 @@ pub async fn operator_cast_vote(
         .operator_snapshot(operator_snapshot)
         .operator(operator)
         .operator_voter(keypair.pubkey())
-        .meta_merkle_root(meta_merkle_root)
+        .weather_status(weather_status)
         .epoch(epoch)
         .instruction();
 
@@ -952,7 +952,10 @@ pub async fn operator_cast_vote(
         &[
             format!("NCN: {:?}", ncn),
             format!("Operator: {:?}", operator),
-            format!("Meta Merkle Root: {:?}", meta_merkle_root),
+            format!(
+                "Meta Merkle Root: {:?}",
+                WeatherStatus::from_u8(weather_status)
+            ),
             format!("Epoch: {:?}", epoch),
         ],
     )
@@ -1439,7 +1442,7 @@ pub async fn crank_post_vote_cooldown(_: &CliHandler, _: u64) -> Result<()> {
 #[allow(clippy::large_stack_frames)]
 pub async fn crank_test_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
     let voter = handler.keypair()?.pubkey();
-    let meta_merkle_root = [8; 32];
+    let weather_status = 8;
     let operators = get_all_operators_in_ncn(handler).await?;
 
     for operator in operators.iter() {
@@ -1449,7 +1452,7 @@ pub async fn crank_test_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
             continue;
         }
 
-        let result = operator_cast_vote(handler, operator, epoch, meta_merkle_root).await;
+        let result = operator_cast_vote(handler, operator, epoch, weather_status).await;
 
         if let Err(err) = result {
             log::error!(

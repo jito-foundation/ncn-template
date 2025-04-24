@@ -171,7 +171,7 @@ pub enum TipRouterInstruction {
     #[account(6, name = "operator")]
     #[account(7, signer, name = "operator_voter")]
     CastVote {
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     },
 
@@ -221,7 +221,7 @@ pub enum TipRouterInstruction {
     #[account(3, name = "ncn")]
     #[account(4, signer, name = "tie_breaker_admin")]
     AdminSetTieBreaker {
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     },
 

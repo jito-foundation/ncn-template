@@ -8,10 +8,6 @@
 
 import {
   combineCodec,
-  fixDecoderSize,
-  fixEncoderSize,
-  getBytesDecoder,
-  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,7 +26,6 @@ import {
   type IInstructionWithData,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
-  type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
@@ -75,12 +70,12 @@ export type AdminSetTieBreakerInstruction<
 
 export type AdminSetTieBreakerInstructionData = {
   discriminator: number;
-  metaMerkleRoot: ReadonlyUint8Array;
+  weatherStatus: number;
   epoch: bigint;
 };
 
 export type AdminSetTieBreakerInstructionDataArgs = {
-  metaMerkleRoot: ReadonlyUint8Array;
+  weatherStatus: number;
   epoch: number | bigint;
 };
 
@@ -88,7 +83,7 @@ export function getAdminSetTieBreakerInstructionDataEncoder(): Encoder<AdminSetT
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['metaMerkleRoot', fixEncoderSize(getBytesEncoder(), 32)],
+      ['weatherStatus', getU8Encoder()],
       ['epoch', getU64Encoder()],
     ]),
     (value) => ({
@@ -101,7 +96,7 @@ export function getAdminSetTieBreakerInstructionDataEncoder(): Encoder<AdminSetT
 export function getAdminSetTieBreakerInstructionDataDecoder(): Decoder<AdminSetTieBreakerInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['metaMerkleRoot', fixDecoderSize(getBytesDecoder(), 32)],
+    ['weatherStatus', getU8Decoder()],
     ['epoch', getU64Decoder()],
   ]);
 }
@@ -128,7 +123,7 @@ export type AdminSetTieBreakerInput<
   ballotBox: Address<TAccountBallotBox>;
   ncn: Address<TAccountNcn>;
   tieBreakerAdmin: TransactionSigner<TAccountTieBreakerAdmin>;
-  metaMerkleRoot: AdminSetTieBreakerInstructionDataArgs['metaMerkleRoot'];
+  weatherStatus: AdminSetTieBreakerInstructionDataArgs['weatherStatus'];
   epoch: AdminSetTieBreakerInstructionDataArgs['epoch'];
 };
 

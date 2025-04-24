@@ -964,7 +964,7 @@ impl TipRouterClient {
         ncn: Pubkey,
         operator: Pubkey,
         operator_admin: &Keypair,
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     ) -> Result<(), TestError> {
         let ncn_config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -1001,7 +1001,7 @@ impl TipRouterClient {
             operator_snapshot,
             operator,
             operator_admin,
-            meta_merkle_root,
+            weather_status,
             epoch,
         )
         .await
@@ -1017,7 +1017,7 @@ impl TipRouterClient {
         operator_snapshot: Pubkey,
         operator: Pubkey,
         operator_voter: &Keypair,
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     ) -> Result<(), TestError> {
         let epoch_state =
@@ -1032,7 +1032,7 @@ impl TipRouterClient {
             .operator_snapshot(operator_snapshot)
             .operator(operator)
             .operator_voter(operator_voter.pubkey())
-            .meta_merkle_root(meta_merkle_root)
+            .weather_status(weather_status)
             .epoch(epoch)
             .instruction();
 
@@ -1049,7 +1049,7 @@ impl TipRouterClient {
     pub async fn do_admin_set_tie_breaker(
         &mut self,
         ncn: Pubkey,
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     ) -> Result<(), TestError> {
         let ncn_config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
@@ -1063,7 +1063,7 @@ impl TipRouterClient {
             ballot_box,
             ncn,
             tie_breaker_admin,
-            meta_merkle_root,
+            weather_status,
             epoch,
         )
         .await
@@ -1075,7 +1075,7 @@ impl TipRouterClient {
         ballot_box: Pubkey,
         ncn: Pubkey,
         tie_breaker_admin: Pubkey,
-        meta_merkle_root: [u8; 32],
+        weather_status: u8,
         epoch: u64,
     ) -> Result<(), TestError> {
         let epoch_state =
@@ -1087,7 +1087,7 @@ impl TipRouterClient {
             .ballot_box(ballot_box)
             .ncn(ncn)
             .tie_breaker_admin(tie_breaker_admin)
-            .meta_merkle_root(meta_merkle_root)
+            .weather_status(weather_status)
             .epoch(epoch)
             .instruction();
 

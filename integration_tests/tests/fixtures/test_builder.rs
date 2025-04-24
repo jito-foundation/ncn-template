@@ -1,8 +1,11 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    fmt::{Debug, Formatter},
+    ops::{Div, Mul},
+};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use jito_tip_router_core::{
-    ballot_box::BallotBox,
+    ballot_box::{BallotBox, WeatherStatus},
     constants::{JITOSOL_MINT, WEIGHT},
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
@@ -676,7 +679,7 @@ impl TestBuilder {
         let epoch = clock.epoch;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
 
-        let meta_merkle_root = [1u8; 32];
+        let weather_status = WeatherStatus::default() as u8;
 
         for operator_root in test_ncn.operators.iter() {
             let operator = operator_root.operator_pubkey;
@@ -686,7 +689,7 @@ impl TestBuilder {
                     ncn,
                     operator,
                     &operator_root.operator_admin,
-                    meta_merkle_root,
+                    weather_status,
                     epoch,
                 )
                 .await?;

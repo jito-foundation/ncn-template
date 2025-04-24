@@ -8,10 +8,6 @@
 
 import {
   combineCodec,
-  fixDecoderSize,
-  fixEncoderSize,
-  getBytesDecoder,
-  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,7 +26,6 @@ import {
   type IInstructionWithData,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
-  type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
@@ -87,12 +82,12 @@ export type CastVoteInstruction<
 
 export type CastVoteInstructionData = {
   discriminator: number;
-  metaMerkleRoot: ReadonlyUint8Array;
+  weatherStatus: number;
   epoch: bigint;
 };
 
 export type CastVoteInstructionDataArgs = {
-  metaMerkleRoot: ReadonlyUint8Array;
+  weatherStatus: number;
   epoch: number | bigint;
 };
 
@@ -100,7 +95,7 @@ export function getCastVoteInstructionDataEncoder(): Encoder<CastVoteInstruction
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['metaMerkleRoot', fixEncoderSize(getBytesEncoder(), 32)],
+      ['weatherStatus', getU8Encoder()],
       ['epoch', getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: CAST_VOTE_DISCRIMINATOR })
@@ -110,7 +105,7 @@ export function getCastVoteInstructionDataEncoder(): Encoder<CastVoteInstruction
 export function getCastVoteInstructionDataDecoder(): Decoder<CastVoteInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['metaMerkleRoot', fixDecoderSize(getBytesDecoder(), 32)],
+    ['weatherStatus', getU8Decoder()],
     ['epoch', getU64Decoder()],
   ]);
 }
@@ -143,7 +138,7 @@ export type CastVoteInput<
   operatorSnapshot: Address<TAccountOperatorSnapshot>;
   operator: Address<TAccountOperator>;
   operatorVoter: TransactionSigner<TAccountOperatorVoter>;
-  metaMerkleRoot: CastVoteInstructionDataArgs['metaMerkleRoot'];
+  weatherStatus: CastVoteInstructionDataArgs['weatherStatus'];
   epoch: CastVoteInstructionDataArgs['epoch'];
 };
 

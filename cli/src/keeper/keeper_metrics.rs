@@ -439,7 +439,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
 
                 let ballot_index = operator_vote.ballot_index();
                 let ballot_tally = ballot_box.ballot_tallies()[ballot_index as usize];
-                let vote = format!("{:?}", ballot_tally.ballot().root());
+                let vote = format!("{:?}", ballot_tally.ballot().status());
                 ballot_tally.stake_weights().stake_weight();
 
                 emit_epoch_datapoint!(
@@ -475,7 +475,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                     continue;
                 }
 
-                let vote = format!("{:?}", tally.ballot().root());
+                let vote = format!("{:?}", tally.ballot().status());
 
                 emit_epoch_datapoint!(
                     "tr-beta-ee-ballot-box-tally",
@@ -503,7 +503,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                 if ballot_box.has_winning_ballot() {
                     let ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
                     (
-                        format!("{:?}", ballot_tally.ballot().root()),
+                        format!("{:?}", ballot_tally.ballot().status()),
                         ballot_tally.stake_weights().stake_weight(),
                         ballot_tally.tally(),
                     )

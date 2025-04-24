@@ -25,8 +25,6 @@ pub struct BallotBox {
     pub bump: u8,
     pub slot_created: u64,
     pub slot_consensus_reached: u64,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 128],
     pub operators_voted: u64,
     pub unique_ballots: u64,
     pub winning_ballot: Ballot,

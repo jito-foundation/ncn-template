@@ -3,6 +3,7 @@ use ::{
     anyhow::Result,
     clap::Parser,
     ellipsis_client::EllipsisClient,
+    jito_tip_router_core::ballot_box::WeatherStatus,
     log::{error, info},
     solana_metrics::{datapoint_info, set_host_id},
     solana_rpc_client::nonblocking::rpc_client::RpcClient,
@@ -102,7 +103,7 @@ async fn main() -> Result<()> {
                         &ncn_address,
                         &tip_router_program_id,
                         num_monitored_epochs,
-                        [1; 32],
+                        WeatherStatus::default() as u8,
                         &cli_clone,
                     )
                     .await
@@ -143,7 +144,7 @@ async fn main() -> Result<()> {
                 epoch,
                 &ncn_address,
                 &tip_router_program_id,
-                [1; 32],
+                WeatherStatus::default() as u8,
                 cli.submit_as_memo,
             )
             .await?;

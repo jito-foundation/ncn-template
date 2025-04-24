@@ -148,11 +148,11 @@ pub fn process_instruction(
             process_realloc_ballot_box(program_id, accounts, epoch)
         }
         TipRouterInstruction::CastVote {
-            meta_merkle_root,
+            weather_status,
             epoch,
         } => {
             msg!("Instruction: CastVote");
-            process_cast_vote(program_id, accounts, &meta_merkle_root, epoch)
+            process_cast_vote(program_id, accounts, weather_status, epoch)
         }
 
         // ---------------------------------------------------- //
@@ -187,11 +187,11 @@ pub fn process_instruction(
             process_admin_set_new_admin(program_id, accounts, role)
         }
         TipRouterInstruction::AdminSetTieBreaker {
-            meta_merkle_root,
+            weather_status,
             epoch,
         } => {
             msg!("Instruction: AdminSetTieBreaker");
-            process_admin_set_tie_breaker(program_id, accounts, &meta_merkle_root, epoch)
+            process_admin_set_tie_breaker(program_id, accounts, weather_status, epoch)
         }
         TipRouterInstruction::AdminSetWeight {
             st_mint,

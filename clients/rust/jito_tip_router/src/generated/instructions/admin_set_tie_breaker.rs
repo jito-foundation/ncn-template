@@ -89,7 +89,7 @@ impl Default for AdminSetTieBreakerInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AdminSetTieBreakerInstructionArgs {
-    pub meta_merkle_root: [u8; 32],
+    pub weather_status: u8,
     pub epoch: u64,
 }
 
@@ -109,7 +109,7 @@ pub struct AdminSetTieBreakerBuilder {
     ballot_box: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
     tie_breaker_admin: Option<solana_program::pubkey::Pubkey>,
-    meta_merkle_root: Option<[u8; 32]>,
+    weather_status: Option<u8>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -147,8 +147,8 @@ impl AdminSetTieBreakerBuilder {
         self
     }
     #[inline(always)]
-    pub fn meta_merkle_root(&mut self, meta_merkle_root: [u8; 32]) -> &mut Self {
-        self.meta_merkle_root = Some(meta_merkle_root);
+    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
+        self.weather_status = Some(weather_status);
         self
     }
     #[inline(always)]
@@ -186,10 +186,10 @@ impl AdminSetTieBreakerBuilder {
                 .expect("tie_breaker_admin is not set"),
         };
         let args = AdminSetTieBreakerInstructionArgs {
-            meta_merkle_root: self
-                .meta_merkle_root
+            weather_status: self
+                .weather_status
                 .clone()
-                .expect("meta_merkle_root is not set"),
+                .expect("weather_status is not set"),
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -358,7 +358,7 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
             ballot_box: None,
             ncn: None,
             tie_breaker_admin: None,
-            meta_merkle_root: None,
+            weather_status: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -402,8 +402,8 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn meta_merkle_root(&mut self, meta_merkle_root: [u8; 32]) -> &mut Self {
-        self.instruction.meta_merkle_root = Some(meta_merkle_root);
+    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
+        self.instruction.weather_status = Some(weather_status);
         self
     }
     #[inline(always)]
@@ -453,11 +453,11 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = AdminSetTieBreakerInstructionArgs {
-            meta_merkle_root: self
+            weather_status: self
                 .instruction
-                .meta_merkle_root
+                .weather_status
                 .clone()
-                .expect("meta_merkle_root is not set"),
+                .expect("weather_status is not set"),
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
         let instruction = AdminSetTieBreakerCpi {
@@ -495,7 +495,7 @@ struct AdminSetTieBreakerCpiBuilderInstruction<'a, 'b> {
     ballot_box: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     tie_breaker_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    meta_merkle_root: Option<[u8; 32]>,
+    weather_status: Option<u8>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

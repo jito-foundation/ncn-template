@@ -13,7 +13,7 @@ use solana_program::{
 pub fn process_admin_set_tie_breaker(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    meta_merkle_root: &[u8; 32],
+    weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
     let [epoch_state, ncn_config, ballot_box, ncn, tie_breaker_admin] = accounts else {
@@ -41,7 +41,7 @@ pub fn process_admin_set_tie_breaker(
     let current_epoch = clock.epoch;
 
     ballot_box_account.set_tie_breaker_ballot(
-        meta_merkle_root,
+        weather_status,
         current_epoch,
         ncn_config.epochs_before_stall(),
     )?;

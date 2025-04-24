@@ -182,8 +182,8 @@ pub enum ProgramCommand {
         weight: u128,
     },
     AdminSetTieBreaker {
-        #[arg(long, help = "Meta merkle root")]
-        meta_merkle_root: String,
+        #[arg(long, help = "tir breaker for voting")]
+        weather_status: u8,
     },
     AdminSetParameters {
         #[arg(long, help = "Epochs before tie breaker can set consensus")]

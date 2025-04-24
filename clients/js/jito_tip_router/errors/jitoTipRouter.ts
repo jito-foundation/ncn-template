@@ -14,6 +14,8 @@ import {
 } from '@solana/web3.js';
 import { JITO_TIP_ROUTER_PROGRAM_ADDRESS } from '../programs';
 
+/** NoValidBallots: No valid Ballot */
+export const JITO_TIP_ROUTER_ERROR__NO_VALID_BALLOTS = 0x0; // 0
 /** DenominatorIsZero: Zero in the denominator */
 export const JITO_TIP_ROUTER_ERROR__DENOMINATOR_IS_ZERO = 0x2100; // 8448
 /** ArithmeticOverflow: Overflow */
@@ -102,90 +104,92 @@ export const JITO_TIP_ROUTER_ERROR__TOO_MANY_VAULT_OPERATOR_DELEGATIONS = 0x2220
 export const JITO_TIP_ROUTER_ERROR__DUPLICATE_VAULT_OPERATOR_DELEGATION = 0x2221; // 8737
 /** DuplicateVoteCast: Duplicate Vote Cast */
 export const JITO_TIP_ROUTER_ERROR__DUPLICATE_VOTE_CAST = 0x2222; // 8738
+/** OperatorAlreadyVoted: Operator Already Voted */
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_ALREADY_VOTED = 0x2223; // 8739
 /** OperatorVotesFull: Operator votes full */
-export const JITO_TIP_ROUTER_ERROR__OPERATOR_VOTES_FULL = 0x2223; // 8739
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_VOTES_FULL = 0x2224; // 8740
 /** BallotTallyFull: Merkle root tally full */
-export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_FULL = 0x2224; // 8740
+export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_FULL = 0x2225; // 8741
 /** BallotTallyNotFoundFull: Ballot tally not found */
-export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_NOT_FOUND_FULL = 0x2225; // 8741
+export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_NOT_FOUND_FULL = 0x2226; // 8742
 /** BallotTallyNotEmpty: Ballot tally not empty */
-export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_NOT_EMPTY = 0x2226; // 8742
+export const JITO_TIP_ROUTER_ERROR__BALLOT_TALLY_NOT_EMPTY = 0x2227; // 8743
 /** ConsensusAlreadyReached: Consensus already reached, cannot change vote */
-export const JITO_TIP_ROUTER_ERROR__CONSENSUS_ALREADY_REACHED = 0x2227; // 8743
+export const JITO_TIP_ROUTER_ERROR__CONSENSUS_ALREADY_REACHED = 0x2228; // 8744
 /** ConsensusNotReached: Consensus not reached */
-export const JITO_TIP_ROUTER_ERROR__CONSENSUS_NOT_REACHED = 0x2228; // 8744
+export const JITO_TIP_ROUTER_ERROR__CONSENSUS_NOT_REACHED = 0x2229; // 8745
 /** EpochSnapshotNotFinalized: Epoch snapshot not finalized */
-export const JITO_TIP_ROUTER_ERROR__EPOCH_SNAPSHOT_NOT_FINALIZED = 0x2229; // 8745
+export const JITO_TIP_ROUTER_ERROR__EPOCH_SNAPSHOT_NOT_FINALIZED = 0x222a; // 8746
 /** VotingNotValid: Voting not valid, too many slots after consensus reached */
-export const JITO_TIP_ROUTER_ERROR__VOTING_NOT_VALID = 0x222a; // 8746
+export const JITO_TIP_ROUTER_ERROR__VOTING_NOT_VALID = 0x222b; // 8747
 /** TieBreakerAdminInvalid: Tie breaker admin invalid */
-export const JITO_TIP_ROUTER_ERROR__TIE_BREAKER_ADMIN_INVALID = 0x222b; // 8747
+export const JITO_TIP_ROUTER_ERROR__TIE_BREAKER_ADMIN_INVALID = 0x222c; // 8748
 /** VotingNotFinalized: Voting not finalized */
-export const JITO_TIP_ROUTER_ERROR__VOTING_NOT_FINALIZED = 0x222c; // 8748
+export const JITO_TIP_ROUTER_ERROR__VOTING_NOT_FINALIZED = 0x222d; // 8749
 /** TieBreakerNotInPriorVotes: Tie breaking ballot must be one of the prior votes */
-export const JITO_TIP_ROUTER_ERROR__TIE_BREAKER_NOT_IN_PRIOR_VOTES = 0x222d; // 8749
+export const JITO_TIP_ROUTER_ERROR__TIE_BREAKER_NOT_IN_PRIOR_VOTES = 0x222e; // 8750
 /** InvalidMerkleProof: Invalid merkle proof */
-export const JITO_TIP_ROUTER_ERROR__INVALID_MERKLE_PROOF = 0x222e; // 8750
+export const JITO_TIP_ROUTER_ERROR__INVALID_MERKLE_PROOF = 0x222f; // 8751
 /** InvalidOperatorVoter: Operator voter needs to sign its vote */
-export const JITO_TIP_ROUTER_ERROR__INVALID_OPERATOR_VOTER = 0x222f; // 8751
+export const JITO_TIP_ROUTER_ERROR__INVALID_OPERATOR_VOTER = 0x2230; // 8752
 /** InvalidNcnFeeGroup: Not a valid NCN fee group */
-export const JITO_TIP_ROUTER_ERROR__INVALID_NCN_FEE_GROUP = 0x2230; // 8752
+export const JITO_TIP_ROUTER_ERROR__INVALID_NCN_FEE_GROUP = 0x2231; // 8753
 /** InvalidBaseFeeGroup: Not a valid base fee group */
-export const JITO_TIP_ROUTER_ERROR__INVALID_BASE_FEE_GROUP = 0x2231; // 8753
+export const JITO_TIP_ROUTER_ERROR__INVALID_BASE_FEE_GROUP = 0x2232; // 8754
 /** OperatorRewardListFull: Operator reward list full */
-export const JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_LIST_FULL = 0x2232; // 8754
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_LIST_FULL = 0x2233; // 8755
 /** OperatorRewardNotFound: Operator Reward not found */
-export const JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_NOT_FOUND = 0x2233; // 8755
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_NOT_FOUND = 0x2234; // 8756
 /** VaultRewardNotFound: Vault Reward not found */
-export const JITO_TIP_ROUTER_ERROR__VAULT_REWARD_NOT_FOUND = 0x2234; // 8756
+export const JITO_TIP_ROUTER_ERROR__VAULT_REWARD_NOT_FOUND = 0x2235; // 8757
 /** DestinationMismatch: Destination mismatch */
-export const JITO_TIP_ROUTER_ERROR__DESTINATION_MISMATCH = 0x2235; // 8757
+export const JITO_TIP_ROUTER_ERROR__DESTINATION_MISMATCH = 0x2236; // 8758
 /** NcnRewardRouteNotFound: Ncn reward route not found */
-export const JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND = 0x2236; // 8758
+export const JITO_TIP_ROUTER_ERROR__NCN_REWARD_ROUTE_NOT_FOUND = 0x2237; // 8759
 /** FeeNotActive: Fee not active */
-export const JITO_TIP_ROUTER_ERROR__FEE_NOT_ACTIVE = 0x2237; // 8759
+export const JITO_TIP_ROUTER_ERROR__FEE_NOT_ACTIVE = 0x2238; // 8760
 /** NoRewards: No rewards to distribute */
-export const JITO_TIP_ROUTER_ERROR__NO_REWARDS = 0x2238; // 8760
+export const JITO_TIP_ROUTER_ERROR__NO_REWARDS = 0x2239; // 8761
 /** WeightNotSet: Weight not set */
-export const JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_SET = 0x2239; // 8761
+export const JITO_TIP_ROUTER_ERROR__WEIGHT_NOT_SET = 0x223a; // 8762
 /** RouterStillRouting: Router still routing */
-export const JITO_TIP_ROUTER_ERROR__ROUTER_STILL_ROUTING = 0x223a; // 8762
+export const JITO_TIP_ROUTER_ERROR__ROUTER_STILL_ROUTING = 0x223b; // 8763
 /** InvalidEpochsBeforeStall: Invalid epochs before stall */
-export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_STALL = 0x223b; // 8763
+export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_STALL = 0x223c; // 8764
 /** InvalidEpochsBeforeClose: Invalid epochs before accounts can close */
-export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_CLOSE = 0x223c; // 8764
+export const JITO_TIP_ROUTER_ERROR__INVALID_EPOCHS_BEFORE_CLOSE = 0x223d; // 8765
 /** InvalidSlotsAfterConsensus: Invalid slots after consensus */
-export const JITO_TIP_ROUTER_ERROR__INVALID_SLOTS_AFTER_CONSENSUS = 0x223d; // 8765
+export const JITO_TIP_ROUTER_ERROR__INVALID_SLOTS_AFTER_CONSENSUS = 0x223e; // 8766
 /** VaultNeedsUpdate: Vault needs to be updated */
-export const JITO_TIP_ROUTER_ERROR__VAULT_NEEDS_UPDATE = 0x223e; // 8766
+export const JITO_TIP_ROUTER_ERROR__VAULT_NEEDS_UPDATE = 0x223f; // 8767
 /** InvalidAccountStatus: Invalid Account Status */
-export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_STATUS = 0x223f; // 8767
+export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_STATUS = 0x2240; // 8768
 /** AccountAlreadyInitialized: Account already initialized */
-export const JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED = 0x2240; // 8768
+export const JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED = 0x2241; // 8769
 /** BadBallot: Cannot vote with uninitialized account */
-export const JITO_TIP_ROUTER_ERROR__BAD_BALLOT = 0x2241; // 8769
+export const JITO_TIP_ROUTER_ERROR__BAD_BALLOT = 0x2242; // 8770
 /** VotingIsNotOver: Cannot route until voting is over */
-export const JITO_TIP_ROUTER_ERROR__VOTING_IS_NOT_OVER = 0x2242; // 8770
+export const JITO_TIP_ROUTER_ERROR__VOTING_IS_NOT_OVER = 0x2243; // 8771
 /** OperatorIsNotInSnapshot: Operator is not in snapshot */
-export const JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT = 0x2243; // 8771
+export const JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT = 0x2244; // 8772
 /** InvalidAccountToCloseDiscriminator: Invalid account_to_close Discriminator */
-export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR = 0x2244; // 8772
+export const JITO_TIP_ROUTER_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR = 0x2245; // 8773
 /** CannotCloseAccount: Cannot close account */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT = 0x2245; // 8773
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT = 0x2246; // 8774
 /** CannotCloseAccountAlreadyClosed: Cannot close account - Already closed */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x2246; // 8774
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x2247; // 8775
 /** CannotCloseAccountNotEnoughEpochs: Cannot close account - Not enough epochs have passed since consensus reached */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x2247; // 8775
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x2248; // 8776
 /** CannotCloseAccountNoReceiverProvided: Cannot close account - No receiver provided */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x2248; // 8776
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x2249; // 8777
 /** CannotCloseEpochStateAccount: Cannot close epoch state account - Epoch state needs all other accounts to be closed first */
-export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x2249; // 8777
+export const JITO_TIP_ROUTER_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224a; // 8778
 /** InvalidDaoWallet: Invalid DAO wallet */
-export const JITO_TIP_ROUTER_ERROR__INVALID_DAO_WALLET = 0x224a; // 8778
+export const JITO_TIP_ROUTER_ERROR__INVALID_DAO_WALLET = 0x224b; // 8779
 /** EpochIsClosingDown: Epoch is closing down */
-export const JITO_TIP_ROUTER_ERROR__EPOCH_IS_CLOSING_DOWN = 0x224b; // 8779
+export const JITO_TIP_ROUTER_ERROR__EPOCH_IS_CLOSING_DOWN = 0x224c; // 8780
 /** MarkerExists: Marker exists */
-export const JITO_TIP_ROUTER_ERROR__MARKER_EXISTS = 0x224c; // 8780
+export const JITO_TIP_ROUTER_ERROR__MARKER_EXISTS = 0x224d; // 8781
 
 export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__ACCOUNT_ALREADY_INITIALIZED
@@ -243,7 +247,9 @@ export type JitoTipRouterError =
   | typeof JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE
   | typeof JITO_TIP_ROUTER_ERROR__NO_OPERATORS
   | typeof JITO_TIP_ROUTER_ERROR__NO_REWARDS
+  | typeof JITO_TIP_ROUTER_ERROR__NO_VALID_BALLOTS
   | typeof JITO_TIP_ROUTER_ERROR__NO_VAULTS_IN_REGISTRY
+  | typeof JITO_TIP_ROUTER_ERROR__OPERATOR_ALREADY_VOTED
   | typeof JITO_TIP_ROUTER_ERROR__OPERATOR_FINALIZED
   | typeof JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT
   | typeof JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_LIST_FULL
@@ -333,7 +339,9 @@ if (process.env.NODE_ENV !== 'production') {
     [JITO_TIP_ROUTER_ERROR__NO_MINTS_IN_TABLE]: `There are no mints in the table`,
     [JITO_TIP_ROUTER_ERROR__NO_OPERATORS]: `No operators in ncn`,
     [JITO_TIP_ROUTER_ERROR__NO_REWARDS]: `No rewards to distribute`,
+    [JITO_TIP_ROUTER_ERROR__NO_VALID_BALLOTS]: `No valid Ballot`,
     [JITO_TIP_ROUTER_ERROR__NO_VAULTS_IN_REGISTRY]: `There are no vaults in the registry`,
+    [JITO_TIP_ROUTER_ERROR__OPERATOR_ALREADY_VOTED]: `Operator Already Voted`,
     [JITO_TIP_ROUTER_ERROR__OPERATOR_FINALIZED]: `Operator is already finalized - should not happen`,
     [JITO_TIP_ROUTER_ERROR__OPERATOR_IS_NOT_IN_SNAPSHOT]: `Operator is not in snapshot`,
     [JITO_TIP_ROUTER_ERROR__OPERATOR_REWARD_LIST_FULL]: `Operator reward list full`,

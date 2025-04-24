@@ -16,7 +16,7 @@ use solana_program::{
 pub fn process_cast_vote(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    meta_merkle_root: &[u8; 32],
+    weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
     let [epoch_state, ncn_config, ballot_box, ncn, epoch_snapshot, operator_snapshot, operator, operator_admin] =
@@ -85,7 +85,7 @@ pub fn process_cast_vote(
 
     let slot = Clock::get()?.slot;
 
-    let ballot = Ballot::new(meta_merkle_root);
+    let ballot = Ballot::new(weather_status);
 
     ballot_box.cast_vote(
         operator.key,

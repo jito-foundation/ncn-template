@@ -3,6 +3,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum TipRouterError {
+    #[error("No valid Ballot")]
+    NoValidBallots,
     #[error("Zero in the denominator")]
     DenominatorIsZero = 0x2100,
     #[error("Overflow")]
@@ -92,6 +94,8 @@ pub enum TipRouterError {
     DuplicateVaultOperatorDelegation,
     #[error("Duplicate Vote Cast")]
     DuplicateVoteCast,
+    #[error("Operator Already Voted")]
+    OperatorAlreadyVoted,
     #[error("Operator votes full")]
     OperatorVotesFull,
     #[error("Merkle root tally full")]

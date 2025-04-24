@@ -56,7 +56,6 @@ export type BallotBox = {
   bump: number;
   slotCreated: bigint;
   slotConsensusReached: bigint;
-  reserved: Array<number>;
   operatorsVoted: bigint;
   uniqueBallots: bigint;
   winningBallot: Ballot;
@@ -71,7 +70,6 @@ export type BallotBoxArgs = {
   bump: number;
   slotCreated: number | bigint;
   slotConsensusReached: number | bigint;
-  reserved: Array<number>;
   operatorsVoted: number | bigint;
   uniqueBallots: number | bigint;
   winningBallot: BallotArgs;
@@ -87,7 +85,6 @@ export function getBallotBoxEncoder(): Encoder<BallotBoxArgs> {
     ['bump', getU8Encoder()],
     ['slotCreated', getU64Encoder()],
     ['slotConsensusReached', getU64Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
     ['operatorsVoted', getU64Encoder()],
     ['uniqueBallots', getU64Encoder()],
     ['winningBallot', getBallotEncoder()],
@@ -104,7 +101,6 @@ export function getBallotBoxDecoder(): Decoder<BallotBox> {
     ['bump', getU8Decoder()],
     ['slotCreated', getU64Decoder()],
     ['slotConsensusReached', getU64Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
     ['operatorsVoted', getU64Decoder()],
     ['uniqueBallots', getU64Decoder()],
     ['winningBallot', getBallotDecoder()],
