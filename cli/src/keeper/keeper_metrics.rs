@@ -791,26 +791,6 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
             state.voting_progress().total(),
             i64
         ),
-        (
-            "validation-progress-tally",
-            state.validation_progress().tally(),
-            i64
-        ),
-        (
-            "validation-progress-total",
-            state.validation_progress().total(),
-            i64
-        ),
-        (
-            "upload-progress-tally",
-            state.upload_progress().tally(),
-            i64
-        ),
-        (
-            "upload-progress-total",
-            state.upload_progress().total(),
-            i64
-        ),
         // Account status
         (
             "epoch-state-account-status",

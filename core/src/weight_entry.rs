@@ -17,8 +17,6 @@ pub struct WeightEntry {
     slot_set: PodU64,
     /// The slot the weight was last updated
     slot_updated: PodU64,
-    /// Reserved space
-    reserved: [u8; 128],
 }
 
 impl Default for WeightEntry {
@@ -28,7 +26,6 @@ impl Default for WeightEntry {
             weight: PodU128::default(),
             slot_set: PodU64::default(),
             slot_updated: PodU64::default(),
-            reserved: [0; 128],
         }
     }
 }
@@ -40,7 +37,6 @@ impl WeightEntry {
             weight: PodU128::from(0),
             slot_set: PodU64::from(0),
             slot_updated: PodU64::from(0),
-            reserved: [0; 128],
         }
     }
 

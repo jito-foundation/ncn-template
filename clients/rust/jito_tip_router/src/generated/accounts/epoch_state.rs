@@ -33,8 +33,6 @@ pub struct EpochState {
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub operator_snapshot_progress: [Progress; 256],
     pub voting_progress: Progress,
-    pub validation_progress: Progress,
-    pub upload_progress: Progress,
     pub is_closing: bool,
 }
 

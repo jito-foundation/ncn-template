@@ -8,16 +8,12 @@
 
 import {
   combineCodec,
-  getArrayDecoder,
-  getArrayEncoder,
   getStructDecoder,
   getStructEncoder,
   getU128Decoder,
   getU128Encoder,
   getU64Decoder,
   getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Codec,
   type Decoder,
   type Encoder,
@@ -34,7 +30,6 @@ export type WeightEntry = {
   weight: bigint;
   slotSet: bigint;
   slotUpdated: bigint;
-  reserved: Array<number>;
 };
 
 export type WeightEntryArgs = {
@@ -42,7 +37,6 @@ export type WeightEntryArgs = {
   weight: number | bigint;
   slotSet: number | bigint;
   slotUpdated: number | bigint;
-  reserved: Array<number>;
 };
 
 export function getWeightEntryEncoder(): Encoder<WeightEntryArgs> {
@@ -51,7 +45,6 @@ export function getWeightEntryEncoder(): Encoder<WeightEntryArgs> {
     ['weight', getU128Encoder()],
     ['slotSet', getU64Encoder()],
     ['slotUpdated', getU64Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
   ]);
 }
 
@@ -61,7 +54,6 @@ export function getWeightEntryDecoder(): Decoder<WeightEntry> {
     ['weight', getU128Decoder()],
     ['slotSet', getU64Decoder()],
     ['slotUpdated', getU64Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
   ]);
 }
 

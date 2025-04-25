@@ -1356,18 +1356,6 @@
             }
           },
           {
-            "name": "validationProgress",
-            "type": {
-              "defined": "Progress"
-            }
-          },
-          {
-            "name": "uploadProgress",
-            "type": {
-              "defined": "Progress"
-            }
-          },
-          {
             "name": "isClosing",
             "type": {
               "defined": "PodBool"
@@ -1734,15 +1722,6 @@
             "name": "slotUpdated",
             "type": {
               "defined": "PodU64"
-            }
-          },
-          {
-            "name": "reserved",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
             }
           }
         ]

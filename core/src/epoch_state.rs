@@ -248,12 +248,6 @@ pub struct EpochState {
     /// Progress on voting
     voting_progress: Progress,
 
-    /// Progress on validation
-    validation_progress: Progress,
-
-    /// Upload progress
-    upload_progress: Progress,
-
     /// Is closing
     is_closing: PodBool,
 }
@@ -280,8 +274,6 @@ impl EpochState {
             epoch_snapshot_progress: Progress::default(),
             operator_snapshot_progress: [Progress::default(); MAX_OPERATORS],
             voting_progress: Progress::default(),
-            validation_progress: Progress::default(),
-            upload_progress: Progress::default(),
             is_closing: PodBool::from(false),
         }
     }
@@ -378,11 +370,6 @@ impl EpochState {
     }
 
     // ------------ HELPER FUNCTIONS ------------
-
-    pub fn _set_upload_progress(&mut self) {
-        self.upload_progress = Progress::new(1);
-    }
-
     // ------------ GETTERS ------------
 
     pub const fn ncn(&self) -> &Pubkey {
@@ -459,14 +446,6 @@ impl EpochState {
         self.voting_progress
     }
 
-    pub const fn validation_progress(&self) -> Progress {
-        self.validation_progress
-    }
-
-    pub const fn upload_progress(&self) -> Progress {
-        self.upload_progress
-    }
-
     // ------------ UPDATERS ------------
     pub fn update_realloc_epoch_state(&mut self) {
         self.account_status.set_epoch_state(AccountStatus::Created);
@@ -528,8 +507,6 @@ impl EpochState {
     pub fn update_realloc_ballot_box(&mut self) {
         self.account_status.set_ballot_box(AccountStatus::Created);
         self.voting_progress = Progress::new(self.operator_count());
-        self.validation_progress = Progress::new(1);
-        self.upload_progress = Progress::new(1);
     }
 
     pub fn update_cast_vote(
@@ -557,13 +534,6 @@ impl EpochState {
             self.was_tie_breaker_set = PodBool::from(true);
         }
 
-        Ok(())
-    }
-
-    // Just tracks the amount of times set_merkle_root is called
-    pub fn update_set_merkle_root(&mut self) -> Result<(), TipRouterError> {
-        self.upload_progress.increment_one()?;
-        self.upload_progress.set_total(self.upload_progress.tally());
         Ok(())
     }
 
@@ -756,8 +726,6 @@ impl fmt::Display for EpochState {
        }
 
        writeln!(f, "\nVoting Progress:                {}/{}", self.voting_progress.tally(), self.voting_progress.total())?;
-       writeln!(f, "  Validation Progress:          {}/{}", self.validation_progress.tally(), self.validation_progress.total())?;
-       writeln!(f, "  Upload Progress:              {}/{}", self.upload_progress.tally(), self.upload_progress.total())?;
 
 
        writeln!(f, "\n")?;

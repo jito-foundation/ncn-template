@@ -16,6 +16,4 @@ pub struct WeightEntry {
     pub weight: u128,
     pub slot_set: u64,
     pub slot_updated: u64,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 128],
 }

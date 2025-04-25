@@ -506,7 +506,6 @@ impl TestBuilder {
         Ok(test_ncn)
     }
 
-    // 6-1. Admin Set weights
     pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut tip_router_client = self.tip_router_client();
 
