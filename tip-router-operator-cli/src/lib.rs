@@ -3,7 +3,6 @@ pub mod ledger_utils;
 pub mod tip_router;
 pub use crate::cli::{Cli, Commands};
 pub mod arg_matches;
-pub mod backup_snapshots;
 pub mod cli;
 pub mod load_and_process_ledger;
 pub mod process_epoch;
@@ -47,8 +46,6 @@ impl std::fmt::Display for Version {
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
 pub enum OperatorState {
-    LoadBankFromSnapshot,
-    CreateMetaMerkleTree,
     CastVote,
     WaitForNextEpoch,
 }

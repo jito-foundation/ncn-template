@@ -55,7 +55,7 @@ pub async fn submit_to_ncn(
     client: &EllipsisClient,
     keypair: &Keypair,
     operator_address: &Pubkey,
-    merkle_root_epoch: u64,
+    epoch: u64,
     ncn_address: &Pubkey,
     tip_router_program_id: &Pubkey,
     weather_status: u8,
@@ -64,25 +64,14 @@ pub async fn submit_to_ncn(
     let epoch_info = client.get_epoch_info().await?;
     let config = get_ncn_config(client, tip_router_program_id, ncn_address).await?;
 
-    // The meta merkle root files are tagged with the epoch they have created the snapshot for
-    // Tip router accounts for that merkle root are created in the next epoch
-    let tip_router_target_epoch = merkle_root_epoch + 1;
-
     // Check for ballot box
-    let ballot_box_address = BallotBox::find_program_address(
-        tip_router_program_id,
-        ncn_address,
-        tip_router_target_epoch,
-    )
-    .0;
+    let ballot_box_address =
+        BallotBox::find_program_address(tip_router_program_id, ncn_address, epoch).0;
 
     let ballot_box_account = match client.get_account(&ballot_box_address).await {
         Ok(account) => account,
         Err(e) => {
-            debug!(
-                "Ballot box not created yet for epoch {}: {:?}",
-                tip_router_target_epoch, e
-            );
+            debug!("Ballot box not created yet for epoch {}: {:?}", epoch, e);
             return Ok(());
         }
     };
@@ -100,18 +89,7 @@ pub async fn submit_to_ncn(
         .iter()
         .find(|vote| vote.operator() == operator_address);
 
-    let should_cast_vote = match vote {
-        Some(vote) => {
-            // If vote exists, cast_vote if different from current meta_merkle_root
-            let tally = ballot_box
-                .ballot_tallies()
-                .get(vote.ballot_index() as usize)
-                .ok_or_else(|| anyhow::anyhow!("Ballot tally not found"))?;
-
-            tally.ballot().weather_status() != weather_status
-        }
-        None => true,
-    };
+    let should_cast_vote = vote.is_none();
 
     info!(
         "Determining if operator needs to vote...\n\
@@ -130,7 +108,7 @@ pub async fn submit_to_ncn(
             operator_address,
             keypair,
             weather_status,
-            tip_router_target_epoch,
+            epoch,
             submit_as_memo,
         )
         .await;
@@ -140,29 +118,26 @@ pub async fn submit_to_ncn(
                 datapoint_info!(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
-                    ("epoch", tip_router_target_epoch, i64),
+                    ("epoch", epoch, i64),
                     ("weather_status", format!("{:?}", weather_status), String),
                     ("version", Version::default().to_string(), String),
                     ("tx_sig", format!("{:?}", signature), String)
                 );
                 info!(
                     "Cast vote for epoch {} with signature {:?}",
-                    tip_router_target_epoch, signature
+                    epoch, signature
                 )
             }
             Err(e) => {
                 datapoint_error!(
                     "tip_router_cli.vote_cast",
                     ("operator_address", operator_address.to_string(), String),
-                    ("epoch", tip_router_target_epoch, i64),
+                    ("epoch", epoch, i64),
                     ("weather_status", format!("{:?}", weather_status), String),
                     ("status", "error", String),
                     ("error", format!("{:?}", e), String)
                 );
-                info!(
-                    "Failed to cast vote for epoch {}: {:?}",
-                    tip_router_target_epoch, e
-                )
+                info!("Failed to cast vote for epoch {}: {:?}", epoch, e)
             }
         }
     }

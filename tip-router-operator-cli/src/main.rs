@@ -119,7 +119,6 @@ async fn main() -> Result<()> {
                 rpc_client,
                 cli,
                 starting_stage,
-                override_target_slot,
                 &tip_router_program_id,
                 &ncn_address,
                 save_snapshot,
