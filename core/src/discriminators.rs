@@ -12,9 +12,6 @@ pub enum Discriminators {
     // Voting
     BallotBox = 0x20,
 
-    // Validation and Consensus
-    // - Reserved for future use
-
     // Distribution
     BaseRewardRouter = 0x40,
     NcnRewardRouter = 0x41,

@@ -1,0 +1,619 @@
+# NCN Template
+
+## TL;DR
+
+### Complete Workflow Example
+
+Here's how the entire process would look in your custom NCN implementation:
+
+1. **Setup Phase**
+
+   - Initialize the NCN, operators, and vaults using Jito programs
+   - Connect all components with bidirectional relationships
+   - Register supported token mints and their weights
+
+2. **Configuration**
+
+   - Add stake delegations from vaults to operators
+   - Register all vaults with the NCN
+
+3. **Per-Epoch Operations**
+   - Initialize epoch state to track progress
+   - Create weight table to lock in token weights for the epoch
+   - Take snapshots of the system state (epoch snapshot, operator snapshots, delegations)
+   - Setup ballot box and enable operators to cast votes with your custom vote data
+   - Process consensus results according to your NCN's purpose
+   - Close accounts after consensus to maintain blockchain efficiency
+
+This template provides the foundation for a decentralized consensus mechanism with stake-weighted voting, which you can customize for your specific use case.
+
+### Security Considerations
+
+When building your custom NCN, consider these security aspects:
+
+1. **Stake Weight Manipulation**: Ensure operators cannot manipulate their stake weight right before voting
+2. **Vote Timeout**: Implement timeouts to prevent deadlocks if consensus cannot be reached
+3. **Admin Controls**: Carefully design admin permissions to avoid centralization risks
+4. **Economic Security**: Ensure the economic incentives are properly aligned for all participants
+
+By following this template and adapting it to your specific needs, you can build a secure and efficient Network Consensus Node on Solana using Jito's restaking infrastructure.
+
+This template is meant to be the building blocks for creating and deploying your
+own custom NCN using Jito Restaking program.
+
+### System Architecture
+
+The system consists of several key components that work together:
+
+1. **Network consensus Node (NCN)**: Central entity that coordinates the overall process
+2. **Operators**: Entities that validate and vote on tip distribution data
+3. **Vaults**: Smart contracts that hold staked tokens and connect to operators
+
+## programs involved in the system
+
+1. from Jito labs:
+   1. jito restaking program
+   1. jito vault program
+1. from Solana:
+   1. spl stake pool program
+1. and You will have to deploy your own NCN program
+
+## Jito programs will be used to
+
+1. initialize the operators and vaults accounts, those are only accounts that are going to be set in a specific way and hold a specific data.
+1. initialize the NCN account, this is not the onchain program that you are going to deploy, this is only an account used to link your NCN with operators and vaults.
+1. initialize and warmup (activate) connections between all the three components (NCN, operators and vaults).
+   1. NCN <> operators: to tell which operators are connected to the NCN.
+   1. NCN <> vaults: to tell which valut
+   1. operators <> vaults: to tell how much stake each operator have from each vault, the vault could support multiple operators.
+
+Note: untill you have all the three components connected, and all the connections warmed up, you can't say that you have any stake
+
+## The NCN program will be used to
+
+### initialize the vault registry
+
+An account that will hold the NCN key, as well as two main lists.
+
+1.  st_mint_list: the ST mints (support mints) that are going to be used in the system, with thier weights. The weight is an aribuitrary value to determin how this specific token could be compared with other tokens supported by the system, you can set that to be the token price itself, or just a value the admin what to put for it.
+1.  vault_list: the vaults that are going to be used in the system.
+
+```rust
+
+pub struct VaultRegistry {
+    /// The NCN the vault registry is associated with
+    pub ncn: Pubkey,
+    /// The bump seed for the PDA
+    pub bump: u8,
+    /// The list of supported token ( ST ) mints
+    pub st_mint_list: [StMintEntry; 64],
+    /// The list of vaults
+    pub vault_list: [VaultEntry; 64],
+}
+
+pub struct StMintEntry {
+    /// The supported token ( ST ) mint
+    st_mint: Pubkey,
+
+    /// The weight when
+    weight: PodU128,
+}
+
+pub struct VaultEntry {
+    /// The vault account
+    vault: Pubkey,
+    /// The supported token ( ST ) mint of the vault
+    st_mint: Pubkey,
+    /// The index of the vault in respect to the NCN account
+    vault_index: PodU64,
+    /// The slot the vault was registered
+    slot_registered: PodU64,
+}
+
+```
+
+### Starting snapshot process
+
+#### Initialize the epoch state
+
+Epoch state will hold the following data:
+
+- operator_count
+- vault_count
+- account_status: the status of the accounts, if they are closed or not.
+- set_weight_progress
+- epoch_snapshot_progress
+- operator_snapshot_progress
+- voting_progress
+- slot_consensus_reached
+- was_tie_breaker_set
+
+#### Set weights
+
+This step will take all the mints and vaults associated with the NCN and create a weight table for them, This step will ran once before each vote for two reasons:
+
+- lock the vaults that are going to be in this vote
+- lock the weights, specially if the NCN uses the price of the token as a weight, then before each vote, this will have to fetch the new price and update the weights
+
+The weight table structs
+
+```rust
+pub struct WeightTable {
+    /// The NCN the account is associated with
+    ncn: Pubkey,
+    /// The epoch the account is associated with
+    epoch: PodU64,
+    /// Slot weight table was created
+    slot_created: PodU64,
+    /// Number of vaults in tracked mints at the time of creation
+    vault_count: PodU64,
+    /// Bump seed for the PDA
+    bump: u8,
+    /// A snapshot of the Vault Registry
+    vault_registry: [VaultEntry; 64],
+    /// The weight table
+    table: [WeightEntry; 64],
+}
+
+pub struct WeightEntry {
+    /// Info about the ST mint
+    st_mint_entry: StMintEntry,
+    /// The weight of the ST mint
+    weight: PodU128,
+    /// The slot the weight was set
+    slot_set: PodU64,
+    /// The slot the weight was last updated
+    slot_updated: PodU64,
+}
+
+pub struct VaultEntry {
+    /// The vault account
+    vault: Pubkey,
+    /// The supported token ( ST ) mint of the vault
+    st_mint: Pubkey,
+    /// The index of the vault in respect to the NCN account
+    vault_index: PodU64,
+    /// The slot the vault was registered
+    slot_registered: PodU64,
+}
+
+```
+
+#### Create Epoch Snapshot
+
+After setting the weights, an epoch snapshot is created to capture the state of the system at this point in time. The epoch snapshot account stores information about the operators, vaults, and the total stake weights at this epoch.
+
+```rust
+pub struct EpochSnapshot {
+    /// The NCN the account is associated with
+    ncn: Pubkey,
+    /// The epoch the account is associated with
+    epoch: PodU64,
+    /// Bump seed for the PDA
+    bump: u8,
+    /// Slot the snapshot was created
+    slot_created: PodU64,
+    /// Slot the snapshot was finalized
+    slot_finalized: PodU64,
+    /// Number of operators at the time of creation
+    operator_count: PodU64,
+    /// Number of vaults at the time of creation
+    vault_count: PodU64,
+    /// Number of operators registered
+    operators_registered: PodU64,
+    /// Number of valid operator vault delegations
+    valid_operator_vault_delegations: PodU64,
+    /// Stake weight information
+    stake_weights: StakeWeights,
+}
+```
+
+#### Initialize Operator Snapshots
+
+For each operator connected to the NCN, an operator snapshot is created. This captures the operator's current status, delegation amounts, and other relevant data for the voting process.
+
+```rust
+pub struct OperatorSnapshot {
+    /// The operator this account is for
+    operator: Pubkey,
+    /// The NCN the account is associated with
+    ncn: Pubkey,
+    /// The epoch the account is associated with
+    epoch: PodU64,
+    /// Bump seed for the PDA
+    bump: u8,
+    /// Slot the snapshot was created
+    slot_created: PodU64,
+    /// Slot the snapshot was finalized
+    slot_finalized: PodU64,
+    /// Whether the operator is finalized
+    is_finalized: PodBool,
+    /// Number of delegations for this operator
+    vault_count: PodU16,
+    /// Mapping of vault index to delegations
+    vault_delegations: [OperatorVaultDelegation; 64],
+    /// Stake weighted vote fraction for this operator
+    stake_weighted_vote_fraction: PodU64,
+}
+```
+
+#### Snapshot Vault-Operator Delegations
+
+The final part of the snapshot process is to record the delegation relationships between vaults and operators. For each operator-vault pair, the system records how much stake is delegated.
+
+### Voting and Consensus Mechanism
+
+After the snapshot process is complete, the system enters the voting phase. This is where your custom NCN logic will have the most impact, as you decide what operators are voting on and how consensus is reached.
+
+#### Initialize Ballot Box
+
+The ballot box is the central account for the voting process. It keeps track of all votes cast by operators and tallies them according to stake weight.
+
+```rust
+pub struct BallotBox {
+    /// The NCN the account is associated with
+    ncn: Pubkey,
+    /// The epoch the account is associated with
+    epoch: PodU64,
+    /// Bump seed for the PDA
+    bump: u8,
+    /// Slot when this ballot box was created
+    slot_created: PodU64,
+    /// Slot when consensus was reached
+    slot_consensus_reached: PodU64,
+    /// Number of operators that have voted
+    operators_voted: PodU64,
+    /// Number of unique ballots
+    unique_ballots: PodU64,
+    /// The ballot that got at least 66% of votes
+    winning_ballot: Ballot,
+    /// Operator votes
+    operator_votes: [OperatorVote; 256],
+    /// Mapping of ballots votes to stake weight
+    ballot_tallies: [BallotTally; 256],
+}
+```
+
+#### Cast Votes
+
+Operators can cast votes in the form of a ballot containing their chosen vote data. In the case of the Jito Tip Router, this is represented by a simple `WeatherStatus` in the test, but in a real implementation, this could be a hash of proposed data, transaction, or any other consensus item your NCN requires.
+
+```rust
+pub struct Ballot {
+    /// The vote data (in the example, weather status)
+    vote_data: u8,
+    /// Whether the ballot is valid
+    is_valid: PodBool,
+}
+```
+
+When an operator casts a vote, their stake weight is considered, and the vote is tallied in the ballot box. Consensus is reached when votes representing at least 66% of the total stake weight agree on the same ballot.
+
+#### Determine Consensus
+
+The system automatically checks if consensus has been reached after each vote:
+
+```rust
+// Check the ballot box after votes are cast
+let ballot_box = get_ballot_box(ncn, epoch).await?;
+
+if ballot_box.is_consensus_reached() {
+    let winning_ballot = ballot_box.get_winning_ballot().unwrap();
+    // Process the winning ballot data
+    let vote_data = winning_ballot.vote_data();
+    // Your custom logic to handle consensus result
+}
+```
+
+### Account Cleanup and Epoch Progression
+
+After consensus is reached and a specified waiting period has passed, the accounts for the epoch can be closed to reclaim rent. This is done in the reverse order of creation:
+
+1. Close Ballot Box
+2. Close Operator Snapshots
+3. Close Epoch Snapshot
+4. Close Weight Table
+5. Close Epoch State
+
+### Implementing Your Custom NCN Logic
+
+To build your own NCN, you'll need to:
+
+1. Define what operators are voting on (replace the `WeatherStatus` with your own vote data)
+2. Determine how consensus results are utilized
+3. Build any necessary off-chain infrastructure to support your NCN's use case
+4. Implement custom reward distribution logic if needed
+
+### 1. NCN Setup
+
+The process begins with initializing the Network Coordination Node (NCN):
+
+```rust
+// Initialize configuration
+vault_program_client.do_initialize_config().await?;
+restaking_program_client.do_initialize_config().await?;
+
+// Initialize NCN
+let ncn_root = restaking_program_client
+    .do_initialize_ncn(Some(payer)).await?;
+
+// Set up tip router for this NCN
+tip_router_client.setup_tip_router(&ncn_root).await?;
+```
+
+### 2. Operator Registration
+
+Multiple operators are registered and connected to the NCN:
+
+```rust
+for _ in 0..operator_count {
+    // Initialize a new operator
+    let operator_root = restaking_program_client
+        .do_initialize_operator(operator_fees_bps)
+        .await?;
+
+    // Connect NCN and operator
+    restaking_program_client
+        .do_initialize_ncn_operator_state(
+            &ncn_root,
+            &operator_root.operator_pubkey,
+        )
+        .await?;
+
+    // Warmup process to activate the connection
+    restaking_program_client
+        .do_ncn_warmup_operator(&ncn_root, &operator_root.operator_pubkey)
+        .await?;
+    restaking_program_client
+        .do_operator_warmup_ncn(&operator_root, &ncn_root.ncn_pubkey)
+        .await?;
+}
+```
+
+### 3. Vault Setup
+
+Vaults are created and connected to both the NCN and operators:
+
+```rust
+for _ in 0..vault_count {
+    // Initialize vault
+    let vault_root = vault_program_client
+        .do_initialize_vault(
+            DEPOSIT_FEE_BPS,
+            WITHDRAWAL_FEE_BPS,
+            REWARD_FEE_BPS,
+            DECIMALS,
+            &payer_pubkey,
+            Some(token_mint),
+        )
+        .await?;
+
+    // Connect vault to NCN
+    restaking_program_client
+        .do_initialize_ncn_vault_ticket(&ncn_root, &vault_root.vault_pubkey)
+        .await?;
+    restaking_program_client
+        .do_warmup_ncn_vault_ticket(&ncn_root, &vault_root.vault_pubkey)
+        .await?;
+
+    // Connect vault to NCN (bidirectional connection)
+    vault_program_client
+        .do_initialize_vault_ncn_ticket(&vault_root, &ncn_root.ncn_pubkey)
+        .await?;
+    vault_program_client
+        .do_warmup_vault_ncn_ticket(&vault_root, &ncn_root.ncn_pubkey)
+        .await?;
+
+    // Connect vault to operators
+    for operator_root in operators {
+        restaking_program_client
+            .do_initialize_operator_vault_ticket(
+                operator_root,
+                &vault_root.vault_pubkey
+            )
+            .await?;
+        restaking_program_client
+            .do_warmup_operator_vault_ticket(
+                operator_root,
+                &vault_root.vault_pubkey
+            )
+            .await?;
+        vault_program_client
+            .do_initialize_vault_operator_delegation(
+                &vault_root,
+                &operator_root.operator_pubkey,
+            )
+            .await?;
+    }
+}
+```
+
+### 4. Delegations
+
+Stake delegations are added to create the weighted voting system:
+
+```rust
+for vault_root in vaults {
+    for operator_root in operators {
+        vault_program_client
+            .do_add_delegation(
+                vault_root,
+                &operator_root.operator_pubkey,
+                delegation_amount,
+            )
+            .await?;
+    }
+}
+```
+
+### 5. ST Mint Registration
+
+Supported token mints are registered with their respective weights:
+
+```rust
+for (mint, weight) in mints {
+    tip_router_client
+        .do_admin_register_st_mint(ncn, mint.pubkey(), weight)
+        .await?;
+}
+
+for vault in vaults {
+    let vault_pubkey = vault.vault_pubkey;
+    let ncn_vault_ticket = NcnVaultTicket::find_program_address(
+        &jito_restaking_program::id(),
+        &ncn,
+        &vault_pubkey
+    ).0;
+
+    tip_router_client
+        .do_register_vault(ncn, vault_pubkey, ncn_vault_ticket)
+        .await?;
+}
+```
+
+## Per-Epoch Operations
+
+For each epoch, the following operations occur sequentially:
+
+### 1. Initialize Epoch State
+
+A new epoch state account is created to track the current epoch's status:
+
+```rust
+tip_router_client
+    .do_full_initialize_epoch_state(ncn, epoch)
+    .await?;
+```
+
+### 2. Set Weight Table
+
+Admin sets the weights for different staked tokens:
+
+```rust
+tip_router_client
+    .do_full_initialize_weight_table(ncn, epoch)
+    .await?;
+
+for entry in vault_registry.st_mint_list {
+    if !entry.is_empty() {
+        tip_router_client
+            .do_admin_set_weight(
+                ncn,
+                epoch,
+                entry.st_mint(),
+                entry.weight(),
+            )
+            .await?;
+    }
+}
+```
+
+### 3. Create Snapshots
+
+Multiple snapshots are taken to capture the state for the current epoch:
+
+```rust
+// Initialize epoch snapshot
+tip_router_client
+    .do_initialize_epoch_snapshot(ncn, epoch)
+    .await?;
+
+// Initialize operator snapshots
+for operator in operators {
+    tip_router_client
+        .do_full_initialize_operator_snapshot(operator, ncn, epoch)
+        .await?;
+}
+
+// Snapshot vault-operator delegations
+for operator in operators {
+    for vault in vaults {
+        // Update vault if needed
+        if vault_is_update_needed {
+            vault_program_client
+                .do_full_vault_update(&vault, &operators)
+                .await?;
+        }
+
+        tip_router_client
+            .do_snapshot_vault_operator_delegation(
+                vault,
+                operator,
+                ncn,
+                epoch
+            )
+            .await?;
+    }
+}
+```
+
+### 4. Voting and Consensus
+
+A ballot box is initialized and operators cast votes:
+
+```rust
+// Initialize ballot box
+tip_router_client
+    .do_full_initialize_ballot_box(ncn, epoch)
+    .await?;
+
+// Each operator casts a vote
+let weather_status = WeatherStatus::Sunny as u8; // Or other status
+for operator_root in operators {
+    tip_router_client
+        .do_cast_vote(
+            ncn,
+            operator_root.operator_pubkey,
+            &operator_root.operator_admin,
+            weather_status,
+            epoch,
+        )
+        .await?;
+}
+
+// Verify consensus is reached
+let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
+assert!(ballot_box.has_winning_ballot());
+assert!(ballot_box.is_consensus_reached());
+```
+
+The `WeatherStatus` is a simple representation used for voting (Sunny, Cloudy, Rainy). It's a stand-in for the more complex meta merkle root that would be used in production.
+
+### 5. Account Cleanup
+
+After a specified number of epochs, the program cleans up accounts:
+
+```rust
+// Wait for the required epochs after consensus
+self.warp_epoch_incremental(
+    config_account.epochs_after_consensus_before_close() + 1
+).await?;
+
+// Close accounts in reverse order of creation
+// 1. Close Ballot Box
+tip_router_client
+    .do_close_epoch_account(ncn, epoch_to_close, ballot_box)
+    .await?;
+
+// 2. Close Operator Snapshots
+for operator in operators {
+    tip_router_client
+        .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot)
+        .await?;
+}
+
+// 3. Close Epoch Snapshot
+tip_router_client
+    .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot)
+    .await?;
+
+// 4. Close Weight Table
+tip_router_client
+    .do_close_epoch_account(ncn, epoch_to_close, weight_table)
+    .await?;
+
+// 5. Close Epoch State
+tip_router_client
+    .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
+    .await?;
+```

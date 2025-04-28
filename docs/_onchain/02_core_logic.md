@@ -17,8 +17,7 @@ This section focuses on two main components:
 Once consensus is achieved, the `meta_merkle_root` is finalized, and the system facilitates the seamless integration of this result into downstream processes, such as setting the merkle root for validator Tip Distribution Accounts which enables stakers to claim rewards.
 
 ![alt text](/assets/images/core_logic.png)
-*Figure: Overview of the Core Logic
-
+\*Figure: Overview of the Core Logic
 
 ## Ballot Box
 
@@ -35,9 +34,6 @@ pub struct BallotBox {
 
     /// Slot when consensus was reached
     slot_consensus_reached: PodU64,
-
-    /// Reserved space
-    reserved: [u8; 128],
 
     /// Number of operators that have voted
     operators_voted: PodU64,
@@ -88,7 +84,8 @@ pub struct BallotTally {
 
 Consensus is defined as 2/3 or greater of the total available stake weight voting for the same meta_merkle_root.
 
-Voting is valid as long as: 
+Voting is valid as long as:
+
 - consensus is not reached.
 - consensus is reached and we are not more than config.valid_slots_after_voting slots since consensus was first reached.
 
@@ -100,5 +97,3 @@ Once a meta merkle root is decided, meaning consensus is reached, each validator
 The Cranker client will invoke SetMerkleRoot with the merkle proof, and all the arguments for the Tip Distribution Program UploadMerkleRoot instruction for a given validator.
 These arguments make up the leaf node of the tree, so the proof is verified against the meta_merkle_root, and a CPI sets the merkle root on the TipDistributionAccount.
 Claims for that validator and its stakers can now begin.
-
-

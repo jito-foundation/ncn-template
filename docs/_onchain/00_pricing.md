@@ -60,12 +60,6 @@ pub struct StMintEntry {
     /// The supported token ( ST ) mint
     st_mint: Pubkey,
 
-    /// The fee group for the mint
-    ncn_fee_group: NcnFeeGroup,
-
-    /// Reserved space for the reward multiplier in basis points
-    reserved_reward_multiplier_bps: PodU64,
-
     /// The weight
     weight: PodU128,
 }

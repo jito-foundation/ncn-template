@@ -8,36 +8,23 @@
 
 import {
   combineCodec,
-  getArrayDecoder,
-  getArrayEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
   type Codec,
   type Decoder,
   type Encoder,
 } from '@solana/web3.js';
 
-export type Progress = {
-  tally: bigint;
-  total: bigint;
-  reserved: Array<number>;
-};
+export type Progress = { tally: bigint; total: bigint };
 
-export type ProgressArgs = {
-  tally: number | bigint;
-  total: number | bigint;
-  reserved: Array<number>;
-};
+export type ProgressArgs = { tally: number | bigint; total: number | bigint };
 
 export function getProgressEncoder(): Encoder<ProgressArgs> {
   return getStructEncoder([
     ['tally', getU64Encoder()],
     ['total', getU64Encoder()],
-    ['reserved', getArrayEncoder(getU8Encoder(), { size: 8 })],
   ]);
 }
 
@@ -45,7 +32,6 @@ export function getProgressDecoder(): Decoder<Progress> {
   return getStructDecoder([
     ['tally', getU64Decoder()],
     ['total', getU64Decoder()],
-    ['reserved', getArrayDecoder(getU8Decoder(), { size: 8 })],
   ]);
 }
 
