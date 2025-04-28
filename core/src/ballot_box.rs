@@ -1128,7 +1128,7 @@ mod tests {
             .increment_or_create_ballot_tally(&ballot1, &stake_weights)
             .unwrap();
         ballot_box
-            .increment_or_create_ballot_tally(&ballot2, &stake_weights)
+            .increment_or_create_ballot_tally(&ballot2, &double_stake_weights)
             .unwrap();
 
         // Test setting tie breaker before voting is stalled
@@ -1279,8 +1279,7 @@ mod zero_stake_tests {
         let mut ballot_box = BallotBox::new(&ncn, epoch, 0, current_slot);
 
         // Create ballots and operators
-        let ballot1 = Ballot::new(Ballot::generate_ballot_weather_status());
-        let ballot2 = Ballot::new(Ballot::generate_ballot_weather_status());
+        let ballot = Ballot::new(Ballot::generate_ballot_weather_status());
 
         let zero_stake_operator = Pubkey::new_unique();
         let zero_stake = StakeWeights::new(0);
@@ -1289,7 +1288,7 @@ mod zero_stake_tests {
         ballot_box
             .cast_vote(
                 &zero_stake_operator,
-                &ballot1,
+                &ballot,
                 &zero_stake,
                 current_slot,
                 valid_slots_after_consensus,
@@ -1309,7 +1308,7 @@ mod zero_stake_tests {
         let ballot_tally = ballot_box
             .ballot_tallies()
             .iter()
-            .find(|t| t.ballot().eq(&ballot1))
+            .find(|t| t.ballot().eq(&ballot))
             .expect("Ballot tally should exist");
 
         assert_eq!(ballot_tally.stake_weights().stake_weight(), 0);

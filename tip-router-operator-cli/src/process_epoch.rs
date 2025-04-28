@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
 
 use anyhow::Result;
 use ellipsis_client::EllipsisClient;
@@ -8,9 +8,6 @@ use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{epoch_info::EpochInfo, pubkey::Pubkey, signature::read_keypair_file};
 
 use crate::{submit::submit_to_ncn, Cli, OperatorState};
-
-const MAX_WAIT_FOR_INCREMENTAL_SNAPSHOT_TICKS: u64 = 1200; // Experimentally determined
-const OPTIMAL_INCREMENTAL_SNAPSHOT_SLOT_RANGE: u64 = 800; // Experimentally determined
 
 pub async fn wait_for_next_epoch(rpc_client: &RpcClient, current_epoch: u64) -> EpochInfo {
     loop {

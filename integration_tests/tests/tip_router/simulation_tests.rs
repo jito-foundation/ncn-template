@@ -122,6 +122,7 @@ mod tests {
             }
         }
 
+        // must run per vote
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
         fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
 
@@ -243,7 +244,6 @@ mod fuzz_tests {
 
     async fn run_simulation(config: SimConfig) -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
-        let mut stake_pool_client = fixture.stake_pool_client();
         let mut tip_router_client = fixture.tip_router_client();
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
@@ -254,7 +254,6 @@ mod fuzz_tests {
         // Setup NCN
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
-        let pool_root = stake_pool_client.do_initialize_stake_pool().await?;
 
         // Add operators and vaults
         {
@@ -402,9 +401,6 @@ mod fuzz_tests {
             );
         }
 
-        stake_pool_client
-            .update_stake_pool_balance(&pool_root)
-            .await?;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
         Ok(())

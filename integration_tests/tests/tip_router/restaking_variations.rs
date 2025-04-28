@@ -102,7 +102,6 @@ mod tests {
     #[tokio::test]
     async fn test_stale_vault() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
-        let mut stake_pool_client = fixture.stake_pool_client();
         let mut tip_router_client = fixture.tip_router_client();
 
         const OPERATOR_COUNT: usize = 1;
@@ -111,8 +110,6 @@ mod tests {
         let test_ncn = fixture
             .create_initial_test_ncn(OPERATOR_COUNT, VAULT_COUNT, Some(0))
             .await?;
-
-        stake_pool_client.do_initialize_stake_pool().await?;
 
         {
             // Fast forward to a new epoch

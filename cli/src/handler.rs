@@ -7,7 +7,7 @@ use crate::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
         get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot,
         get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
-        get_ncn_vault_ticket, get_operator_snapshot, get_stake_pool, get_tip_router_config,
+        get_ncn_vault_ticket, get_operator_snapshot, get_tip_router_config,
         get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
         get_vault_registry, get_weight_table,
     },
@@ -439,11 +439,6 @@ impl CliHandler {
                     "\n\n--- Total Epoch Rent Cost ---\nCost: {}\n",
                     lamports_to_sol(total_epoch_rent_cost)
                 );
-                Ok(())
-            }
-            ProgramCommand::GetStakePool {} => {
-                let stake_pool = get_stake_pool(self).await?;
-                info!("Stake Pool: {:?}", stake_pool);
                 Ok(())
             }
 

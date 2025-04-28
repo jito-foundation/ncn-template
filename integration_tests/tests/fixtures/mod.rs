@@ -4,7 +4,6 @@ use solana_sdk::transaction::TransactionError;
 use thiserror::Error;
 
 pub mod restaking_client;
-pub mod stake_pool_client;
 pub mod test_builder;
 pub mod tip_router_client;
 pub mod vault_client;

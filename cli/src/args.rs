@@ -276,7 +276,6 @@ pub enum ProgramCommand {
     GetBallotBox,
     GetAccountPayer,
     GetTotalEpochRentCost,
-    GetStakePool,
 
     GetOperatorStakes,
     GetVaultStakes,

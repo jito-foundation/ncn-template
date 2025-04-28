@@ -1,35 +1,23 @@
-use std::{
-    fmt::{Debug, Formatter},
-    ops::{Div, Mul},
-};
+use std::fmt::{Debug, Formatter};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use jito_tip_router_core::{
     ballot_box::{BallotBox, WeatherStatus},
-    constants::{JITOSOL_MINT, WEIGHT},
+    constants::WEIGHT,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     weight_table::WeightTable,
 };
-use solana_program::{
-    clock::Clock, native_token::sol_to_lamports, program_pack::Pack, pubkey::Pubkey,
-    system_instruction::transfer,
-};
+use solana_program::{clock::Clock, native_token::sol_to_lamports, pubkey::Pubkey};
 use solana_program_test::{processor, BanksClientError, ProgramTest, ProgramTestContext};
 use solana_sdk::{
     account::Account,
     clock::DEFAULT_SLOTS_PER_EPOCH,
-    commitment_config::CommitmentLevel,
     epoch_schedule::EpochSchedule,
     signature::{Keypair, Signer},
-    transaction::Transaction,
 };
-use spl_stake_pool::find_withdraw_authority_program_address;
 
-use super::{
-    restaking_client::NcnRoot, stake_pool_client::StakePoolClient,
-    tip_router_client::TipRouterClient,
-};
+use super::{restaking_client::NcnRoot, tip_router_client::TipRouterClient};
 use crate::fixtures::{
     restaking_client::{OperatorRoot, RestakingProgramClient},
     vault_client::{VaultProgramClient, VaultRoot},
@@ -55,7 +43,6 @@ pub struct TestNcnNode {
 
 pub struct TestBuilder {
     context: ProgramTestContext,
-    stake_pool_keypair: Keypair,
 }
 
 impl Debug for TestBuilder {
@@ -64,33 +51,11 @@ impl Debug for TestBuilder {
     }
 }
 
-pub fn token_mint_account(withdraw_authority: &Pubkey) -> Account {
-    let account = spl_token::state::Mint {
-        mint_authority: solana_sdk::program_option::COption::Some(*withdraw_authority),
-        supply: 0,
-        decimals: 9,
-        is_initialized: true,
-        freeze_authority: solana_sdk::program_option::COption::None,
-    };
-
-    let mut data = [0; 82];
-
-    spl_token::state::Mint::pack(account, &mut data).unwrap();
-
-    Account {
-        lamports: 1000000000,
-        owner: spl_token::id(),
-        executable: false,
-        rent_epoch: 0,
-        data: data.to_vec(),
-    }
-}
-
 impl TestBuilder {
     pub async fn new() -> Self {
         let run_as_bpf = std::env::vars().any(|(key, _)| key.eq("SBF_OUT_DIR"));
 
-        let mut program_test = if run_as_bpf {
+        let program_test = if run_as_bpf {
             let mut program_test = ProgramTest::new(
                 "jito_tip_router_program",
                 jito_tip_router_program::id(),
@@ -98,7 +63,6 @@ impl TestBuilder {
             );
             program_test.add_program("jito_vault_program", jito_vault_program::id(), None);
             program_test.add_program("jito_restaking_program", jito_restaking_program::id(), None);
-            program_test.add_program("spl_stake_pool", spl_stake_pool::id(), None);
 
             program_test
         } else {
@@ -117,26 +81,11 @@ impl TestBuilder {
                 jito_restaking_program::id(),
                 processor!(jito_restaking_program::process_instruction),
             );
-            program_test.add_program(
-                "spl_stake_pool",
-                spl_stake_pool::id(),
-                processor!(spl_stake_pool::processor::Processor::process),
-            );
             program_test
         };
 
-        // Stake pool keypair is needed to create the pool, and JitoSOL mint authority is based on this keypair
-        let stake_pool_keypair = Keypair::new();
-        let jitosol_mint_authority = find_withdraw_authority_program_address(
-            &spl_stake_pool::id(),
-            &stake_pool_keypair.pubkey(),
-        );
-        // Needed to create JitoSOL mint since we don't have access to the original keypair in the tests
-        program_test.add_account(JITOSOL_MINT, token_mint_account(&jitosol_mint_authority.0));
-
         Self {
             context: program_test.start_with_context().await,
-            stake_pool_keypair,
         }
     }
 
@@ -208,32 +157,6 @@ impl TestBuilder {
             self.context.banks_client.clone(),
             self.context.payer.insecure_clone(),
         )
-    }
-
-    pub fn stake_pool_client(&self) -> StakePoolClient {
-        StakePoolClient::new(
-            self.context.banks_client.clone(),
-            self.context.payer.insecure_clone(),
-            self.stake_pool_keypair.insecure_clone(),
-        )
-    }
-
-    #[allow(dead_code)]
-    pub async fn transfer(&mut self, to: &Pubkey, sol: f64) -> Result<(), BanksClientError> {
-        let blockhash = self.context.banks_client.get_latest_blockhash().await?;
-        let lamports = sol_to_lamports(sol);
-        self.context
-            .banks_client
-            .process_transaction_with_preflight_and_commitment(
-                Transaction::new_signed_with_payer(
-                    &[transfer(&self.context.payer.pubkey(), to, lamports)],
-                    Some(&self.context.payer.pubkey()),
-                    &[&self.context.payer],
-                    blockhash,
-                ),
-                CommitmentLevel::Processed,
-            )
-            .await
     }
 
     pub async fn setup_ncn(&mut self) -> TestResult<NcnRoot> {

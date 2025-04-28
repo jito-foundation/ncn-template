@@ -7,11 +7,13 @@
 Here's how the process flows in a custom NCN implementation:
 
 1. **Setup Phase**
+
    - Initialize the NCN, operators, and vaults using Jito programs
    - Establish bidirectional connections between all components
    - Register supported token mints with their respective weights
 
 2. **Configuration**
+
    - Add stake delegations from vaults to operators
    - Register all vaults with the NCN
 
@@ -55,9 +57,7 @@ The NCN architecture relies on multiple Solana programs:
 1. **From Jito Labs**:
    - Jito Restaking Program
    - Jito Vault Program
-2. **From Solana**:
-   - SPL Stake Pool Program
-3. **Your Custom Program**:
+2. **Your Custom Program**:
    - You will need to deploy your own NCN program
 
 ## Jito Programs Functionality

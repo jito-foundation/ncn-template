@@ -36,7 +36,6 @@ use solana_client::{
 };
 use solana_sdk::clock::DEFAULT_SLOTS_PER_EPOCH;
 use solana_sdk::{account::Account, pubkey::Pubkey};
-use spl_stake_pool::{find_withdraw_authority_program_address, state::StakePool};
 use tokio::time::sleep;
 
 // ---------------------- HELPERS ----------------------
@@ -409,22 +408,6 @@ pub async fn get_operator_vault_ticket(
     Ok(*account)
 }
 
-pub async fn get_stake_pool(handler: &CliHandler) -> Result<StakePool> {
-    let stake_pool = JITOSOL_POOL_ADDRESS;
-    let account = get_account(handler, &stake_pool).await?;
-
-    if account.is_none() {
-        return Err(anyhow::anyhow!("Stake Pool account not found"));
-    }
-    let account = account.unwrap();
-
-    let mut data_slice = account.data.as_slice();
-    let account = StakePool::deserialize(&mut data_slice)
-        .map_err(|_| anyhow::anyhow!("Invalid stake pool account"))?;
-
-    Ok(account)
-}
-
 pub struct OptedInValidatorInfo {
     pub vote: Pubkey,
     pub identity: Pubkey,
@@ -531,31 +514,6 @@ pub struct OptedInValidatorInfo {
 //
 //     Ok(validator_infos)
 // }
-
-pub struct StakePoolAccounts {
-    pub stake_pool_program_id: Pubkey,
-    pub stake_pool_address: Pubkey,
-    pub stake_pool: StakePool,
-    pub stake_pool_withdraw_authority: Pubkey,
-}
-
-pub async fn get_stake_pool_accounts(handler: &CliHandler) -> Result<StakePoolAccounts> {
-    let stake_pool_program_id = spl_stake_pool::id();
-    let stake_pool_address = JITOSOL_POOL_ADDRESS;
-    let stake_pool = get_stake_pool(handler).await?;
-
-    let (stake_pool_withdraw_authority, _) =
-        find_withdraw_authority_program_address(&spl_stake_pool::id(), &stake_pool_address);
-
-    let accounts = StakePoolAccounts {
-        stake_pool_program_id,
-        stake_pool_address,
-        stake_pool,
-        stake_pool_withdraw_authority,
-    };
-
-    Ok(accounts)
-}
 
 pub async fn get_all_sorted_operators_for_vault(
     handler: &CliHandler,
