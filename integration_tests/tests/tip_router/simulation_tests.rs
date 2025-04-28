@@ -2,8 +2,8 @@
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
     use jito_tip_router_core::{
-        ballot_box::{Ballot, WeatherStatus},
-        constants::{MAX_OPERATORS, WEIGHT, WEIGHT_PRECISION},
+        ballot_box::WeatherStatus,
+        constants::{WEIGHT, WEIGHT_PRECISION},
     };
     use solana_sdk::{native_token::sol_to_lamports, signature::Keypair, signer::Signer};
 

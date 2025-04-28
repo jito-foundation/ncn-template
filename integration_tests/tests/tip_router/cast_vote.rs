@@ -5,6 +5,7 @@ mod tests {
         constants::MAX_OPERATORS,
         error::TipRouterError,
     };
+    use rand::Rng;
     use solana_sdk::msg;
 
     use crate::fixtures::{
@@ -167,7 +168,7 @@ mod tests {
         for operator in test_ncn.operators {
             let operator_admin = &operator.operator_admin;
 
-            let weather_status = Ballot::generate_ballot_weather_status();
+            let weather_status = rand::rng().random_range(0..=2);
 
             tip_router_client
                 .do_cast_vote(
@@ -184,6 +185,7 @@ mod tests {
         }
 
         let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
+        msg!("ballot_box: {}", ballot_box);
         assert!(!ballot_box.is_consensus_reached());
 
         Ok(())

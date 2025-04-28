@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use jito_tip_router_core::{
-        constants::MAX_REALLOC_BYTES, epoch_snapshot::OperatorSnapshot, error::TipRouterError,
-    };
+    use jito_tip_router_core::{epoch_snapshot::OperatorSnapshot, error::TipRouterError};
 
     use crate::fixtures::{
         test_builder::TestBuilder, tip_router_client::assert_tip_router_error, TestResult,
