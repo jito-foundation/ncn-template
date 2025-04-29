@@ -3,7 +3,6 @@ use std::{fmt, time::Duration};
 
 use crate::handler::CliHandler;
 use anyhow::Result;
-use borsh1::BorshDeserialize;
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::slot_toggle::SlotToggleState;
 use jito_restaking_core::{
@@ -15,7 +14,6 @@ use jito_tip_router_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
     config::Config as TipRouterConfig,
-    constants::JITOSOL_POOL_ADDRESS,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,

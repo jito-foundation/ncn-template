@@ -282,15 +282,6 @@ impl TipRouterClient {
         .await
     }
 
-    pub async fn do_full_initialize_epoch_state(
-        &mut self,
-        ncn: Pubkey,
-        epoch: u64,
-    ) -> TestResult<()> {
-        self.do_intialize_epoch_state(ncn, epoch).await?;
-        Ok(())
-    }
-
     pub async fn do_intialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         self.initialize_epoch_state(ncn, epoch).await
     }
