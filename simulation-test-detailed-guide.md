@@ -1,14 +1,30 @@
 # Simulation Test Detailed Guide
 
+## Table of Contents
+1. [Overview](#overview)
+2. [Prerequisites](#prerequisites)
+3. [Test Components](#test-components)
+4. [Test Flow](#test-flow)
+5. [Detailed Function Explanations](#detailed-function-explanations)
+6. [Expected Outcomes](#expected-outcomes)
+7. [Error Cases](#error-cases)
+
 ## Overview
 
 The simulation test is a comprehensive test case that simulates a complete tip router system with multiple operators, vaults, and token types. It tests the entire flow from setup to voting and consensus reaching.
 
-Note: At the bottom of this guide, there are detailed explanations for each function mentioned.
+## Prerequisites
+
+Before running the simulation test, ensure you have:
+1. Set up the test ledger using `./tip-router-operator-cli/scripts/setup-test-ledger.sh`
+2. Built the tip router program using `cargo build-sbf`
+3. Set the correct Solana version (1.18.26 recommended)
 
 ## Test Components
 
 ### Initial Setup
+
+The test begins with initializing the test environment:
 
 ```rust
 let mut fixture = TestBuilder::new().await;
@@ -45,15 +61,15 @@ let delegations = [
 ];
 ```
 
-This code:
-- Prepares the necessary clients for the test
-- Specifies the number of operators (13 in this case)
-- Defines 4 different token types (these could be any SPL tokens, and the number can be changed by the NCN admin at any time)
-- Defines various delegation amounts for testing, ranging from 1 lamport to 10M SOL
+This setup:
+2. Initializes clients for each program
+3. Defines 13 operators
+4. Sets up 4 different token types with their weights
+5. Defines various delegation amounts for testing
 
 ## Test Flow
 
-### NCN Setup
+### 1. NCN Setup
 
 ```rust
 let mut test_ncn = fixture.create_test_ncn().await?;
@@ -201,7 +217,7 @@ Voting is performed by operators through an onchain program instruction (typical
 fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 ```
 
-In this test case, a helper function simulates voting:
+In this test case, we use a helper function to simulate voting:
 
 ```rust
 let epoch = fixture.clock().await.epoch;
