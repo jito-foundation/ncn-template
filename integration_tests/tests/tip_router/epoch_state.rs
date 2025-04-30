@@ -23,7 +23,7 @@ mod tests {
         let bad_epoch = starting_valid_epoch - 1;
 
         let result = tip_router_client
-            .do_full_initialize_epoch_state(ncn, bad_epoch)
+            .do_intialize_epoch_state(ncn, bad_epoch)
             .await;
 
         assert!(result.is_err());
@@ -52,9 +52,7 @@ mod tests {
         let epoch_marker = tip_router_client.get_epoch_marker(ncn, epoch).await?;
         assert_eq!(epoch_marker.epoch(), epoch);
 
-        let result = tip_router_client
-            .do_full_initialize_epoch_state(ncn, epoch)
-            .await;
+        let result = tip_router_client.do_intialize_epoch_state(ncn, epoch).await;
 
         assert!(result.is_err());
 

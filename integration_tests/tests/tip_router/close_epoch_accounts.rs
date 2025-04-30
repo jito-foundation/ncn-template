@@ -415,7 +415,7 @@ mod tests {
             );
 
             let result = tip_router_client
-                .do_full_initialize_epoch_state(ncn, epoch_to_close)
+                .do_intialize_epoch_state(ncn, epoch_to_close)
                 .await;
 
             assert_tip_router_error(result, TipRouterError::MarkerExists);
