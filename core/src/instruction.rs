@@ -75,6 +75,16 @@ pub enum TipRouterInstruction {
         epoch: u64,
     },
 
+
+    /// Set weights for the weight table using the vault registry
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "ncn")]
+    #[account(2, name = "vault_registry")]
+    #[account(3, writable, name = "weight_table")]
+    SetEpochWeights{
+        epoch: u64,
+    },
+
     /// Resizes the weight table account
     #[account(0, writable, name = "epoch_state")]
     #[account(1, name = "config")]

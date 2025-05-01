@@ -17,6 +17,7 @@ mod realloc_ballot_box;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
+mod set_epoch_weights;
 mod snapshot_vault_operator_delegation;
 
 use admin_set_new_admin::process_admin_set_new_admin;
@@ -46,6 +47,7 @@ use crate::{
     realloc_ballot_box::process_realloc_ballot_box,
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
+    set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
@@ -208,6 +210,11 @@ pub fn process_instruction(
         TipRouterInstruction::AdminSetStMint { st_mint, weight } => {
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
+        }
+
+        TipRouterInstruction::SetEpochWeights { epoch } => {
+            msg!("Instruction: SetEpochWeights");
+            process_set_epoch_weights(program_id, accounts, epoch)
         }
     }
 }

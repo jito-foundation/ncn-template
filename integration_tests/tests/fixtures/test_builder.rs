@@ -476,6 +476,23 @@ impl TestBuilder {
         Ok(())
     }
 
+    // 6b. Set weights using vault registry
+    pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
+        let mut tip_router_client = self.tip_router_client();
+
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+        tip_router_client
+            .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
+
+        tip_router_client
+            .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
+
+        Ok(())
+    }
+
     // 7. Create Epoch Snapshot
     pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut tip_router_client = self.tip_router_client();

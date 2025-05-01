@@ -17,7 +17,7 @@ use crate::{
         crank_register_vaults, crank_snapshot, create_and_add_test_operator,
         create_and_add_test_vault, create_ballot_box, create_epoch_snapshot, create_epoch_state,
         create_operator_snapshot, create_test_ncn, create_vault_registry, create_weight_table,
-        full_vault_update, register_vault, snapshot_vault_operator_delegation,
+        full_vault_update, register_vault, set_epoch_weights, snapshot_vault_operator_delegation,
         update_all_vaults_in_network,
     },
     keeper::keeper_loop::startup_keeper,
@@ -639,6 +639,8 @@ impl CliHandler {
                 deposit_fee_bps,
                 withdrawal_fee_bps,
             } => create_and_add_test_vault(self, deposit_fee_bps, withdrawal_fee_bps).await,
+
+            ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
         }
     }
 }

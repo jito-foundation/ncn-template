@@ -175,6 +175,8 @@ pub enum ProgramCommand {
         #[arg(long, help = "Weight")]
         weight: Option<u128>,
     },
+    SetEpochWeights,
+
     AdminSetWeight {
         #[arg(long, help = "Vault address")]
         vault: String,

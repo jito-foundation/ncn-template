@@ -25,4 +25,5 @@ export * from './reallocBallotBox';
 export * from './reallocVaultRegistry';
 export * from './reallocWeightTable';
 export * from './registerVault';
+export * from './setEpochWeights';
 export * from './snapshotVaultOperatorDelegation';

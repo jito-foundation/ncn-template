@@ -32,6 +32,7 @@ import {
   type ParsedReallocVaultRegistryInstruction,
   type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
+  type ParsedSetEpochWeightsInstruction,
   type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
 
@@ -56,6 +57,7 @@ export enum JitoTipRouterInstruction {
   RegisterVault,
   InitializeEpochState,
   InitializeWeightTable,
+  SetEpochWeights,
   ReallocWeightTable,
   InitializeEpochSnapshot,
   InitializeOperatorSnapshot,
@@ -95,45 +97,48 @@ export function identifyJitoTipRouterInstruction(
     return JitoTipRouterInstruction.InitializeWeightTable;
   }
   if (containsBytes(data, getU8Encoder().encode(6), 0)) {
-    return JitoTipRouterInstruction.ReallocWeightTable;
+    return JitoTipRouterInstruction.SetEpochWeights;
   }
   if (containsBytes(data, getU8Encoder().encode(7), 0)) {
-    return JitoTipRouterInstruction.InitializeEpochSnapshot;
+    return JitoTipRouterInstruction.ReallocWeightTable;
   }
   if (containsBytes(data, getU8Encoder().encode(8), 0)) {
-    return JitoTipRouterInstruction.InitializeOperatorSnapshot;
+    return JitoTipRouterInstruction.InitializeEpochSnapshot;
   }
   if (containsBytes(data, getU8Encoder().encode(9), 0)) {
-    return JitoTipRouterInstruction.SnapshotVaultOperatorDelegation;
+    return JitoTipRouterInstruction.InitializeOperatorSnapshot;
   }
   if (containsBytes(data, getU8Encoder().encode(10), 0)) {
-    return JitoTipRouterInstruction.InitializeBallotBox;
+    return JitoTipRouterInstruction.SnapshotVaultOperatorDelegation;
   }
   if (containsBytes(data, getU8Encoder().encode(11), 0)) {
-    return JitoTipRouterInstruction.ReallocBallotBox;
+    return JitoTipRouterInstruction.InitializeBallotBox;
   }
   if (containsBytes(data, getU8Encoder().encode(12), 0)) {
-    return JitoTipRouterInstruction.CastVote;
+    return JitoTipRouterInstruction.ReallocBallotBox;
   }
   if (containsBytes(data, getU8Encoder().encode(13), 0)) {
-    return JitoTipRouterInstruction.CloseEpochAccount;
+    return JitoTipRouterInstruction.CastVote;
   }
   if (containsBytes(data, getU8Encoder().encode(14), 0)) {
-    return JitoTipRouterInstruction.AdminSetParameters;
+    return JitoTipRouterInstruction.CloseEpochAccount;
   }
   if (containsBytes(data, getU8Encoder().encode(15), 0)) {
-    return JitoTipRouterInstruction.AdminSetNewAdmin;
+    return JitoTipRouterInstruction.AdminSetParameters;
   }
   if (containsBytes(data, getU8Encoder().encode(16), 0)) {
-    return JitoTipRouterInstruction.AdminSetTieBreaker;
+    return JitoTipRouterInstruction.AdminSetNewAdmin;
   }
   if (containsBytes(data, getU8Encoder().encode(17), 0)) {
-    return JitoTipRouterInstruction.AdminSetWeight;
+    return JitoTipRouterInstruction.AdminSetTieBreaker;
   }
   if (containsBytes(data, getU8Encoder().encode(18), 0)) {
-    return JitoTipRouterInstruction.AdminRegisterStMint;
+    return JitoTipRouterInstruction.AdminSetWeight;
   }
   if (containsBytes(data, getU8Encoder().encode(19), 0)) {
+    return JitoTipRouterInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(20), 0)) {
     return JitoTipRouterInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -162,6 +167,9 @@ export type ParsedJitoTipRouterInstruction<
   | ({
       instructionType: JitoTipRouterInstruction.InitializeWeightTable;
     } & ParsedInitializeWeightTableInstruction<TProgram>)
+  | ({
+      instructionType: JitoTipRouterInstruction.SetEpochWeights;
+    } & ParsedSetEpochWeightsInstruction<TProgram>)
   | ({
       instructionType: JitoTipRouterInstruction.ReallocWeightTable;
     } & ParsedReallocWeightTableInstruction<TProgram>)

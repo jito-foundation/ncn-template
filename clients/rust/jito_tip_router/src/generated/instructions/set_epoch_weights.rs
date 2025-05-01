@@ -9,55 +9,47 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct AdminSetTieBreaker {
+pub struct SetEpochWeights {
     pub epoch_state: solana_program::pubkey::Pubkey,
-
-    pub config: solana_program::pubkey::Pubkey,
-
-    pub ballot_box: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub tie_breaker_admin: solana_program::pubkey::Pubkey,
+    pub vault_registry: solana_program::pubkey::Pubkey,
+
+    pub weight_table: solana_program::pubkey::Pubkey,
 }
 
-impl AdminSetTieBreaker {
+impl SetEpochWeights {
     pub fn instruction(
         &self,
-        args: AdminSetTieBreakerInstructionArgs,
+        args: SetEpochWeightsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: AdminSetTieBreakerInstructionArgs,
+        args: SetEpochWeightsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.epoch_state,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.config,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.ballot_box,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.tie_breaker_admin,
-            true,
+            self.vault_registry,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.weight_table,
+            false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = AdminSetTieBreakerInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = SetEpochWeightsInstructionData::new().try_to_vec().unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -70,17 +62,17 @@ impl AdminSetTieBreaker {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct AdminSetTieBreakerInstructionData {
+pub struct SetEpochWeightsInstructionData {
     discriminator: u8,
 }
 
-impl AdminSetTieBreakerInstructionData {
+impl SetEpochWeightsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 17 }
+        Self { discriminator: 6 }
     }
 }
 
-impl Default for AdminSetTieBreakerInstructionData {
+impl Default for SetEpochWeightsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -88,33 +80,29 @@ impl Default for AdminSetTieBreakerInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AdminSetTieBreakerInstructionArgs {
-    pub weather_status: u8,
+pub struct SetEpochWeightsInstructionArgs {
     pub epoch: u64,
 }
 
-/// Instruction builder for `AdminSetTieBreaker`.
+/// Instruction builder for `SetEpochWeights`.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
-///   1. `[]` config
-///   2. `[writable]` ballot_box
-///   3. `[]` ncn
-///   4. `[signer]` tie_breaker_admin
+///   1. `[]` ncn
+///   2. `[]` vault_registry
+///   3. `[writable]` weight_table
 #[derive(Clone, Debug, Default)]
-pub struct AdminSetTieBreakerBuilder {
+pub struct SetEpochWeightsBuilder {
     epoch_state: Option<solana_program::pubkey::Pubkey>,
-    config: Option<solana_program::pubkey::Pubkey>,
-    ballot_box: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    tie_breaker_admin: Option<solana_program::pubkey::Pubkey>,
-    weather_status: Option<u8>,
+    vault_registry: Option<solana_program::pubkey::Pubkey>,
+    weight_table: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl AdminSetTieBreakerBuilder {
+impl SetEpochWeightsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -124,31 +112,18 @@ impl AdminSetTieBreakerBuilder {
         self
     }
     #[inline(always)]
-    pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.config = Some(config);
-        self
-    }
-    #[inline(always)]
-    pub fn ballot_box(&mut self, ballot_box: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.ballot_box = Some(ballot_box);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
         self.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn tie_breaker_admin(
-        &mut self,
-        tie_breaker_admin: solana_program::pubkey::Pubkey,
-    ) -> &mut Self {
-        self.tie_breaker_admin = Some(tie_breaker_admin);
+    pub fn vault_registry(&mut self, vault_registry: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.vault_registry = Some(vault_registry);
         self
     }
     #[inline(always)]
-    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
-        self.weather_status = Some(weather_status);
+    pub fn weight_table(&mut self, weight_table: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.weight_table = Some(weight_table);
         self
     }
     #[inline(always)]
@@ -176,20 +151,13 @@ impl AdminSetTieBreakerBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = AdminSetTieBreaker {
+        let accounts = SetEpochWeights {
             epoch_state: self.epoch_state.expect("epoch_state is not set"),
-            config: self.config.expect("config is not set"),
-            ballot_box: self.ballot_box.expect("ballot_box is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            tie_breaker_admin: self
-                .tie_breaker_admin
-                .expect("tie_breaker_admin is not set"),
+            vault_registry: self.vault_registry.expect("vault_registry is not set"),
+            weight_table: self.weight_table.expect("weight_table is not set"),
         };
-        let args = AdminSetTieBreakerInstructionArgs {
-            weather_status: self
-                .weather_status
-                .clone()
-                .expect("weather_status is not set"),
+        let args = SetEpochWeightsInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -197,50 +165,45 @@ impl AdminSetTieBreakerBuilder {
     }
 }
 
-/// `admin_set_tie_breaker` CPI accounts.
-pub struct AdminSetTieBreakerCpiAccounts<'a, 'b> {
+/// `set_epoch_weights` CPI accounts.
+pub struct SetEpochWeightsCpiAccounts<'a, 'b> {
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub config: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub weight_table: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `admin_set_tie_breaker` CPI instruction.
-pub struct AdminSetTieBreakerCpi<'a, 'b> {
+/// `set_epoch_weights` CPI instruction.
+pub struct SetEpochWeightsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub config: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub weight_table: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: AdminSetTieBreakerInstructionArgs,
+    pub __args: SetEpochWeightsInstructionArgs,
 }
 
-impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
+impl<'a, 'b> SetEpochWeightsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: AdminSetTieBreakerCpiAccounts<'a, 'b>,
-        args: AdminSetTieBreakerInstructionArgs,
+        accounts: SetEpochWeightsCpiAccounts<'a, 'b>,
+        args: SetEpochWeightsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
             epoch_state: accounts.epoch_state,
-            config: accounts.config,
-            ballot_box: accounts.ballot_box,
             ncn: accounts.ncn,
-            tie_breaker_admin: accounts.tie_breaker_admin,
+            vault_registry: accounts.vault_registry,
+            weight_table: accounts.weight_table,
             __args: args,
         }
     }
@@ -277,17 +240,9 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.epoch_state.key,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.config.key,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.ballot_box.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -295,8 +250,12 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.tie_breaker_admin.key,
-            true,
+            *self.vault_registry.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.weight_table.key,
+            false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -305,9 +264,7 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = AdminSetTieBreakerInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = SetEpochWeightsInstructionData::new().try_to_vec().unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -316,13 +273,12 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(4 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_state.clone());
-        account_infos.push(self.config.clone());
-        account_infos.push(self.ballot_box.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.tie_breaker_admin.clone());
+        account_infos.push(self.vault_registry.clone());
+        account_infos.push(self.weight_table.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -335,30 +291,27 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `AdminSetTieBreaker` via CPI.
+/// Instruction builder for `SetEpochWeights` via CPI.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
-///   1. `[]` config
-///   2. `[writable]` ballot_box
-///   3. `[]` ncn
-///   4. `[signer]` tie_breaker_admin
+///   1. `[]` ncn
+///   2. `[]` vault_registry
+///   3. `[writable]` weight_table
 #[derive(Clone, Debug)]
-pub struct AdminSetTieBreakerCpiBuilder<'a, 'b> {
-    instruction: Box<AdminSetTieBreakerCpiBuilderInstruction<'a, 'b>>,
+pub struct SetEpochWeightsCpiBuilder<'a, 'b> {
+    instruction: Box<SetEpochWeightsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
+impl<'a, 'b> SetEpochWeightsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(AdminSetTieBreakerCpiBuilderInstruction {
+        let instruction = Box::new(SetEpochWeightsCpiBuilderInstruction {
             __program: program,
             epoch_state: None,
-            config: None,
-            ballot_box: None,
             ncn: None,
-            tie_breaker_admin: None,
-            weather_status: None,
+            vault_registry: None,
+            weight_table: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -373,37 +326,24 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn config(
-        &mut self,
-        config: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.config = Some(config);
-        self
-    }
-    #[inline(always)]
-    pub fn ballot_box(
-        &mut self,
-        ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.ballot_box = Some(ballot_box);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn tie_breaker_admin(
+    pub fn vault_registry(
         &mut self,
-        tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+        vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.tie_breaker_admin = Some(tie_breaker_admin);
+        self.instruction.vault_registry = Some(vault_registry);
         self
     }
     #[inline(always)]
-    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
-        self.instruction.weather_status = Some(weather_status);
+    pub fn weight_table(
+        &mut self,
+        weight_table: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.weight_table = Some(weight_table);
         self
     }
     #[inline(always)]
@@ -452,15 +392,10 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = AdminSetTieBreakerInstructionArgs {
-            weather_status: self
-                .instruction
-                .weather_status
-                .clone()
-                .expect("weather_status is not set"),
+        let args = SetEpochWeightsInstructionArgs {
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = AdminSetTieBreakerCpi {
+        let instruction = SetEpochWeightsCpi {
             __program: self.instruction.__program,
 
             epoch_state: self
@@ -468,16 +403,17 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
                 .epoch_state
                 .expect("epoch_state is not set"),
 
-            config: self.instruction.config.expect("config is not set"),
-
-            ballot_box: self.instruction.ballot_box.expect("ballot_box is not set"),
-
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            tie_breaker_admin: self
+            vault_registry: self
                 .instruction
-                .tie_breaker_admin
-                .expect("tie_breaker_admin is not set"),
+                .vault_registry
+                .expect("vault_registry is not set"),
+
+            weight_table: self
+                .instruction
+                .weight_table
+                .expect("weight_table is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -488,14 +424,12 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct AdminSetTieBreakerCpiBuilderInstruction<'a, 'b> {
+struct SetEpochWeightsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ballot_box: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    tie_breaker_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weather_status: Option<u8>,
+    vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    weight_table: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

@@ -30,7 +30,8 @@ use jito_tip_router_client::{
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocVaultRegistryBuilder,
-        ReallocWeightTableBuilder, RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder,
+        ReallocWeightTableBuilder, RegisterVaultBuilder, SetEpochWeightsBuilder,
+        SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -623,6 +624,44 @@ pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()>
             format!("NCN: {:?}", ncn),
             format!("Epoch: {:?}", epoch),
             format!("Number of reallocations: {:?}", num_reallocs),
+        ],
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn set_epoch_weights(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let ncn = *handler.ncn()?;
+
+    let (weight_table, _, _) =
+        WeightTable::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+
+    let (epoch_state, _, _) =
+        EpochState::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+
+    let (vault_registry, _, _) =
+        VaultRegistry::find_program_address(&handler.tip_router_program_id, &ncn);
+
+    let set_epoch_weights_ix = SetEpochWeightsBuilder::new()
+        .ncn(ncn)
+        .weight_table(weight_table)
+        .epoch_state(epoch_state)
+        .vault_registry(vault_registry)
+        .epoch(epoch)
+        .instruction();
+
+    send_and_log_transaction(
+        handler,
+        &[set_epoch_weights_ix],
+        &[],
+        "Set Weight",
+        &[
+            format!("NCN: {:?}", ncn),
+            format!("Epoch: {:?}", epoch),
+            format!("Weight Table: {:?}", weight_table),
+            format!("Epoch State: {:?}", epoch_state),
+            format!("Vault Registry: {:?}", vault_registry),
         ],
     )
     .await?;

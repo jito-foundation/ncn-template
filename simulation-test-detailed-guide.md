@@ -1,13 +1,14 @@
 # Simulation Test Detailed Guide
 
 ## Table of Contents
+
 1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Test Components](#test-components)
-4. [Test Flow](#test-flow)
-5. [Detailed Function Explanations](#detailed-function-explanations)
-6. [Expected Outcomes](#expected-outcomes)
-7. [Error Cases](#error-cases)
+1. [Prerequisites](#prerequisites)
+1. [Test Components](#test-components)
+1. [Test Flow](#test-flow)
+1. [Detailed Function Explanations](#detailed-function-explanations)
+1. [Expected Outcomes](#expected-outcomes)
+1. [Error Cases](#error-cases)
 
 ## Overview
 
@@ -16,9 +17,10 @@ The simulation test is a comprehensive test case that simulates a complete tip r
 ## Prerequisites
 
 Before running the simulation test, ensure you have:
+
 1. Set up the test ledger using `./tip-router-operator-cli/scripts/setup-test-ledger.sh`
-2. Built the tip router program using `cargo build-sbf`
-3. Set the correct Solana version (1.18.26 recommended)
+1. Built the tip router program using `cargo build-sbf`
+1. Set the correct Solana version (1.18.26 recommended)
 
 ## Test Components
 
@@ -33,8 +35,8 @@ let mut fixture = TestBuilder::new().await;
 This function initializes the test environment by:
 
 1. Determining whether to run using BPF (Solana's Berkeley Packet Filter)
-2. Setting up the program test environment with the TipRouter, Vault, and Restaking programs
-3. Starting the test context that simulates the Solana runtime
+1. Setting up the program test environment with the TipRouter, Vault, and Restaking programs
+1. Starting the test context that simulates the Solana runtime
 
 After that, the following code is executed:
 
@@ -62,10 +64,10 @@ let delegations = [
 ```
 
 This setup:
-2. Initializes clients for each program
-3. Defines 13 operators
-4. Sets up 4 different token types with their weights
-5. Defines various delegation amounts for testing
+
+1. Initializes clients for each program
+1. Defines 13 operators
+1. Sets up 4 different token types with their weights 1. Defines various delegation amounts for testing
 
 ## Test Flow
 
@@ -77,6 +79,7 @@ let ncn = test_ncn.ncn_root.ncn_pubkey;
 ```
 
 This code:
+
 - Creates a new NCN (Network Control Node)
 - Stores the NCN public key for later use
 - For a detailed explanation of this process, refer to the "Detailed Function Explanations" section
@@ -84,9 +87,12 @@ This code:
 ### Operator and Vault Setup
 
 Before starting the voting process, the following steps are required:
+
 1. Register operators and vaults
-2. Establish handshakes between the NCN and operators
-3. Establish handshakes between vaults and their delegated operators
+1. Establish handshakes between the NCN and operators
+1. Establish handshakes between vaults and their delegated operators
+
+Here is the code:
 
 ```rust
 // Add operators
@@ -100,6 +106,7 @@ fixture.add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone(
 ```
 
 This code:
+
 - Adds 13 operators with a 100 basis points fee using the Jito restaking program
 - Creates vaults for each token type:
   - 3 TKN1 vaults
@@ -131,13 +138,14 @@ for (index, operator_root) in test_ncn.operators.iter().take(OPERATOR_COUNT - 1)
 ```
 
 This code:
+
 - Assigns delegations to operators for each vault
 - Uses different delegation amounts from the predefined list
 - Skips the last operator (zero delegation operator) to test that operators without delegation cannot vote
 
 ### ST Mints and Vaults Registration
 
-This step tracks each mint supported by the NCN and its weight. This information is crucial for taking system snapshots and could be used with price oracles (like Switchboard) to assign weights based on token prices.
+This step tracks each mint supported by the NCN and its weight. This information is crucial for taking system snapshots, specially if the token price is used as the weight, in this case an oracle (like Switchboard) could be used to fetch token prices before each vote
 
 ```rust
 let restaking_config_address = Config::find_program_address(&jito_restaking_program::id()).0;
@@ -166,7 +174,10 @@ for vault in test_ncn.vaults.iter() {
 ```
 
 This code:
+
 - Warps time forward by 2 epoch lengths
+  - the reason for that is that you need to wait for a full epoch to pass before you get the delegation to be active, so if you are in a middle of an epoch, you will need to wait for this epoch to pass, and for the next epoch to pass as well before getting the delegation stake active.
+    the same goes for when a vault removes or edit the delegation for any of the supported operators
 - Registers each ST mint with its corresponding weight
 - Registers each vault with the NCN
 
@@ -174,7 +185,8 @@ This code:
 
 #### Epoch State
 
-The epoch state account tracks:
+The epoch state account will be the refrence to tell the step of the voting cycle at any moment in time, also it will work as a validation layer so no step could start before its time comes, so it will tracks:
+
 - Current stage of the voting cycle
 - Progress of weight setting
 - Epoch snapshot status
@@ -192,10 +204,11 @@ fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
 
 #### Admin Set Weights
 
-This step sets the weights for the current epoch, which is crucial when using price oracles.
+This step sets the weights for the current epoch, it will take the weights in the vault registry and set then in the weight table.
+Notice that this has to be done before every single vote, to lock the weights as they might change later, also this would be helpful when setting the weight of the token as the its price, which is what most of NCN will do in a real life example, and to do so, you will have to use an oracle like switchboard to provide the price
 
 ```rust
-fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
+fixture.add_weights_for_test_ncn(&test_ncn).await?;
 ```
 
 #### Epoch Snapshot Taking
@@ -206,7 +219,6 @@ This step determines the voting power for each operator and will be used to dete
 fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
 fixture.add_operator_snapshots_to_test_ncn(&test_ncn).await?;
 fixture.add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn).await?;
-fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 ```
 
 ### Voting Process
@@ -253,6 +265,7 @@ for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) 
 ```
 
 This code:
+
 - Has the first operator (zero-delegation) vote "Rainy"
 - Has all other operators vote "Sunny"
 - Tests consensus reaching with majority voting
@@ -270,6 +283,7 @@ assert_eq!(
 ```
 
 This code verifies that:
+
 - A winning ballot exists
 - Consensus has been reached
 - The winning weather status is "Sunny"
@@ -285,22 +299,23 @@ This code closes all epoch-related accounts and cleans up test resources.
 ## Key Test Aspects
 
 1. **Multiple Token Types**: Tests the system with 4 different token types
-2. **Varying Delegations**: Tests different delegation amounts
-3. **Consensus Mechanism**: Verifies the voting and consensus reaching process
-4. **Zero Delegation Handling**: Tests behavior with a zero-delegation operator
-5. **Majority Voting**: Ensures the system correctly identifies the majority vote
-6. **Account Management**: Tests proper creation and cleanup of all necessary accounts
+1. **Varying Delegations**: Tests different delegation amounts
+1. **Consensus Mechanism**: Verifies the voting and consensus reaching process
+1. **Zero Delegation Handling**: Tests behavior with a zero-delegation operator
+1. **Majority Voting**: Ensures the system correctly identifies the majority vote
+1. **Account Management**: Tests proper creation and cleanup of all necessary accounts
 
 ## Expected Outcomes
 
 1. All operators should be able to cast votes
-2. The system should reach consensus despite one dissenting vote
-3. The winning weather status should be "Sunny"
-4. All accounts should be properly created and cleaned up
+1. The system should reach consensus despite one dissenting vote
+1. The winning weather status should be "Sunny"
+1. All accounts should be properly created and cleaned up
 
 ## Error Cases
 
 The test implicitly verifies handling of:
+
 - Multiple token types
 - Various delegation amounts
 - Zero delegation operators
@@ -317,9 +332,12 @@ pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
     let mut vault_program_client = self.vault_program_client();
     let mut tip_router_client = self.tip_router_client();
 
+    // TODO: do you need to call these functions in the real world? since the programs are already deployed and configured?
     vault_program_client.do_initialize_config().await?;
+    // calls jito restaking-program
     restaking_program_client.do_initialize_config().await?;
 
+    // calls jito restaking-program
     let ncn_root = restaking_program_client
         .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
         .await?;
@@ -335,11 +353,12 @@ pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
 ```
 
 This function:
+
 1. Gets clients for the restaking, vault, and tip router programs
-2. Initializes configurations for both the vault and restaking programs
-3. Creates a new NCN using the restaking program
-4. Sets up the tip router with the newly created NCN
-5. Returns a TestNcn struct containing the NCN root and empty lists for operators and vaults
+1. Initializes configurations for both the vault and restaking programs
+1. Creates a new NCN using the restaking program
+1. Sets up the tip router with the newly created NCN
+1. Returns a TestNcn struct containing the NCN root and empty lists for operators and vaults
 
 ### `setup_tip_router()`
 
@@ -356,9 +375,10 @@ pub async fn setup_tip_router(&mut self, ncn_root: &NcnRoot) -> TestResult<()> {
 ```
 
 This function:
+
 1. Initializes the configuration for the tip router
-2. Sets up the vault registry
-3. Both operations use the NCN's public key and admin keypair
+1. Sets up the vault registry
+1. Both operations use the NCN's public key and admin keypair
 
 ### `do_initialize_config()`
 
@@ -383,10 +403,11 @@ pub async fn do_initialize_config(
 ```
 
 This function:
+
 1. Airdrops 1 SOL to the payer account
-2. Finds and airdrops 100 SOL to the account payer PDA
-3. Gets the NCN admin's public key
-4. Calls initialize_config with specific parameters:
+1. Finds and airdrops 100 SOL to the account payer PDA
+1. Gets the NCN admin's public key
+1. Calls initialize_config with specific parameters:
    - 3 epochs before stall
    - 10 epochs after consensus before close
    - 10000 valid slots after consensus
@@ -408,6 +429,7 @@ pub async fn initialize_config(
     let (account_payer, _, _) =
         AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
 
+    // calls the NCN program
     let ix = InitializeConfigBuilder::new()
         .config(config)
         .ncn(ncn)
@@ -431,13 +453,15 @@ pub async fn initialize_config(
 ```
 
 This function:
+
 1. Finds the NCN config PDA address
-2. Finds the account payer PDA address
-3. Builds an initialization instruction with all necessary parameters
-4. Gets the latest blockhash
-5. Processes the transaction with the NCN admin as the signer
+1. Finds the account payer PDA address
+1. Builds an initialization instruction with all necessary parameters
+1. Gets the latest blockhash
+1. Processes the transaction with the NCN admin as the signer
 
 The configuration parameters control important timing aspects:
+
 - `epochs_before_stall`: Number of epochs before the system is considered stalled
 - `epochs_after_consensus_before_close`: Number of epochs to wait after reaching consensus before closing
 - `valid_slots_after_consensus`: Number of slots that are considered valid after reaching consensus
@@ -481,10 +505,11 @@ pub async fn add_operators_to_test_ncn(
 ```
 
 This function:
+
 1. Creates each operator with the specified fee in basis points
-2. Initializes the relationship between the NCN and each operator
-3. Warms up the relationship (activating it) in both directions
-4. Adds each operator to the TestNcn struct
+1. Initializes the relationship between the NCN and each operator
+1. Warms up the relationship (activating it) in both directions
+1. Adds each operator to the TestNcn struct
 
 ### `add_vaults_to_test_ncn()`
 
@@ -501,8 +526,11 @@ pub async fn add_vaults_to_test_ncn(
     const DEPOSIT_FEE_BPS: u16 = 0;
     const WITHDRAWAL_FEE_BPS: u16 = 0;
     const REWARD_FEE_BPS: u16 = 0;
+
+    // TODO: change this number to be general tokens
     let mint_amount: u64 = sol_to_lamports(100_000_000.0);
 
+    // TODO: simplify this by always providing a token_mint keypair
     let should_generate = token_mint.is_none();
     let pass_through = if token_mint.is_some() {
         token_mint.unwrap()
@@ -539,6 +567,7 @@ pub async fn add_vaults_to_test_ncn(
         vault_program_client
             .do_initialize_vault_ncn_ticket(&vault_root, &test_ncn.ncn_root.ncn_pubkey)
             .await?;
+         // TODO: why are we not warming-up vault ncn ticket?
         self.warp_slot_incremental(1).await.unwrap();
 
         test_ncn.vaults.push(vault_root);
@@ -549,11 +578,12 @@ pub async fn add_vaults_to_test_ncn(
 ```
 
 This function:
+
 1. Sets up vault parameters with zero fees
-2. Either uses the provided token mint or generates a new one
-3. Initializes each vault with the specified parameters
-4. Creates the connection between the vault and the NCN
-5. Adds each vault to the TestNcn struct
+1. Either uses the provided token mint or generates a new one
+1. Initializes each vault with the specified parameters
+1. Creates the connection between the vault and the NCN
+1. Adds each vault to the TestNcn struct
 
 ### `do_admin_register_st_mint()`
 
@@ -578,10 +608,11 @@ pub async fn do_admin_register_st_mint(
 ```
 
 This function:
+
 1. Finds the vault registry address for the NCN
-2. Finds the NCN config address
-3. Uses the payer as the admin
-4. Calls the underlying admin_register_st_mint function with all parameters
+1. Finds the NCN config address
+1. Uses the payer as the admin
+1. Calls the underlying admin_register_st_mint function with all parameters
 
 ### `add_epoch_state_for_test_ncn()`
 
@@ -603,14 +634,15 @@ pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> Test
 ```
 
 This function:
-1. Warps time forward 1000 slots
-2. Gets the current epoch
-3. Initializes an epoch state for the NCN at the current epoch
 
-### `add_admin_weights_for_test_ncn()`
+1. Warps time forward 1000 slots
+1. Gets the current epoch
+1. Initializes an epoch state for the NCN at the current epoch
+
+### `add_weights_for_test_ncn()`
 
 ```rust
-pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
+pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
     let mut tip_router_client = self.tip_router_client();
 
     let clock = self.clock().await;
@@ -619,33 +651,19 @@ pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> Te
         .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
 
-    let ncn = test_ncn.ncn_root.ncn_pubkey;
-    let vault_registry = tip_router_client.get_vault_registry(ncn).await?;
-
-    for entry in vault_registry.st_mint_list {
-        if entry.is_empty() {
-            continue;
-        }
-
-        let st_mint = entry.st_mint();
-        tip_router_client
-            .do_admin_set_weight(
-                test_ncn.ncn_root.ncn_pubkey,
-                epoch,
-                *st_mint,
-                entry.weight(),
-            )
-            .await?;
-    }
+    tip_router_client
+        .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
+        .await?;
 
     Ok(())
 }
 ```
 
 This function:
+
 1. Initializes a weight table for the current epoch
-2. Gets the vault registry to find all registered ST mints
-3. Sets the admin-defined weight for each ST mint
+1. Gets the vault registry to find all registered ST mints
+1. Sets the admin-defined weight for each ST mint
 
 ### `add_ballot_box_to_test_ncn()`
 
@@ -666,8 +684,9 @@ pub async fn add_ballot_box_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestRe
 ```
 
 This function:
+
 1. Gets the current epoch
-2. Initializes a ballot box for the NCN at the current epoch
+1. Initializes a ballot box for the NCN at the current epoch
 
 ### `do_cast_vote()`
 
@@ -717,9 +736,10 @@ pub async fn do_cast_vote(
 ```
 
 This function:
+
 1. Finds addresses for all required accounts
-2. Builds a cast vote instruction with the operator and weather status
-3. Processes the transaction with the operator admin as a signer
+1. Builds a cast vote instruction with the operator and weather status
+1. Processes the transaction with the operator admin as a signer
 
 ### `WeatherStatus` Enum
 
@@ -738,6 +758,7 @@ pub enum WeatherStatus {
 ```
 
 This enum represents different weather conditions that operators vote on:
+
 - `Sunny`: The default, represented by 0
 - `Cloudy`: Represented by 1
 - `Rainy`: Represented by 2
@@ -774,6 +795,7 @@ pub struct BallotBox {
 ```
 
 Key methods include:
+
 - `cast_vote`: Records a vote from an operator
 - `tally_votes`: Calculates the winning ballot based on stake weight
 - `is_consensus_reached`: Determines if consensus (66%) has been reached
