@@ -10,7 +10,7 @@ mod tests {
 
         let test_ncn = fixture.create_initial_test_ncn(1, 1, None).await?;
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
+        fixture.add_weights_for_test_ncn(&test_ncn).await?;
 
         let epoch = fixture.clock().await.epoch;
 

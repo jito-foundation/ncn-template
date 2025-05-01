@@ -586,7 +586,7 @@ impl TestBuilder {
     // Intermission 2 - all snapshots are taken
     pub async fn snapshot_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         self.add_epoch_state_for_test_ncn(test_ncn).await?;
-        self.add_admin_weights_for_test_ncn(test_ncn).await?;
+        self.add_weights_for_test_ncn(test_ncn).await?;
         self.add_epoch_snapshot_to_test_ncn(test_ncn).await?;
         self.add_operator_snapshots_to_test_ncn(test_ncn).await?;
         self.add_vault_operator_delegation_snapshots_to_test_ncn(test_ncn)

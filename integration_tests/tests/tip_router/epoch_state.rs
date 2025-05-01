@@ -80,7 +80,7 @@ mod tests {
         }
 
         {
-            fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
+            fixture.add_weights_for_test_ncn(&test_ncn).await?;
             let epoch_state = tip_router_client.get_epoch_state(ncn, epoch).await?;
             assert!(epoch_state.set_weight_progress().is_complete());
             assert_eq!(
@@ -112,7 +112,7 @@ mod tests {
         let epoch = fixture.clock().await.epoch;
 
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
+        fixture.add_weights_for_test_ncn(&test_ncn).await?;
 
         {
             fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
@@ -154,7 +154,7 @@ mod tests {
         let epoch = fixture.clock().await.epoch;
 
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture.add_admin_weights_for_test_ncn(&test_ncn).await?;
+        fixture.add_weights_for_test_ncn(&test_ncn).await?;
         fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
         fixture
             .add_operator_snapshots_to_test_ncn(&test_ncn)
