@@ -4,13 +4,18 @@ use jito_restaking_core::{ncn::Ncn, operator::Operator};
 use jito_tip_router_core::{
     ballot_box::{Ballot, BallotBox},
     config::Config as NcnConfig,
+    consensus_result::ConsensusResult,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     error::TipRouterError,
 };
 use solana_program::{
-    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
-    program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
+    account_info::{next_account_info, AccountInfo},
+    clock::Clock,
+    entrypoint::ProgramResult,
+    msg,
+    pubkey::Pubkey,
+    sysvar::Sysvar,
 };
 
 pub fn process_cast_vote(
@@ -19,11 +24,16 @@ pub fn process_cast_vote(
     weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
-    let [epoch_state, ncn_config, ballot_box, ncn, epoch_snapshot, operator_snapshot, operator, operator_admin] =
-        accounts
-    else {
-        return Err(ProgramError::NotEnoughAccountKeys);
-    };
+    let account_info_iter = &mut accounts.iter();
+    let epoch_state = next_account_info(account_info_iter)?;
+    let ncn_config = next_account_info(account_info_iter)?;
+    let ballot_box = next_account_info(account_info_iter)?;
+    let ncn = next_account_info(account_info_iter)?;
+    let epoch_snapshot = next_account_info(account_info_iter)?;
+    let operator_snapshot = next_account_info(account_info_iter)?;
+    let operator = next_account_info(account_info_iter)?;
+    let operator_admin = next_account_info(account_info_iter)?;
+    let consensus_result = next_account_info(account_info_iter)?;
 
     // Operator is casting the vote, needs to be signer
     load_signer(operator_admin, false)?;
@@ -43,6 +53,8 @@ pub fn process_cast_vote(
         epoch,
         false,
     )?;
+    ConsensusResult::load(program_id, consensus_result, ncn.key, epoch, true)?;
+
     let operator_data = operator.data.borrow();
     let operator_account = Operator::try_from_slice_unchecked(&operator_data)?;
 
@@ -97,12 +109,27 @@ pub fn process_cast_vote(
 
     ballot_box.tally_votes(total_stake_weights.stake_weight(), slot)?;
 
+    // If consensus is reached, update the consensus result account
     if ballot_box.is_consensus_reached() {
+        let winning_ballot_tally = ballot_box.get_winning_ballot_tally()?;
         msg!(
             "Consensus reached for epoch {} with ballot {:?}",
             epoch,
-            ballot_box.get_winning_ballot_tally()?
+            winning_ballot_tally
         );
+
+        // Update the consensus result account
+        let mut consensus_result_data = consensus_result.try_borrow_mut_data()?;
+        let consensus_result_account =
+            ConsensusResult::try_from_slice_unchecked_mut(&mut consensus_result_data)?;
+
+        consensus_result_account.record_consensus(
+            winning_ballot_tally.ballot().weather_status(),
+            winning_ballot_tally.stake_weights().stake_weight() as u64,
+            total_stake_weights.stake_weight() as u64,
+            slot,
+            operator.key,
+        )?;
     }
 
     // Update Epoch State

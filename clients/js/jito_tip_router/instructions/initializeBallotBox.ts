@@ -46,6 +46,7 @@ export type InitializeBallotBoxInstruction<
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
+  TAccountConsensusResult extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -70,6 +71,9 @@ export type InitializeBallotBoxInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountConsensusResult extends string
+        ? WritableAccount<TAccountConsensusResult>
+        : TAccountConsensusResult,
       ...TRemainingAccounts,
     ]
   >;
@@ -119,6 +123,7 @@ export type InitializeBallotBoxInput<
   TAccountNcn extends string = string,
   TAccountAccountPayer extends string = string,
   TAccountSystemProgram extends string = string,
+  TAccountConsensusResult extends string = string,
 > = {
   epochMarker: Address<TAccountEpochMarker>;
   epochState: Address<TAccountEpochState>;
@@ -127,6 +132,7 @@ export type InitializeBallotBoxInput<
   ncn: Address<TAccountNcn>;
   accountPayer: Address<TAccountAccountPayer>;
   systemProgram?: Address<TAccountSystemProgram>;
+  consensusResult: Address<TAccountConsensusResult>;
   epoch: InitializeBallotBoxInstructionDataArgs['epoch'];
 };
 
@@ -138,6 +144,7 @@ export function getInitializeBallotBoxInstruction<
   TAccountNcn extends string,
   TAccountAccountPayer extends string,
   TAccountSystemProgram extends string,
+  TAccountConsensusResult extends string,
   TProgramAddress extends Address = typeof JITO_TIP_ROUTER_PROGRAM_ADDRESS,
 >(
   input: InitializeBallotBoxInput<
@@ -147,7 +154,8 @@ export function getInitializeBallotBoxInstruction<
     TAccountBallotBox,
     TAccountNcn,
     TAccountAccountPayer,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountConsensusResult
   >,
   config?: { programAddress?: TProgramAddress }
 ): InitializeBallotBoxInstruction<
@@ -158,7 +166,8 @@ export function getInitializeBallotBoxInstruction<
   TAccountBallotBox,
   TAccountNcn,
   TAccountAccountPayer,
-  TAccountSystemProgram
+  TAccountSystemProgram,
+  TAccountConsensusResult
 > {
   // Program address.
   const programAddress =
@@ -173,6 +182,7 @@ export function getInitializeBallotBoxInstruction<
     ncn: { value: input.ncn ?? null, isWritable: false },
     accountPayer: { value: input.accountPayer ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    consensusResult: { value: input.consensusResult ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -198,6 +208,7 @@ export function getInitializeBallotBoxInstruction<
       getAccountMeta(accounts.ncn),
       getAccountMeta(accounts.accountPayer),
       getAccountMeta(accounts.systemProgram),
+      getAccountMeta(accounts.consensusResult),
     ],
     programAddress,
     data: getInitializeBallotBoxInstructionDataEncoder().encode(
@@ -211,7 +222,8 @@ export function getInitializeBallotBoxInstruction<
     TAccountBallotBox,
     TAccountNcn,
     TAccountAccountPayer,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountConsensusResult
   >;
 
   return instruction;
@@ -230,6 +242,7 @@ export type ParsedInitializeBallotBoxInstruction<
     ncn: TAccountMetas[4];
     accountPayer: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    consensusResult: TAccountMetas[7];
   };
   data: InitializeBallotBoxInstructionData;
 };
@@ -242,7 +255,7 @@ export function parseInitializeBallotBoxInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeBallotBoxInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 8) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -262,6 +275,7 @@ export function parseInitializeBallotBoxInstruction<
       ncn: getNextAccount(),
       accountPayer: getNextAccount(),
       systemProgram: getNextAccount(),
+      consensusResult: getNextAccount(),
     },
     data: getInitializeBallotBoxInstructionDataDecoder().decode(
       instruction.data

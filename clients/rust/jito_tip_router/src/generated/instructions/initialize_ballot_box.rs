@@ -23,6 +23,8 @@ pub struct InitializeBallotBox {
     pub account_payer: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
+
+    pub consensus_result: solana_program::pubkey::Pubkey,
 }
 
 impl InitializeBallotBox {
@@ -38,7 +40,7 @@ impl InitializeBallotBox {
         args: InitializeBallotBoxInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.epoch_marker,
             false,
@@ -64,6 +66,10 @@ impl InitializeBallotBox {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.consensus_result,
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
@@ -115,6 +121,7 @@ pub struct InitializeBallotBoxInstructionArgs {
 ///   4. `[]` ncn
 ///   5. `[writable]` account_payer
 ///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   7. `[writable]` consensus_result
 #[derive(Clone, Debug, Default)]
 pub struct InitializeBallotBoxBuilder {
     epoch_marker: Option<solana_program::pubkey::Pubkey>,
@@ -124,6 +131,7 @@ pub struct InitializeBallotBoxBuilder {
     ncn: Option<solana_program::pubkey::Pubkey>,
     account_payer: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
+    consensus_result: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -169,6 +177,14 @@ impl InitializeBallotBoxBuilder {
         self
     }
     #[inline(always)]
+    pub fn consensus_result(
+        &mut self,
+        consensus_result: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.consensus_result = Some(consensus_result);
+        self
+    }
+    #[inline(always)]
     pub fn epoch(&mut self, epoch: u64) -> &mut Self {
         self.epoch = Some(epoch);
         self
@@ -203,6 +219,7 @@ impl InitializeBallotBoxBuilder {
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
+            consensus_result: self.consensus_result.expect("consensus_result is not set"),
         };
         let args = InitializeBallotBoxInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
@@ -227,6 +244,8 @@ pub struct InitializeBallotBoxCpiAccounts<'a, 'b> {
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 /// `initialize_ballot_box` CPI instruction.
@@ -247,6 +266,8 @@ pub struct InitializeBallotBoxCpi<'a, 'b> {
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
     pub __args: InitializeBallotBoxInstructionArgs,
 }
@@ -266,6 +287,7 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
             ncn: accounts.ncn,
             account_payer: accounts.account_payer,
             system_program: accounts.system_program,
+            consensus_result: accounts.consensus_result,
             __args: args,
         }
     }
@@ -302,7 +324,7 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.epoch_marker.key,
             false,
@@ -331,6 +353,10 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
             *self.system_program.key,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.consensus_result.key,
+            false,
+        ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -349,7 +375,7 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(8 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_marker.clone());
         account_infos.push(self.epoch_state.clone());
@@ -358,6 +384,7 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
         account_infos.push(self.ncn.clone());
         account_infos.push(self.account_payer.clone());
         account_infos.push(self.system_program.clone());
+        account_infos.push(self.consensus_result.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -381,6 +408,7 @@ impl<'a, 'b> InitializeBallotBoxCpi<'a, 'b> {
 ///   4. `[]` ncn
 ///   5. `[writable]` account_payer
 ///   6. `[]` system_program
+///   7. `[writable]` consensus_result
 #[derive(Clone, Debug)]
 pub struct InitializeBallotBoxCpiBuilder<'a, 'b> {
     instruction: Box<InitializeBallotBoxCpiBuilderInstruction<'a, 'b>>,
@@ -397,6 +425,7 @@ impl<'a, 'b> InitializeBallotBoxCpiBuilder<'a, 'b> {
             ncn: None,
             account_payer: None,
             system_program: None,
+            consensus_result: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -453,6 +482,14 @@ impl<'a, 'b> InitializeBallotBoxCpiBuilder<'a, 'b> {
         system_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.system_program = Some(system_program);
+        self
+    }
+    #[inline(always)]
+    pub fn consensus_result(
+        &mut self,
+        consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.consensus_result = Some(consensus_result);
         self
     }
     #[inline(always)]
@@ -532,6 +569,11 @@ impl<'a, 'b> InitializeBallotBoxCpiBuilder<'a, 'b> {
                 .instruction
                 .system_program
                 .expect("system_program is not set"),
+
+            consensus_result: self
+                .instruction
+                .consensus_result
+                .expect("consensus_result is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -551,6 +593,7 @@ struct InitializeBallotBoxCpiBuilderInstruction<'a, 'b> {
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     account_payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    consensus_result: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

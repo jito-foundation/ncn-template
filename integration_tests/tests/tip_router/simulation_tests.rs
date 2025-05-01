@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::{
-        ballot_box::WeatherStatus,
-        constants::{WEIGHT, WEIGHT_PRECISION},
-    };
-    use solana_sdk::{native_token::sol_to_lamports, signature::Keypair, signer::Signer};
+    use jito_tip_router_core::{ballot_box::WeatherStatus, constants::WEIGHT};
+    use solana_sdk::{msg, native_token::sol_to_lamports, signature::Keypair, signer::Signer};
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
@@ -20,24 +17,23 @@ mod tests {
         const OPERATOR_COUNT: usize = 13;
 
         let mints = vec![
-            (Keypair::new(), WEIGHT),           // JitoSOL
-            (Keypair::new(), WEIGHT),           // JTO
-            (Keypair::new(), WEIGHT),           // BnSOL
-            (Keypair::new(), WEIGHT_PRECISION), // nSol
+            (Keypair::new(), WEIGHT),     // JitoSOL
+            (Keypair::new(), WEIGHT),     // JTO
+            (Keypair::new(), WEIGHT),     // BnSOL
+            (Keypair::new(), WEIGHT * 2), // nSol
         ];
 
         let delegations = [
-            1,
+            1, // minimum delegation
+            sol_to_lamports(10.0),
+            sol_to_lamports(100.0),
             sol_to_lamports(1000.0),
             sol_to_lamports(10000.0),
-            sol_to_lamports(100000.0),
-            sol_to_lamports(1000000.0),
-            sol_to_lamports(10000000.0),
         ];
 
         // Setup NCN
         let mut test_ncn = fixture.create_test_ncn().await?;
-        let ncn = test_ncn.ncn_root.ncn_pubkey;
+        let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 
         // Add operators and vaults
         {
@@ -104,7 +100,7 @@ mod tests {
 
             for (mint, weight) in mints.iter() {
                 tip_router_client
-                    .do_admin_register_st_mint(ncn, mint.pubkey(), *weight)
+                    .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
                     .await?;
             }
 
@@ -112,12 +108,12 @@ mod tests {
                 let vault = vault.vault_pubkey;
                 let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
                     &jito_restaking_program::id(),
-                    &ncn,
+                    &ncn_pubkey,
                     &vault,
                 );
 
                 tip_router_client
-                    .do_register_vault(ncn, vault, ncn_vault_ticket)
+                    .do_register_vault(ncn_pubkey, vault, ncn_vault_ticket)
                     .await?;
             }
         }
@@ -133,7 +129,10 @@ mod tests {
         fixture
             .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
             .await?;
+
         fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
+
+        let winning_weather_status = WeatherStatus::Sunny as u8;
 
         // Cast votes
         {
@@ -150,7 +149,7 @@ mod tests {
 
                 tip_router_client
                     .do_cast_vote(
-                        ncn,
+                        ncn_pubkey,
                         zero_delegation_operator.operator_pubkey,
                         &zero_delegation_operator.operator_admin,
                         weather_status,
@@ -159,31 +158,30 @@ mod tests {
                     .await?;
             }
 
-            let weather_status = WeatherStatus::Sunny as u8;
             tip_router_client
                 .do_cast_vote(
-                    ncn,
+                    ncn_pubkey,
                     first_operator.operator_pubkey,
                     &first_operator.operator_admin,
-                    weather_status,
+                    WeatherStatus::Cloudy as u8,
                     epoch,
                 )
                 .await?;
             tip_router_client
                 .do_cast_vote(
-                    ncn,
+                    ncn_pubkey,
                     second_operator.operator_pubkey,
                     &second_operator.operator_admin,
-                    weather_status,
+                    winning_weather_status,
                     epoch,
                 )
                 .await?;
             tip_router_client
                 .do_cast_vote(
-                    ncn,
+                    ncn_pubkey,
                     third_operator.operator_pubkey,
                     &third_operator.operator_admin,
-                    weather_status,
+                    winning_weather_status,
                     epoch,
                 )
                 .await?;
@@ -193,25 +191,70 @@ mod tests {
 
                 tip_router_client
                     .do_cast_vote(
-                        ncn,
+                        ncn_pubkey,
                         operator,
                         &operator_root.operator_admin,
-                        weather_status,
+                        winning_weather_status,
                         epoch,
                     )
                     .await?;
             }
 
-            let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
+            let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
             assert_eq!(
                 ballot_box.get_winning_ballot().unwrap().weather_status(),
-                weather_status
+                winning_weather_status
             );
         }
 
+        // Fetch and verify the consensus_result account
+        {
+            let epoch = fixture.clock().await.epoch;
+            let consensus_result = tip_router_client
+                .get_consensus_result(ncn_pubkey, epoch)
+                .await?;
+
+            // Verify consensus_result account exists and has correct values
+            assert!(consensus_result.is_consensus_reached());
+            assert_eq!(consensus_result.epoch(), epoch);
+            assert_eq!(consensus_result.weather_status(), winning_weather_status);
+
+            // Get ballot box to compare values
+            let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
+            msg!("Ballot Box: {}", ballot_box);
+            msg!("consensus_result: {}", consensus_result);
+            let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
+
+            // Verify vote weights match
+            assert_eq!(
+                consensus_result.vote_weight(),
+                winning_ballot_tally.stake_weights().stake_weight() as u64
+            );
+
+            println!(
+                "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}, Recorder: {}",
+                consensus_result.weather_status(),
+                consensus_result.vote_weight(),
+                consensus_result.total_vote_weight(),
+                consensus_result.consensus_recorder()
+            );
+        }
+
+        let epoch_before_closing_account = fixture.clock().await.epoch;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
+
+        // Fetch and verify that consensus_result account is not closed
+        {
+            let consensus_result = tip_router_client
+                .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
+                .await?;
+
+            // Verify consensus_result account exists and has correct values
+            assert!(consensus_result.is_consensus_reached());
+            assert_eq!(consensus_result.epoch(), epoch_before_closing_account);
+        }
 
         Ok(())
     }

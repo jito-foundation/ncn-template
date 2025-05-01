@@ -8,6 +8,7 @@
 
 export * from './ballotBox';
 export * from './config';
+export * from './consensusResult';
 export * from './epochMarker';
 export * from './epochSnapshot';
 export * from './epochState';

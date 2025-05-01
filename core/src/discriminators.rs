@@ -11,6 +11,7 @@ pub enum Discriminators {
 
     // Voting
     BallotBox = 0x20,
+    ConsensusResult = 0x21,
 
     // Distribution
     BaseRewardRouter = 0x40,

@@ -1,6 +1,7 @@
 pub mod account_payer;
 pub mod ballot_box;
 pub mod config;
+pub mod consensus_result;
 pub mod constants;
 pub mod discriminators;
 pub mod epoch_marker;

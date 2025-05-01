@@ -25,6 +25,8 @@ pub struct CastVote {
     pub operator: solana_program::pubkey::Pubkey,
 
     pub operator_voter: solana_program::pubkey::Pubkey,
+
+    pub consensus_result: solana_program::pubkey::Pubkey,
 }
 
 impl CastVote {
@@ -40,7 +42,7 @@ impl CastVote {
         args: CastVoteInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.epoch_state,
             false,
@@ -71,6 +73,10 @@ impl CastVote {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.operator_voter,
             true,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.consensus_result,
+            false,
         ));
         accounts.extend_from_slice(remaining_accounts);
         let mut data = CastVoteInstructionData::new().try_to_vec().unwrap();
@@ -121,6 +127,7 @@ pub struct CastVoteInstructionArgs {
 ///   5. `[]` operator_snapshot
 ///   6. `[]` operator
 ///   7. `[signer]` operator_voter
+///   8. `[writable]` consensus_result
 #[derive(Clone, Debug, Default)]
 pub struct CastVoteBuilder {
     epoch_state: Option<solana_program::pubkey::Pubkey>,
@@ -131,6 +138,7 @@ pub struct CastVoteBuilder {
     operator_snapshot: Option<solana_program::pubkey::Pubkey>,
     operator: Option<solana_program::pubkey::Pubkey>,
     operator_voter: Option<solana_program::pubkey::Pubkey>,
+    consensus_result: Option<solana_program::pubkey::Pubkey>,
     weather_status: Option<u8>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
@@ -184,6 +192,14 @@ impl CastVoteBuilder {
         self
     }
     #[inline(always)]
+    pub fn consensus_result(
+        &mut self,
+        consensus_result: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.consensus_result = Some(consensus_result);
+        self
+    }
+    #[inline(always)]
     pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
         self.weather_status = Some(weather_status);
         self
@@ -224,6 +240,7 @@ impl CastVoteBuilder {
                 .expect("operator_snapshot is not set"),
             operator: self.operator.expect("operator is not set"),
             operator_voter: self.operator_voter.expect("operator_voter is not set"),
+            consensus_result: self.consensus_result.expect("consensus_result is not set"),
         };
         let args = CastVoteInstructionArgs {
             weather_status: self
@@ -254,6 +271,8 @@ pub struct CastVoteCpiAccounts<'a, 'b> {
     pub operator: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub operator_voter: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 /// `cast_vote` CPI instruction.
@@ -276,6 +295,8 @@ pub struct CastVoteCpi<'a, 'b> {
     pub operator: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub operator_voter: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
     pub __args: CastVoteInstructionArgs,
 }
@@ -296,6 +317,7 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
             operator_snapshot: accounts.operator_snapshot,
             operator: accounts.operator,
             operator_voter: accounts.operator_voter,
+            consensus_result: accounts.consensus_result,
             __args: args,
         }
     }
@@ -332,7 +354,7 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.epoch_state.key,
             false,
@@ -365,6 +387,10 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
             *self.operator_voter.key,
             true,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.consensus_result.key,
+            false,
+        ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -381,7 +407,7 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(8 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(9 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_state.clone());
         account_infos.push(self.config.clone());
@@ -391,6 +417,7 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
         account_infos.push(self.operator_snapshot.clone());
         account_infos.push(self.operator.clone());
         account_infos.push(self.operator_voter.clone());
+        account_infos.push(self.consensus_result.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -415,6 +442,7 @@ impl<'a, 'b> CastVoteCpi<'a, 'b> {
 ///   5. `[]` operator_snapshot
 ///   6. `[]` operator
 ///   7. `[signer]` operator_voter
+///   8. `[writable]` consensus_result
 #[derive(Clone, Debug)]
 pub struct CastVoteCpiBuilder<'a, 'b> {
     instruction: Box<CastVoteCpiBuilderInstruction<'a, 'b>>,
@@ -432,6 +460,7 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
             operator_snapshot: None,
             operator: None,
             operator_voter: None,
+            consensus_result: None,
             weather_status: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
@@ -497,6 +526,14 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
         operator_voter: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.operator_voter = Some(operator_voter);
+        self
+    }
+    #[inline(always)]
+    pub fn consensus_result(
+        &mut self,
+        consensus_result: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.consensus_result = Some(consensus_result);
         self
     }
     #[inline(always)]
@@ -588,6 +625,11 @@ impl<'a, 'b> CastVoteCpiBuilder<'a, 'b> {
                 .instruction
                 .operator_voter
                 .expect("operator_voter is not set"),
+
+            consensus_result: self
+                .instruction
+                .consensus_result
+                .expect("consensus_result is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -608,6 +650,7 @@ struct CastVoteCpiBuilderInstruction<'a, 'b> {
     operator_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     operator_voter: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    consensus_result: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     weather_status: Option<u8>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.

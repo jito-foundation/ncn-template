@@ -156,6 +156,7 @@ pub enum TipRouterInstruction {
     #[account(4, name = "ncn")]
     #[account(5, writable, name = "account_payer")]
     #[account(6, name = "system_program")]
+    #[account(7, writable, name = "consensus_result")]
     InitializeBallotBox {
         epoch: u64,
     },
@@ -180,6 +181,7 @@ pub enum TipRouterInstruction {
     #[account(5, name = "operator_snapshot")]
     #[account(6, name = "operator")]
     #[account(7, signer, name = "operator_voter")]
+    #[account(8, writable, name = "consensus_result")]
     CastVote {
         weather_status: u8,
         epoch: u64,

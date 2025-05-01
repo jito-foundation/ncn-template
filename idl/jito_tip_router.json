@@ -577,6 +577,11 @@
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "consensusResult",
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
@@ -677,6 +682,11 @@
           "name": "operatorVoter",
           "isMut": false,
           "isSigner": true
+        },
+        {
+          "name": "consensusResult",
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
@@ -1116,6 +1126,78 @@
             "name": "startingValidEpoch",
             "type": {
               "defined": "PodU64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConsensusResult",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ncn",
+            "type": "publicKey"
+          },
+          {
+            "name": "epoch",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "padding",
+            "type": {
+              "array": [
+                "u8",
+                7
+              ]
+            }
+          },
+          {
+            "name": "weatherStatus",
+            "type": "u8"
+          },
+          {
+            "name": "padding1",
+            "type": {
+              "array": [
+                "u8",
+                7
+              ]
+            }
+          },
+          {
+            "name": "voteWeight",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "totalVoteWeight",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "consensusSlot",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "consensusRecorder",
+            "type": "publicKey"
+          },
+          {
+            "name": "consensusReached",
+            "type": {
+              "defined": "PodBool"
             }
           }
         ]

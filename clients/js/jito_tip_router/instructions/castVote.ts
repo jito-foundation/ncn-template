@@ -48,6 +48,7 @@ export type CastVoteInstruction<
   TAccountOperatorSnapshot extends string | IAccountMeta<string> = string,
   TAccountOperator extends string | IAccountMeta<string> = string,
   TAccountOperatorVoter extends string | IAccountMeta<string> = string,
+  TAccountConsensusResult extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -76,6 +77,9 @@ export type CastVoteInstruction<
         ? ReadonlySignerAccount<TAccountOperatorVoter> &
             IAccountSignerMeta<TAccountOperatorVoter>
         : TAccountOperatorVoter,
+      TAccountConsensusResult extends string
+        ? WritableAccount<TAccountConsensusResult>
+        : TAccountConsensusResult,
       ...TRemainingAccounts,
     ]
   >;
@@ -129,6 +133,7 @@ export type CastVoteInput<
   TAccountOperatorSnapshot extends string = string,
   TAccountOperator extends string = string,
   TAccountOperatorVoter extends string = string,
+  TAccountConsensusResult extends string = string,
 > = {
   epochState: Address<TAccountEpochState>;
   config: Address<TAccountConfig>;
@@ -138,6 +143,7 @@ export type CastVoteInput<
   operatorSnapshot: Address<TAccountOperatorSnapshot>;
   operator: Address<TAccountOperator>;
   operatorVoter: TransactionSigner<TAccountOperatorVoter>;
+  consensusResult: Address<TAccountConsensusResult>;
   weatherStatus: CastVoteInstructionDataArgs['weatherStatus'];
   epoch: CastVoteInstructionDataArgs['epoch'];
 };
@@ -151,6 +157,7 @@ export function getCastVoteInstruction<
   TAccountOperatorSnapshot extends string,
   TAccountOperator extends string,
   TAccountOperatorVoter extends string,
+  TAccountConsensusResult extends string,
   TProgramAddress extends Address = typeof JITO_TIP_ROUTER_PROGRAM_ADDRESS,
 >(
   input: CastVoteInput<
@@ -161,7 +168,8 @@ export function getCastVoteInstruction<
     TAccountEpochSnapshot,
     TAccountOperatorSnapshot,
     TAccountOperator,
-    TAccountOperatorVoter
+    TAccountOperatorVoter,
+    TAccountConsensusResult
   >,
   config?: { programAddress?: TProgramAddress }
 ): CastVoteInstruction<
@@ -173,7 +181,8 @@ export function getCastVoteInstruction<
   TAccountEpochSnapshot,
   TAccountOperatorSnapshot,
   TAccountOperator,
-  TAccountOperatorVoter
+  TAccountOperatorVoter,
+  TAccountConsensusResult
 > {
   // Program address.
   const programAddress =
@@ -192,6 +201,7 @@ export function getCastVoteInstruction<
     },
     operator: { value: input.operator ?? null, isWritable: false },
     operatorVoter: { value: input.operatorVoter ?? null, isWritable: false },
+    consensusResult: { value: input.consensusResult ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -212,6 +222,7 @@ export function getCastVoteInstruction<
       getAccountMeta(accounts.operatorSnapshot),
       getAccountMeta(accounts.operator),
       getAccountMeta(accounts.operatorVoter),
+      getAccountMeta(accounts.consensusResult),
     ],
     programAddress,
     data: getCastVoteInstructionDataEncoder().encode(
@@ -226,7 +237,8 @@ export function getCastVoteInstruction<
     TAccountEpochSnapshot,
     TAccountOperatorSnapshot,
     TAccountOperator,
-    TAccountOperatorVoter
+    TAccountOperatorVoter,
+    TAccountConsensusResult
   >;
 
   return instruction;
@@ -246,6 +258,7 @@ export type ParsedCastVoteInstruction<
     operatorSnapshot: TAccountMetas[5];
     operator: TAccountMetas[6];
     operatorVoter: TAccountMetas[7];
+    consensusResult: TAccountMetas[8];
   };
   data: CastVoteInstructionData;
 };
@@ -258,7 +271,7 @@ export function parseCastVoteInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedCastVoteInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 9) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -279,6 +292,7 @@ export function parseCastVoteInstruction<
       operatorSnapshot: getNextAccount(),
       operator: getNextAccount(),
       operatorVoter: getNextAccount(),
+      consensusResult: getNextAccount(),
     },
     data: getCastVoteInstructionDataDecoder().decode(instruction.data),
   };

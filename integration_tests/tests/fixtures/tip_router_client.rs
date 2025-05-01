@@ -19,6 +19,7 @@ use jito_tip_router_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
     config::Config as NcnConfig,
+    consensus_result::ConsensusResult,
     constants::MAX_REALLOC_BYTES,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
@@ -190,6 +191,19 @@ impl TipRouterClient {
             BallotBox::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
         let raw_account = self.banks_client.get_account(address).await?.unwrap();
         Ok(*BallotBox::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
+    }
+
+    pub async fn get_consensus_result(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<ConsensusResult> {
+        let address =
+            ConsensusResult::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
+
+        let raw_account = self.banks_client.get_account(address).await?.unwrap();
+
+        Ok(*ConsensusResult::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
     }
 
     pub async fn do_initialize_config(
@@ -907,6 +921,9 @@ impl TipRouterClient {
         let (account_payer, _, _) =
             AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
 
+        let (consensus_result, _, _) =
+            ConsensusResult::find_program_address(&jito_tip_router_program::id(), &ncn, epoch);
+
         let ix = InitializeBallotBoxBuilder::new()
             .epoch_marker(epoch_marker)
             .epoch_state(epoch_state)
@@ -915,6 +932,7 @@ impl TipRouterClient {
             .ncn(ncn)
             .epoch(epoch)
             .account_payer(account_payer)
+            .consensus_result(consensus_result)
             .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
@@ -1044,6 +1062,8 @@ impl TipRouterClient {
     ) -> Result<(), TestError> {
         let epoch_state =
             EpochState::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
+        let consensus_result =
+            ConsensusResult::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
 
         let ix = CastVoteBuilder::new()
             .epoch_state(epoch_state)
@@ -1055,6 +1075,7 @@ impl TipRouterClient {
             .operator(operator)
             .operator_voter(operator_voter.pubkey())
             .weather_status(weather_status)
+            .consensus_result(consensus_result)
             .epoch(epoch)
             .instruction();
 
