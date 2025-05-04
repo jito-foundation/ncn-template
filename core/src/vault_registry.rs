@@ -25,7 +25,7 @@ pub struct StMintEntry {
     // Either a switchboard feed or a weight must be set
     /// The switchboard feed for the mint
     reserve_switchboard_feed: [u8; 32],
-    /// The weight when
+    /// The weight
     weight: PodU128,
 }
 

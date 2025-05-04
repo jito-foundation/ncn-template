@@ -9,56 +9,68 @@ mod tests {
     // #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn simulation_test() -> TestResult<()> {
+        // 0.a. Building the test environment
         let mut fixture = TestBuilder::new().await;
+        // 0.b. Initialize the configuration for the staking and vault programs
+        // you will not have to do that on mainnet, the programs will already be configured
+        fixture.initialize_staking_and_vault_programs().await?;
+
         let mut tip_router_client = fixture.tip_router_client();
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
 
+        // 1. Preparing the test variables
         const OPERATOR_COUNT: usize = 13;
-
         let mints = vec![
-            (Keypair::new(), WEIGHT),     // JitoSOL
-            (Keypair::new(), WEIGHT),     // JTO
-            (Keypair::new(), WEIGHT),     // BnSOL
-            (Keypair::new(), WEIGHT * 2), // nSol
+            (Keypair::new(), WEIGHT),     // TKN1
+            (Keypair::new(), WEIGHT * 2), // TKN2
+            (Keypair::new(), WEIGHT * 3), // TKN3
+            (Keypair::new(), WEIGHT * 4), // TKN4
         ];
-
         let delegations = [
-            1, // minimum delegation
-            sol_to_lamports(10.0),
-            sol_to_lamports(100.0),
-            sol_to_lamports(1000.0),
-            sol_to_lamports(10000.0),
+            1,                  // minimum delegation
+            10_000_000_000,     // 10 tokens
+            100_000_000_000,    // 100 tokens
+            1_000_000_000_000,  // 1k tokens
+            10_000_000_000_000, // 10k tokens
         ];
 
-        // Setup NCN
+        // 2. Initializing all the needed accounts using Jito's Staking and Vault programs
+        // this step will initialize the NCN account, and all the operators and vaults accounts,
+        // it will also initialize the handshake relationships between all the NCN components
+
+        // 2.a. Initialize the test NCN account using the Restaking program By Jito
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 
-        // Add operators and vaults
+        // 2.b. Initialize the operators using the Restaking program By Jito, and initiate the
+        //   handshake relationship between the NCN <> operators
+        fixture
+            .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
+            .await?;
+
+        // 2.c. Initialize the vaults using the Vault program By Jito
+        // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
         {
-            fixture
-                .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
-                .await?;
-            // JitoSOL
+            // TKN1
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone()))
                 .await?;
-            // JTO
+            // TKN2
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone()))
                 .await?;
-            // BnSOL
+            // TKN3
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone()))
                 .await?;
-            // nSol
+            // TKN4
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone()))
                 .await?;
         }
 
-        // Add delegation
+        // 2.d. Vaults delegate stakes to operators
         {
             for (index, operator_root) in test_ncn
                 .operators
@@ -83,27 +95,40 @@ mod tests {
             }
         }
 
-        // Register ST Mint
+        // 3. Setting up the NCN-program
+        // every thing here will be a call for an instruction to the NCN program that the NCN admin
+        // is suppose to deploy to the network.
         {
+            // 3.a. Initialize the config for the ncn-program
+            tip_router_client
+                .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
+                .await?;
+
+            // 3.b Initialize the vault_registry
+            tip_router_client
+                .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
+                .await?;
+
+            // a full epoch needs to pass for all the relationships to get activated
             let restaking_config_address =
                 Config::find_program_address(&jito_restaking_program::id()).0;
             let restaking_config = restaking_client
                 .get_config(&restaking_config_address)
                 .await?;
-
             let epoch_length = restaking_config.epoch_length();
-
             fixture
                 .warp_slot_incremental(epoch_length * 2)
                 .await
                 .unwrap();
 
+            // 3.c. Register all the ST (Support Token) mints in the ncn program
             for (mint, weight) in mints.iter() {
                 tip_router_client
                     .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
                     .await?;
             }
 
+            // 4.d Register all the vaults in the ncn program
             for vault in test_ncn.vaults.iter() {
                 let vault = vault.vault_pubkey;
                 let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
@@ -117,23 +142,44 @@ mod tests {
                     .await?;
             }
         }
+        // At this point, all the preparations and configurations are done, everything else after
+        // this is part of the voting cycle, so it depends on the way you setup your voting system
+        // you will have to run the code below
+        //
+        // in this example, the voting is cyclecle, and per epoch, so the code you will see below
+        // will run per epoch to prepare for the voting
 
-        // must run per vote
-        fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-        fixture.add_weights_for_test_ncn(&test_ncn).await?;
+        // 4. Prepare the voting environment
+        {
+            // 4.a. Initialize the epoch state
+            fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
+            // 4.b. Initialize the weight table
+            let clock = fixture.clock().await;
+            let epoch = clock.epoch;
+            tip_router_client
+                .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
+                .await?;
 
-        fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
-        fixture
-            .add_operator_snapshots_to_test_ncn(&test_ncn)
-            .await?;
-        fixture
-            .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
-            .await?;
+            // 4.c. Take a snapshot of the weights for each ST mint
+            tip_router_client
+                .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
+                .await?;
+            // 4.d. Take the epoch snapshot
+            fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
+            // 4.e. Take a snapshot for each operator
+            fixture
+                .add_operator_snapshots_to_test_ncn(&test_ncn)
+                .await?;
+            // 4.f. Take a snapshot for each vault and its delegation
+            fixture
+                .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
+                .await?;
 
-        fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
+            // 4.g. Initialize the ballot box
+            fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
+        }
 
         let winning_weather_status = WeatherStatus::Sunny as u8;
-
         // Cast votes
         {
             let epoch = fixture.clock().await.epoch;
@@ -145,6 +191,7 @@ mod tests {
 
             // zero_delegation_operator cast vote
             {
+                // TODO: if they have zero stake, throw on voting
                 let weather_status = WeatherStatus::Rainy as u8;
 
                 tip_router_client
@@ -287,6 +334,8 @@ mod fuzz_tests {
 
     async fn run_simulation(config: SimConfig) -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
+        fixture.initialize_staking_and_vault_programs().await?;
+
         let mut tip_router_client = fixture.tip_router_client();
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
@@ -297,6 +346,10 @@ mod fuzz_tests {
         // Setup NCN
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
+
+        tip_router_client
+            .setup_tip_router(&test_ncn.ncn_root)
+            .await?;
 
         // Add operators and vaults
         {

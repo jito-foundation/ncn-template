@@ -443,7 +443,13 @@ mod tests {
 
         let epoch_to_close = fixture.clock().await.epoch;
 
-        let mut bad_test_ncn = fixture.create_just_test_ncn().await?;
+        let mut bad_test_ncn = fixture.create_test_ncn().await?;
+
+        let mut tip_router_client = fixture.tip_router_client();
+        tip_router_client
+            .setup_tip_router(&test_ncn.ncn_root)
+            .await?;
+
         fixture
             .add_operators_to_test_ncn(&mut bad_test_ncn, OPERATOR_COUNT, None)
             .await?;

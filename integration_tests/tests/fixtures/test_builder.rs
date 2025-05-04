@@ -159,6 +159,26 @@ impl TestBuilder {
         )
     }
 
+    pub async fn initialize_staking_and_vault_programs(&mut self) -> TestResult<()> {
+        let mut restaking_program_client = self.restaking_program_client();
+        let mut vault_program_client = self.vault_program_client();
+
+        vault_program_client.do_initialize_config().await?;
+        restaking_program_client.do_initialize_config().await?;
+
+        Ok(())
+    }
+
+    pub async fn initialize_ncn_account(&mut self) -> TestResult<NcnRoot> {
+        let mut restaking_program_client = self.restaking_program_client();
+
+        let ncn_root = restaking_program_client
+            .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
+            .await?;
+
+        Ok(ncn_root)
+    }
+
     pub async fn setup_ncn(&mut self) -> TestResult<NcnRoot> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
@@ -172,42 +192,9 @@ impl TestBuilder {
         Ok(ncn_root)
     }
 
-    // 1. Setup NCN
-    pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
-        let mut restaking_program_client = self.restaking_program_client();
-
-        let mut vault_program_client = self.vault_program_client();
-
-        let mut tip_router_client = self.tip_router_client();
-
-        vault_program_client.do_initialize_config().await?;
-
-        restaking_program_client.do_initialize_config().await?;
-
-        let ncn_root = restaking_program_client
-            .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
-            .await?;
-
-        tip_router_client.setup_tip_router(&ncn_root).await?;
-
-        Ok(TestNcn {
-            ncn_root: ncn_root.clone(),
-            operators: vec![],
-            vaults: vec![],
-        })
-    }
-
     // 1a. Setup Just NCN
-    pub async fn create_just_test_ncn(&mut self) -> TestResult<TestNcn> {
-        let mut restaking_program_client = self.restaking_program_client();
-
-        let mut tip_router_client = self.tip_router_client();
-
-        let ncn_root = restaking_program_client
-            .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
-            .await?;
-
-        tip_router_client.setup_tip_router(&ncn_root).await?;
+    pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
+        let ncn_root = self.initialize_ncn_account().await?;
 
         Ok(TestNcn {
             ncn_root: ncn_root.clone(),
@@ -418,7 +405,15 @@ impl TestBuilder {
         vault_count: usize,
         operator_fees_bps: Option<u16>,
     ) -> TestResult<TestNcn> {
+        self.initialize_staking_and_vault_programs().await?;
+
         let mut test_ncn = self.create_test_ncn().await?;
+
+        let mut tip_router_client = self.tip_router_client();
+        tip_router_client
+            .setup_tip_router(&test_ncn.ncn_root)
+            .await?;
+
         self.add_operators_to_test_ncn(&mut test_ncn, operator_count, operator_fees_bps)
             .await?;
         self.add_vaults_to_test_ncn(&mut test_ncn, vault_count, None)

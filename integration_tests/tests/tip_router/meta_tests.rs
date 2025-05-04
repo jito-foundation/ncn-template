@@ -6,11 +6,17 @@ mod tests {
     #[tokio::test]
     async fn test_all_test_ncn_functions() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
+        fixture.initialize_staking_and_vault_programs().await?;
 
         const OPERATOR_COUNT: usize = 1;
         const VAULT_COUNT: usize = 1;
 
         let mut test_ncn = fixture.create_test_ncn().await?;
+
+        let mut tip_router_client = fixture.tip_router_client();
+        tip_router_client
+            .setup_tip_router(&test_ncn.ncn_root)
+            .await?;
 
         fixture
             .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, None)
