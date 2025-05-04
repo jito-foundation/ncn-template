@@ -6,6 +6,15 @@
 1. [Prerequisites](#prerequisites)
 1. [Test Components](#test-components)
 1. [Test Flow](#test-flow)
+   1. [NCN Setup](#1-ncn-setup)
+   1. [NCN Configuration Management](#2-ncn-configuration-management)
+   1. [Operator and Vault Setup](#operator-and-vault-setup)
+   1. [Delegation Setup](#delegation-setup)
+   1. [ST Mints and Vaults Registration](#st-mints-and-vaults-registration)
+   1. [Epoch Snapshot](#epoch-snapshot)
+   1. [Voting Process](#voting-process)
+   1. [Verification](#verification)
+   1. [Cleanup](#cleanup)
 1. [Detailed Function Explanations](#detailed-function-explanations)
 1. [Expected Outcomes](#expected-outcomes)
 1. [Error Cases](#error-cases)
@@ -45,16 +54,16 @@ let mut tip_router_client = fixture.tip_router_client();
 let mut vault_program_client = fixture.vault_client();
 let mut restaking_client = fixture.restaking_program_client();
 
-const OPERATOR_COUNT: usize = 13;
+const OPERATOR_COUNT: usize = 13;  // Number of operators to create for testing
 let mints = vec![
-    (Keypair::new(), WEIGHT),           // TKN1
-    (Keypair::new(), WEIGHT),           // TKN2
-    (Keypair::new(), WEIGHT),           // TKN3
-    (Keypair::new(), WEIGHT_PRECISION), // TKN4
+    (Keypair::new(), WEIGHT),     // TKN1 with base weight
+    (Keypair::new(), WEIGHT * 2), // TKN2 with double weight
+    (Keypair::new(), WEIGHT * 3), // TKN3 with triple weight
+    (Keypair::new(), WEIGHT * 4), // TKN4 with quadruple weight
 ];
 
 let delegations = [
-    1,
+    1,                  // minimum delegation amount
     sol_to_lamports(1000.0),
     sol_to_lamports(10000.0),
     sol_to_lamports(100000.0),
@@ -67,24 +76,28 @@ This setup:
 
 1. Initializes clients for each program
 1. Defines 13 operators
-1. Sets up 4 different token types with their weights 1. Defines various delegation amounts for testing
-
-## Test Flow
+1. Sets up 4 different token types with their respective weights:
+   - TKN1: Base weight (WEIGHT)
+   - TKN2: Double weight (WEIGHT * 2)
+   - TKN3: Triple weight (WEIGHT * 3)
+   - TKN4: Quadruple weight (WEIGHT * 4)
+1. Defines various delegation amounts for testing, from minimal (1 lamport) to very large (10M SOL)
 
 ### 1. NCN Setup
 
 ```rust
+// Create a Node Consensus Network (NCN)
 let mut test_ncn = fixture.create_test_ncn().await?;
-let ncn = test_ncn.ncn_root.ncn_pubkey;
+let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 ```
 
 This code:
 
-- Creates a new NCN (Network Control Node)
+- Creates a new NCN (Network Coordination Node)
 - Stores the NCN public key for later use
 - For a detailed explanation of this process, refer to the "Detailed Function Explanations" section
 
-### Operator and Vault Setup
+### 2. Operator and Vault Setup
 
 Before starting the voting process, the following steps are required:
 
@@ -95,33 +108,40 @@ Before starting the voting process, the following steps are required:
 Here is the code:
 
 ```rust
-// Add operators
+// Add operators - Creates OPERATOR_COUNT operators with a 100 bps (1%) fee
 fixture.add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100)).await?;
 
 // Add vaults for each token type
-fixture.add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone())).await?; // TKN1
-fixture.add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone())).await?; // TKN2
-fixture.add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone())).await?; // TKN3
-fixture.add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone())).await?; // TKN4
+fixture.add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone())).await?; // Create 3 vaults for TKN1
+fixture.add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone())).await?; // Create 2 vaults for TKN2
+fixture.add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone())).await?; // Create 1 vault for TKN3
+fixture.add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone())).await?; // Create 1 vault for TKN4
 ```
 
 This code:
 
-- Adds 13 operators with a 100 basis points fee using the Jito restaking program
-- Creates vaults for each token type:
-  - 3 TKN1 vaults
-  - 2 TKN2 vaults
-  - 1 TKN3 vault
-  - 1 TKN4 vault
+- Adds 13 operators with a 100 basis points fee (1%) using the Jito restaking program
+- Creates vaults for each token type with different amounts:
+  - 3 TKN1 vaults (base weight)
+  - 2 TKN2 vaults (double weight)
+  - 1 TKN3 vault (triple weight)
+  - 1 TKN4 vault (quadruple weight)
 - Establishes connections between vaults, the NCN, and their delegated operators using the Jito vault program
 
-### Delegation Setup
+### 3. Delegation Setup
 
 An operator's voting power is determined by their delegation amount, which is multiplied by the weight of the token type.
 
 ```rust
-for (index, operator_root) in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).enumerate() {
+// Each vault delegates different amounts to different operators based on the delegation amounts array
+for (index, operator_root) in test_ncn
+    .operators
+    .iter()
+    .take(OPERATOR_COUNT - 1)  // All operators except the last one
+    .enumerate()
+{
     for vault_root in test_ncn.vaults.iter() {
+        // Cycle through delegation amounts based on operator index
         let delegation_amount = delegations[index % delegations.len()];
         if delegation_amount > 0 {
             vault_program_client
@@ -139,53 +159,88 @@ for (index, operator_root) in test_ncn.operators.iter().take(OPERATOR_COUNT - 1)
 
 This code:
 
-- Assigns delegations to operators for each vault
-- Uses different delegation amounts from the predefined list
-- Skips the last operator (zero delegation operator) to test that operators without delegation cannot vote
+- Assigns delegations to all operators except the last one for each vault
+- Uses different delegation amounts from the predefined list, cycling through them
+- Skips the last operator to create a "zero delegation operator" for testing how operators without delegation are handled
 
-### ST Mints and Vaults Registration
+### 4. ST Mints and Vaults Registration
 
 This step tracks each mint supported by the NCN and its weight. This information is crucial for taking system snapshots, specially if the token price is used as the weight, in this case an oracle (like Switchboard) could be used to fetch token prices before each vote
 
 ```rust
-let restaking_config_address = Config::find_program_address(&jito_restaking_program::id()).0;
-let restaking_config = restaking_client.get_config(&restaking_config_address).await?;
+// 3.a. Initialize the config for the ncn-program
+tip_router_client
+    .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
+    .await?;
+
+// 3.b Initialize the vault_registry - creates accounts to track vaults
+tip_router_client
+    .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
+    .await?;
+
+// Fast-forward time to simulate a full epoch passing
+// This is needed for all the relationships to get activated
+let restaking_config_address =
+    Config::find_program_address(&jito_restaking_program::id()).0;
+let restaking_config = restaking_client
+    .get_config(&restaking_config_address)
+    .await?;
 let epoch_length = restaking_config.epoch_length();
+fixture
+    .warp_slot_incremental(epoch_length * 2)
+    .await
+    .unwrap();
 
-fixture.warp_slot_incremental(epoch_length * 2).await.unwrap(); // Wait a full epoch for connections to activate
-
-// Register ST mints
+// 3.c. Register all the ST (Support Token) mints in the ncn program
+// This assigns weights to each mint for voting power calculations
 for (mint, weight) in mints.iter() {
     tip_router_client
-        .do_admin_register_st_mint(ncn, mint.pubkey(), *weight)
+        .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
         .await?;
 }
 
-// Register vaults
+// 3.d Register all the vaults in the ncn program
+// This makes the vaults eligible for the tip routing system
 for vault in test_ncn.vaults.iter() {
     let vault = vault.vault_pubkey;
     let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
         &jito_restaking_program::id(),
-        &ncn,
+        &ncn_pubkey,
         &vault,
     );
-    tip_router_client.do_register_vault(ncn, vault, ncn_vault_ticket).await?;
+
+    tip_router_client
+        .do_register_vault(ncn_pubkey, vault, ncn_vault_ticket)
+        .await?;
 }
 ```
 
 This code:
 
-- Warps time forward by 2 epoch lengths
-  - the reason for that is that you need to wait for a full epoch to pass before you get the delegation to be active, so if you are in a middle of an epoch, you will need to wait for this epoch to pass, and for the next epoch to pass as well before getting the delegation stake active.
-    the same goes for when a vault removes or edit the delegation for any of the supported operators
-- Registers each ST mint with its corresponding weight
-- Registers each vault with the NCN
+1. Initializes the NCN configuration
+2. Sets up the vault registry to track supported vaults
+3. Warps time forward by 2 epoch lengths to ensure all handshake relationships are active
+4. Registers each ST mint with its corresponding weight:
+   - TKN1: base weight (WEIGHT)
+   - TKN2: double weight (WEIGHT * 2) 
+   - TKN3: triple weight (WEIGHT * 3)
+   - TKN4: quadruple weight (WEIGHT * 4)
+5. Registers each vault with the NCN, connecting it to the token it supports
 
-### Epoch Snapshot
+The weights play a crucial role in the voting system as they multiply the delegation amounts to determine voting power. This setup tests how different token weights affect voting outcomes.
+
+### 5. Epoch Snapshot
 
 #### Epoch State
 
-The epoch state account will be the refrence to tell the step of the voting cycle at any moment in time, also it will work as a validation layer so no step could start before its time comes, so it will tracks:
+The epoch state account is the reference to track the current phase of the voting cycle:
+
+```rust
+// 4.a. Initialize the epoch state - creates a new state for the current epoch
+fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
+```
+
+This creates an epoch state account that tracks:
 
 - Current stage of the voting cycle
 - Progress of weight setting
@@ -198,151 +253,253 @@ The epoch state account will be the refrence to tell the step of the voting cycl
 - Vault and operator counts
 - Current epoch
 
+#### Setting Weights for Current Epoch
+
 ```rust
-fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
+// 4.b. Initialize the weight table - prepares the table that will track voting weights
+let clock = fixture.clock().await;
+let epoch = clock.epoch;
+tip_router_client
+    .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
+    .await?;
+
+// 4.c. Take a snapshot of the weights for each ST mint
+// This records the current weights for the voting calculations
+tip_router_client
+    .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
+    .await?;
 ```
 
-#### Admin Set Weights
+This step:
+1. Creates a weight table for the current epoch
+2. Copies the weights from the vault registry to the weight table, locking them for this voting cycle
+3. This is especially important when weights are dynamic (like token prices)
 
-This step sets the weights for the current epoch, it will take the weights in the vault registry and set then in the weight table.
-Notice that this has to be done before every single vote, to lock the weights as they might change later, also this would be helpful when setting the weight of the token as the its price, which is what most of NCN will do in a real life example, and to do so, you will have to use an oracle like switchboard to provide the price
-
-```rust
-fixture.add_weights_for_test_ncn(&test_ncn).await?;
-```
-
-#### Epoch Snapshot Taking
-
-This step determines the voting power for each operator and will be used to determine the winning ballot.
+#### Taking Snapshots
 
 ```rust
+// 4.d. Take the epoch snapshot - records the current state for this epoch
 fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
-fixture.add_operator_snapshots_to_test_ncn(&test_ncn).await?;
-fixture.add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn).await?;
+// 4.e. Take a snapshot for each operator - records their current stakes
+fixture
+    .add_operator_snapshots_to_test_ncn(&test_ncn)
+    .await?;
+// 4.f. Take a snapshot for each vault and its delegation - records delegations
+fixture
+    .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
+    .await?;
 ```
 
-### Voting Process
+This code:
+1. Creates an epoch snapshot with aggregate data
+2. Takes individual snapshots for each operator
+3. Records all vault-to-operator delegations to determine voting power
 
-Voting is performed by operators through an onchain program instruction (typically called `vote`). Before voting begins, the NCN admin must initialize the ballot box:
+#### Initialize Ballot Box
 
 ```rust
+// 4.g. Initialize the ballot box - creates the voting container for this epoch
 fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 ```
 
-In this test case, we use a helper function to simulate voting:
+This creates the ballot box where votes will be tallied.
+
+### 6. Voting Process
+
+Voting is performed by operators through an onchain program instruction. In this test, we simulate different operators voting for different weather statuses:
 
 ```rust
-let epoch = fixture.clock().await.epoch;
+// Define which weather status we expect to win in the vote
+let winning_weather_status = WeatherStatus::Sunny as u8;
 
-// Zero delegation operator votes Rainy
-let zero_delegation_operator = test_ncn.operators.last().unwrap();
-tip_router_client
-    .do_cast_vote(
-        ncn,
-        zero_delegation_operator.operator_pubkey,
-        &zero_delegation_operator.operator_admin,
-        WeatherStatus::Rainy as u8,
-        epoch,
-    )
-    .await?;
+// 5. Cast votes from operators
+{
+    let epoch = fixture.clock().await.epoch;
 
-// Other operators vote Sunny
-let weather_status = WeatherStatus::Sunny as u8;
-// ... voting for first three operators ...
+    let zero_delegation_operator = test_ncn.operators.last().unwrap();  // Operator with no delegations
+    let first_operator = &test_ncn.operators[0];
+    let second_operator = &test_ncn.operators[1];
+    let third_operator = &test_ncn.operators[2];
 
-// Remaining operators vote Sunny
-for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
+    // Vote from zero_delegation_operator (won't affect consensus due to no weight)
+    {
+        // TODO: if they have zero stake, throw on voting
+        let weather_status = WeatherStatus::Rainy as u8;
+
+        tip_router_client
+            .do_cast_vote(
+                ncn_pubkey,
+                zero_delegation_operator.operator_pubkey,
+                &zero_delegation_operator.operator_admin,
+                weather_status,
+                epoch,
+            )
+            .await?;
+    }
+
+    // First operator votes for Cloudy
     tip_router_client
         .do_cast_vote(
-            ncn,
-            operator_root.operator_pubkey,
-            &operator_root.operator_admin,
-            weather_status,
+            ncn_pubkey,
+            first_operator.operator_pubkey,
+            &first_operator.operator_admin,
+            WeatherStatus::Cloudy as u8,
             epoch,
         )
         .await?;
+        
+    // Second and third operators vote for Sunny (the expected winner)
+    tip_router_client
+        .do_cast_vote(
+            ncn_pubkey,
+            second_operator.operator_pubkey,
+            &second_operator.operator_admin,
+            winning_weather_status,
+            epoch,
+        )
+        .await?;
+    tip_router_client
+        .do_cast_vote(
+            ncn_pubkey,
+            third_operator.operator_pubkey,
+            &third_operator.operator_admin,
+            winning_weather_status,
+            epoch,
+        )
+        .await?;
+
+    // All remaining operators also vote for Sunny to form a majority
+    for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
+        let operator = operator_root.operator_pubkey;
+
+        tip_router_client
+            .do_cast_vote(
+                ncn_pubkey,
+                operator,
+                &operator_root.operator_admin,
+                winning_weather_status,
+                epoch,
+            )
+            .await?;
+    }
 }
 ```
 
 This code:
 
-- Has the first operator (zero-delegation) vote "Rainy"
-- Has all other operators vote "Sunny"
-- Tests consensus reaching with majority voting
+- Has the zero-delegation operator vote for "Rainy" (this shouldn't affect the outcome due to no voting power)
+- Has the first operator vote for "Cloudy"
+- Has all other operators vote for "Sunny"
+- Tests consensus reaching with different votes but a clear majority
 
-### Verification
+### 7. Verification
 
 ```rust
-let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
+// 6. Verify voting results
+let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
 assert!(ballot_box.has_winning_ballot());
 assert!(ballot_box.is_consensus_reached());
 assert_eq!(
     ballot_box.get_winning_ballot().unwrap().weather_status(),
-    weather_status
+    winning_weather_status
 );
+
+// 7. Fetch and verify the consensus_result account
+{
+    let epoch = fixture.clock().await.epoch;
+    let consensus_result = tip_router_client
+        .get_consensus_result(ncn_pubkey, epoch)
+        .await?;
+
+    // Verify consensus_result account exists and has correct values
+    assert!(consensus_result.is_consensus_reached());
+    assert_eq!(consensus_result.epoch(), epoch);
+    assert_eq!(consensus_result.weather_status(), winning_weather_status);
+
+    // Get ballot box to compare values
+    let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
+    let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
+
+    // Verify vote weights match between ballot box and consensus result
+    assert_eq!(
+        consensus_result.vote_weight(),
+        winning_ballot_tally.stake_weights().stake_weight() as u64
+    );
+
+    println!(
+        "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}, Recorder: {}",
+        consensus_result.weather_status(),
+        consensus_result.vote_weight(),
+        consensus_result.total_vote_weight(),
+        consensus_result.consensus_recorder()
+    );
+}
 ```
 
 This code verifies that:
 
 - A winning ballot exists
 - Consensus has been reached
-- The winning weather status is "Sunny"
+- The winning weather status is "Sunny" as expected
+- The consensus result account records the correct voting weights
+- The voting system correctly handles operators with different delegation amounts and tokens with different weights
 
-### Cleanup
+### 8. Cleanup
 
 ```rust
+// 8. Close epoch accounts but keep consensus result
+let epoch_before_closing_account = fixture.clock().await.epoch;
 fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
+
+// Verify that consensus_result account is not closed (it should persist)
+{
+    let consensus_result = tip_router_client
+        .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
+        .await?;
+
+    // Verify consensus_result account exists and has correct values
+    assert!(consensus_result.is_consensus_reached());
+    assert_eq!(consensus_result.epoch(), epoch_before_closing_account);
+}
 ```
 
-This code closes all epoch-related accounts and cleans up test resources.
+This code:
+
+1. Records the current epoch before closing accounts
+2. Closes all epoch-related accounts
+3. Verifies that the consensus result account is not closed - it should persist despite other accounts being closed
 
 ## Key Test Aspects
 
-1. **Multiple Token Types**: Tests the system with 4 different token types
-1. **Varying Delegations**: Tests different delegation amounts
-1. **Consensus Mechanism**: Verifies the voting and consensus reaching process
-1. **Zero Delegation Handling**: Tests behavior with a zero-delegation operator
-1. **Majority Voting**: Ensures the system correctly identifies the majority vote
-1. **Account Management**: Tests proper creation and cleanup of all necessary accounts
+1. **Multiple Token Types**: Tests the system with 4 different token types with varying weights
+2. **Varying Delegations**: Tests different delegation amounts from minimal to very large
+3. **Consensus Mechanism**: Verifies the voting and consensus reaching process
+4. **Zero Delegation Handling**: Tests behavior with a zero-delegation operator
+5. **Different Votes**: Tests the system with operators voting for different options
+6. **Account Management**: Tests proper creation and cleanup of all necessary accounts
 
 ## Expected Outcomes
 
 1. All operators should be able to cast votes
-1. The system should reach consensus despite one dissenting vote
-1. The winning weather status should be "Sunny"
-1. All accounts should be properly created and cleaned up
-
-## Error Cases
-
-The test implicitly verifies handling of:
-
-- Multiple token types
-- Various delegation amounts
-- Zero delegation operators
-- Majority vs minority voting
-- Account initialization and cleanup
+2. The system should reach consensus with "Sunny" as the winning weather status
+3. The zero-delegation operator's vote should not affect the outcome
+4. All accounts should be properly created and cleaned up
+5. The consensus result account should persist after cleaning up other accounts
 
 ## Detailed Function Explanations
 
 ### `create_test_ncn()`
 
+This function creates a new NCN account using the restaking program:
+
 ```rust
 pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
     let mut restaking_program_client = self.restaking_program_client();
-    let mut vault_program_client = self.vault_program_client();
-    let mut tip_router_client = self.tip_router_client();
-
-    // TODO: do you need to call these functions in the real world? since the programs are already deployed and configured?
-    vault_program_client.do_initialize_config().await?;
-    // calls jito restaking-program
-    restaking_program_client.do_initialize_config().await?;
 
     // calls jito restaking-program
     let ncn_root = restaking_program_client
         .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
         .await?;
-
-    tip_router_client.setup_tip_router(&ncn_root).await?;
 
     Ok(TestNcn {
         ncn_root: ncn_root.clone(),
@@ -360,25 +517,34 @@ This function:
 1. Sets up the tip router with the newly created NCN
 1. Returns a TestNcn struct containing the NCN root and empty lists for operators and vaults
 
-### `setup_tip_router()`
+### `do_admin_register_st_mint()`
 
 ```rust
-pub async fn setup_tip_router(&mut self, ncn_root: &NcnRoot) -> TestResult<()> {
-    self.do_initialize_config(ncn_root.ncn_pubkey, &ncn_root.ncn_admin)
-        .await?;
+pub async fn do_admin_register_st_mint(
+    &mut self,
+    ncn: Pubkey,
+    st_mint: Pubkey,
+    weight: u128,
+) -> TestResult<()> {
+    let vault_registry =
+        VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
 
-    self.do_full_initialize_vault_registry(ncn_root.ncn_pubkey)
-        .await?;
+    let (ncn_config, _, _) =
+        NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn);
 
-    Ok(())
+    let admin = self.payer.pubkey();
+
+    self.admin_register_st_mint(ncn, ncn_config, vault_registry, admin, st_mint, weight)
+        .await
 }
 ```
 
 This function:
 
-1. Initializes the configuration for the tip router
-1. Sets up the vault registry
-1. Both operations use the NCN's public key and admin keypair
+1. Finds the vault registry address for the NCN
+1. Finds the NCN config address
+1. Uses the payer as the admin
+1. Calls the underlying admin_register_st_mint function with all parameters to register a token mint with the specified weight
 
 ### `do_initialize_config()`
 
@@ -585,35 +751,6 @@ This function:
 1. Creates the connection between the vault and the NCN
 1. Adds each vault to the TestNcn struct
 
-### `do_admin_register_st_mint()`
-
-```rust
-pub async fn do_admin_register_st_mint(
-    &mut self,
-    ncn: Pubkey,
-    st_mint: Pubkey,
-    weight: u128,
-) -> TestResult<()> {
-    let vault_registry =
-        VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
-
-    let (ncn_config, _, _) =
-        NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn);
-
-    let admin = self.payer.pubkey();
-
-    self.admin_register_st_mint(ncn, ncn_config, vault_registry, admin, st_mint, weight)
-        .await
-}
-```
-
-This function:
-
-1. Finds the vault registry address for the NCN
-1. Finds the NCN config address
-1. Uses the payer as the admin
-1. Calls the underlying admin_register_st_mint function with all parameters
-
 ### `add_epoch_state_for_test_ncn()`
 
 ```rust
@@ -738,8 +875,8 @@ pub async fn do_cast_vote(
 This function:
 
 1. Finds addresses for all required accounts
-1. Builds a cast vote instruction with the operator and weather status
-1. Processes the transaction with the operator admin as a signer
+2. Builds a cast vote instruction with the operator and weather status
+3. Processes the transaction with the operator admin as a signer
 
 ### `WeatherStatus` Enum
 
@@ -800,3 +937,13 @@ Key methods include:
 - `tally_votes`: Calculates the winning ballot based on stake weight
 - `is_consensus_reached`: Determines if consensus (66%) has been reached
 - `get_winning_ballot`: Returns the ballot with majority stake
+
+## Error Cases
+
+The test implicitly verifies handling of:
+
+- Multiple token types
+- Various delegation amounts
+- Zero delegation operators
+- Majority vs minority voting
+- Account initialization and cleanup

@@ -20,15 +20,15 @@ mod tests {
         let mut restaking_client = fixture.restaking_program_client();
 
         // 1. Preparing the test variables
-        const OPERATOR_COUNT: usize = 13;
+        const OPERATOR_COUNT: usize = 13;  // Number of operators to create for testing
         let mints = vec![
-            (Keypair::new(), WEIGHT),     // TKN1
-            (Keypair::new(), WEIGHT * 2), // TKN2
-            (Keypair::new(), WEIGHT * 3), // TKN3
-            (Keypair::new(), WEIGHT * 4), // TKN4
+            (Keypair::new(), WEIGHT),     // TKN1 with base weight
+            (Keypair::new(), WEIGHT * 2), // TKN2 with double weight
+            (Keypair::new(), WEIGHT * 3), // TKN3 with triple weight
+            (Keypair::new(), WEIGHT * 4), // TKN4 with quadruple weight
         ];
         let delegations = [
-            1,                  // minimum delegation
+            1,                  // minimum delegation amount
             10_000_000_000,     // 10 tokens
             100_000_000_000,    // 100 tokens
             1_000_000_000_000,  // 1k tokens
@@ -45,6 +45,7 @@ mod tests {
 
         // 2.b. Initialize the operators using the Restaking program By Jito, and initiate the
         //   handshake relationship between the NCN <> operators
+        // Creates OPERATOR_COUNT operators and associates them with the NCN, setting fee to 100 bps (1%)
         fixture
             .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
             .await?;
@@ -52,33 +53,35 @@ mod tests {
         // 2.c. Initialize the vaults using the Vault program By Jito
         // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
         {
-            // TKN1
+            // Create 3 vaults for TKN1
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone()))
                 .await?;
-            // TKN2
+            // Create 2 vaults for TKN2
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone()))
                 .await?;
-            // TKN3
+            // Create 1 vault for TKN3
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone()))
                 .await?;
-            // TKN4
+            // Create 1 vault for TKN4
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone()))
                 .await?;
         }
 
         // 2.d. Vaults delegate stakes to operators
+        // Each vault delegates different amounts to different operators based on the delegation amounts array
         {
             for (index, operator_root) in test_ncn
                 .operators
                 .iter()
-                .take(OPERATOR_COUNT - 1)
+                .take(OPERATOR_COUNT - 1)  // All operators except the last one
                 .enumerate()
             {
                 for vault_root in test_ncn.vaults.iter() {
+                    // Cycle through delegation amounts based on operator index
                     let delegation_amount = delegations[index % delegations.len()];
 
                     if delegation_amount > 0 {
@@ -104,12 +107,13 @@ mod tests {
                 .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
                 .await?;
 
-            // 3.b Initialize the vault_registry
+            // 3.b Initialize the vault_registry - creates accounts to track vaults
             tip_router_client
                 .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
                 .await?;
 
-            // a full epoch needs to pass for all the relationships to get activated
+            // Fast-forward time to simulate a full epoch passing
+            // This is needed for all the relationships to get activated
             let restaking_config_address =
                 Config::find_program_address(&jito_restaking_program::id()).0;
             let restaking_config = restaking_client
@@ -122,6 +126,7 @@ mod tests {
                 .unwrap();
 
             // 3.c. Register all the ST (Support Token) mints in the ncn program
+            // This assigns weights to each mint for voting power calculations
             for (mint, weight) in mints.iter() {
                 tip_router_client
                     .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
@@ -151,9 +156,9 @@ mod tests {
 
         // 4. Prepare the voting environment
         {
-            // 4.a. Initialize the epoch state
+            // 4.a. Initialize the epoch state - creates a new state for the current epoch
             fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-            // 4.b. Initialize the weight table
+            // 4.b. Initialize the weight table - prepares the table that will track voting weights
             let clock = fixture.clock().await;
             let epoch = clock.epoch;
             tip_router_client
@@ -161,35 +166,38 @@ mod tests {
                 .await?;
 
             // 4.c. Take a snapshot of the weights for each ST mint
+            // This records the current weights for the voting calculations
             tip_router_client
                 .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
                 .await?;
-            // 4.d. Take the epoch snapshot
+            // 4.d. Take the epoch snapshot - records the current state for this epoch
             fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
-            // 4.e. Take a snapshot for each operator
+            // 4.e. Take a snapshot for each operator - records their current stakes
             fixture
                 .add_operator_snapshots_to_test_ncn(&test_ncn)
                 .await?;
-            // 4.f. Take a snapshot for each vault and its delegation
+            // 4.f. Take a snapshot for each vault and its delegation - records delegations
             fixture
                 .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
                 .await?;
 
-            // 4.g. Initialize the ballot box
+            // 4.g. Initialize the ballot box - creates the voting container for this epoch
             fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
         }
 
+        // Define which weather status we expect to win in the vote
         let winning_weather_status = WeatherStatus::Sunny as u8;
-        // Cast votes
+        
+        // 5. Cast votes from operators
         {
             let epoch = fixture.clock().await.epoch;
 
-            let zero_delegation_operator = test_ncn.operators.last().unwrap();
+            let zero_delegation_operator = test_ncn.operators.last().unwrap();  // Operator with no delegations
             let first_operator = &test_ncn.operators[0];
             let second_operator = &test_ncn.operators[1];
             let third_operator = &test_ncn.operators[2];
 
-            // zero_delegation_operator cast vote
+            // Vote from zero_delegation_operator (won't affect consensus due to no weight)
             {
                 // TODO: if they have zero stake, throw on voting
                 let weather_status = WeatherStatus::Rainy as u8;
@@ -205,6 +213,7 @@ mod tests {
                     .await?;
             }
 
+            // First operator votes for Cloudy
             tip_router_client
                 .do_cast_vote(
                     ncn_pubkey,
@@ -214,6 +223,8 @@ mod tests {
                     epoch,
                 )
                 .await?;
+                
+            // Second and third operators vote for Sunny (the expected winner)
             tip_router_client
                 .do_cast_vote(
                     ncn_pubkey,
@@ -233,6 +244,7 @@ mod tests {
                 )
                 .await?;
 
+            // All remaining operators also vote for Sunny to form a majority
             for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
                 let operator = operator_root.operator_pubkey;
 
@@ -247,6 +259,7 @@ mod tests {
                     .await?;
             }
 
+            // 6. Verify voting results
             let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
@@ -256,7 +269,7 @@ mod tests {
             );
         }
 
-        // Fetch and verify the consensus_result account
+        // 7. Fetch and verify the consensus_result account
         {
             let epoch = fixture.clock().await.epoch;
             let consensus_result = tip_router_client
@@ -274,7 +287,7 @@ mod tests {
             msg!("consensus_result: {}", consensus_result);
             let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
 
-            // Verify vote weights match
+            // Verify vote weights match between ballot box and consensus result
             assert_eq!(
                 consensus_result.vote_weight(),
                 winning_ballot_tally.stake_weights().stake_weight() as u64
@@ -289,10 +302,11 @@ mod tests {
             );
         }
 
+        // 8. Close epoch accounts but keep consensus result
         let epoch_before_closing_account = fixture.clock().await.epoch;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
-        // Fetch and verify that consensus_result account is not closed
+        // Verify that consensus_result account is not closed (it should persist)
         {
             let consensus_result = tip_router_client
                 .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
@@ -319,20 +333,24 @@ mod fuzz_tests {
         native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
 
+    // Struct to configure mint token parameters for simulation
     struct MintConfig {
         keypair: Keypair,
-        weight: u128,
-        vault_count: usize,
+        weight: u128,         // Weight for voting power calculation
+        vault_count: usize,   // Number of vaults to create for this mint
     }
 
+    // Overall simulation configuration
     struct SimConfig {
-        operator_count: usize,
-        mints: Vec<MintConfig>,
-        delegations: Vec<u64>,
-        operator_fee_bps: u16,
+        operator_count: usize,        // Number of operators to create
+        mints: Vec<MintConfig>,       // Token mint configurations
+        delegations: Vec<u64>,        // Array of delegation amounts for vaults
+        operator_fee_bps: u16,        // Operator fee in basis points (100 = 1%)
     }
 
+    // Main simulation function that runs a full voting cycle with the given configuration
     async fn run_simulation(config: SimConfig) -> TestResult<()> {
+        // Create test environment
         let mut fixture = TestBuilder::new().await;
         fixture.initialize_staking_and_vault_programs().await?;
 
@@ -340,19 +358,22 @@ mod fuzz_tests {
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
 
+        // Validate configuration
         let total_vaults = config.mints.iter().map(|m| m.vault_count).sum::<usize>();
         assert_eq!(config.delegations.len(), total_vaults);
 
-        // Setup NCN
+        // Setup Network Coordination Node (NCN)
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
 
+        // Initialize the tip router program for this NCN
         tip_router_client
             .setup_tip_router(&test_ncn.ncn_root)
             .await?;
 
-        // Add operators and vaults
+        // Add operators and vaults based on configuration
         {
+            // Create operators with specified fee
             fixture
                 .add_operators_to_test_ncn(
                     &mut test_ncn,
@@ -361,6 +382,7 @@ mod fuzz_tests {
                 )
                 .await?;
 
+            // Create vaults for each mint
             for mint_config in config.mints.iter() {
                 fixture
                     .add_vaults_to_test_ncn(
@@ -372,8 +394,9 @@ mod fuzz_tests {
             }
         }
 
-        // Add delegation
+        // Set up delegation from vaults to operators
         {
+            // Create a seed for pseudorandom operator selection
             let seed = Pubkey::new_unique()
                 .to_bytes()
                 .iter()
@@ -382,14 +405,15 @@ mod fuzz_tests {
                     acc.wrapping_add((byte as u64) << (i % 8 * 8))
                 });
 
+            // For each vault, distribute its delegation among operators
             for (vault_index, vault_root) in test_ncn.vaults.iter().enumerate() {
                 let total_vault_delegation = config.delegations[vault_index];
 
-                // Create a shuffled list of operators
+                // Create a shuffled list of operators for randomized distribution
                 let mut operators: Vec<_> = test_ncn.operators.iter().collect();
                 let shuffle_index = seed.wrapping_add(vault_index as u64);
 
-                // Fisher-Yates shuffle
+                // Fisher-Yates shuffle to randomize operator order
                 for i in (1..operators.len()).rev() {
                     let j = (shuffle_index.wrapping_mul(i as u64) % (i as u64 + 1)) as usize;
                     operators.swap(i, j);
@@ -397,9 +421,9 @@ mod fuzz_tests {
 
                 // Skip the first operator (effectively excluding them from delegation)
                 let selected_operators = operators.iter().skip(1).take(config.operator_count - 2);
-                let operator_count = config.operator_count - 2; // Reduced by one more to account for exclusion
+                let operator_count = config.operator_count - 2; // Reduced by two to account for exclusions
 
-                // Calculate per-operator delegation amount
+                // Calculate delegation per operator and distribute
                 let delegation_per_operator = total_vault_delegation / operator_count as u64;
 
                 if delegation_per_operator > 0 {
@@ -417,8 +441,9 @@ mod fuzz_tests {
             }
         }
 
-        // Register ST Mint
+        // Register tokens and vaults with the tip router
         {
+            // Fast-forward time to ensure all relationships are active
             let restaking_config_address =
                 Config::find_program_address(&jito_restaking_program::id()).0;
             let restaking_config = restaking_client
@@ -428,6 +453,7 @@ mod fuzz_tests {
 
             fixture.warp_slot_incremental(epoch_length * 2).await?;
 
+            // Register each mint token with its weight
             for mint_config in config.mints.iter() {
                 tip_router_client
                     .do_admin_register_st_mint(
@@ -438,6 +464,7 @@ mod fuzz_tests {
                     .await?;
             }
 
+            // Register each vault with the tip router
             for vault in test_ncn.vaults.iter() {
                 let vault = vault.vault_pubkey;
                 let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
@@ -452,15 +479,18 @@ mod fuzz_tests {
             }
         }
 
+        // Set up the voting environment for the current epoch
         fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
         fixture.add_weights_for_test_ncn(&test_ncn).await?;
 
+        // Verify weight setup is complete
         {
             let epoch = fixture.clock().await.epoch;
             let epoch_state = tip_router_client.get_epoch_state(ncn, epoch).await?;
             assert!(epoch_state.set_weight_progress().is_complete())
         }
 
+        // Take snapshots of current state for voting
         fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
         fixture
             .add_operator_snapshots_to_test_ncn(&test_ncn)
@@ -470,11 +500,13 @@ mod fuzz_tests {
             .await?;
         fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 
-        // Cast votes
+        // Cast votes from all operators for the same weather status
         {
             let epoch = fixture.clock().await.epoch;
+            // Generate a random weather status for this test
             let weather_status = Ballot::generate_ballot_weather_status();
 
+            // All operators vote for the same status to ensure consensus
             for operator_root in test_ncn.operators.iter() {
                 let operator = operator_root.operator_pubkey;
                 let _ = tip_router_client
@@ -488,6 +520,7 @@ mod fuzz_tests {
                     .await;
             }
 
+            // Verify consensus is reached with expected result
             let ballot_box = tip_router_client.get_ballot_box(ncn, epoch).await?;
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
@@ -497,6 +530,7 @@ mod fuzz_tests {
             );
         }
 
+        // Clean up epoch accounts
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
         Ok(())
@@ -505,6 +539,7 @@ mod fuzz_tests {
     #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_basic_simulation() -> TestResult<()> {
+        // Basic configuration with multiple mints and delegation amounts
         let config = SimConfig {
             operator_count: 13,
             mints: vec![
@@ -525,21 +560,21 @@ mod fuzz_tests {
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    weight: WEIGHT_PRECISION,
+                    weight: WEIGHT_PRECISION,  // Minimum weight precision
                     vault_count: 1,
                 },
             ],
             delegations: vec![
-                // Need 7
-                1,
-                sol_to_lamports(1000.0),
-                sol_to_lamports(10000.0),
-                sol_to_lamports(100000.0),
-                sol_to_lamports(1000000.0),
-                sol_to_lamports(10000000.0),
-                255,
+                // 7 delegation amounts for 7 total vaults
+                1,                          // Minimum delegation amount
+                sol_to_lamports(1000.0),    // 1,000 SOL
+                sol_to_lamports(10000.0),   // 10,000 SOL
+                sol_to_lamports(100000.0),  // 100,000 SOL
+                sol_to_lamports(1000000.0), // 1,000,000 SOL
+                sol_to_lamports(10000000.0),// 10,000,000 SOL
+                255,                        // Arbitrary small amount
             ],
-            operator_fee_bps: 100,
+            operator_fee_bps: 100,  // 1% operator fee
         };
 
         run_simulation(config).await
@@ -548,8 +583,9 @@ mod fuzz_tests {
     // #[ignore = "20-30 minute test"]
     #[tokio::test]
     async fn test_high_operator_count_simulation() -> TestResult<()> {
+        // Test with a large number of operators to verify scalability
         let config = SimConfig {
-            operator_count: 50,
+            operator_count: 50,  // High number of operators
             mints: vec![MintConfig {
                 keypair: Keypair::new(),
                 weight: WEIGHT,
@@ -567,9 +603,9 @@ mod fuzz_tests {
     async fn test_fuzz_simulation() -> TestResult<()> {
         // Create multiple test configurations with different parameters
         let test_configs = vec![
-            // Test varying operator counts
+            // Test 1: Mid-size operator set with varied delegation amounts
             SimConfig {
-                operator_count: 15, // Mid-size operator set
+                operator_count: 15,
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
@@ -583,57 +619,59 @@ mod fuzz_tests {
                     },
                 ],
                 delegations: vec![
-                    sol_to_lamports(500.0),
-                    sol_to_lamports(5000.0),
-                    sol_to_lamports(50000.0),
+                    sol_to_lamports(500.0),    // Small delegation
+                    sol_to_lamports(5000.0),   // Medium delegation
+                    sol_to_lamports(50000.0),  // Large delegation
                 ],
-                operator_fee_bps: 90,
+                operator_fee_bps: 90,  // 0.9% fee
             },
-            // Test extreme delegation amounts
+            
+            // Test 2: Extreme delegation amounts
             SimConfig {
                 operator_count: 20,
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
-                    weight: 2 * WEIGHT_PRECISION,
+                    weight: 2 * WEIGHT_PRECISION,  // Double precision weight
                     vault_count: 3,
                 }],
                 delegations: vec![
-                    1, // Minimum delegation
-                    sol_to_lamports(1.0),
-                    sol_to_lamports(1_000_000.0), // Very large delegation
+                    1,                           // Minimum possible delegation
+                    sol_to_lamports(1.0),        // Very small delegation
+                    sol_to_lamports(1_000_000.0),// Extremely large delegation
                 ],
-                operator_fee_bps: 150,
+                operator_fee_bps: 150,  // 1.5% fee
             },
-            // Test mixed fee groups and feeds
+            
+            // Test 3: Mixed token weights and varied delegation amounts
             SimConfig {
                 operator_count: 30,
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT,
+                        weight: WEIGHT,           // Standard weight
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT * 2,
+                        weight: WEIGHT * 2,       // Double weight
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT_PRECISION / 2,
+                        weight: WEIGHT_PRECISION / 2,  // Half precision weight
                         vault_count: 1,
                     },
                 ],
                 delegations: vec![
-                    sol_to_lamports(100.0),
-                    sol_to_lamports(1000.0),
-                    sol_to_lamports(10000.0),
+                    sol_to_lamports(100.0),    // Small delegation
+                    sol_to_lamports(1000.0),   // Medium delegation
+                    sol_to_lamports(10000.0),  // Large delegation
                 ],
-                operator_fee_bps: 80,
+                operator_fee_bps: 80,  // 0.8% fee
             },
         ];
 
-        // Run all configurations
+        // Run all configurations sequentially
         for (i, config) in test_configs.into_iter().enumerate() {
             println!("Running fuzz test configuration {}", i + 1);
             run_simulation(config).await?;
