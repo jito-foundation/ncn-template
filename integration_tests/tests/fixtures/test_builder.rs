@@ -605,7 +605,7 @@ impl TestBuilder {
         Ok(())
     }
 
-    // 11 - Cast all votes
+    // 11 - Cast all votes for active operators
     pub async fn cast_votes_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut tip_router_client = self.tip_router_client();
 
@@ -617,16 +617,21 @@ impl TestBuilder {
 
         for operator_root in test_ncn.operators.iter() {
             let operator = operator_root.operator_pubkey;
-
-            tip_router_client
-                .do_cast_vote(
-                    ncn,
-                    operator,
-                    &operator_root.operator_admin,
-                    weather_status,
-                    epoch,
-                )
+            let operator_snapshot = tip_router_client
+                .get_operator_snapshot(operator, ncn, epoch)
                 .await?;
+
+            if operator_snapshot.is_active() {
+                tip_router_client
+                    .do_cast_vote(
+                        ncn,
+                        operator,
+                        &operator_root.operator_admin,
+                        weather_status,
+                        epoch,
+                    )
+                    .await?;
+            }
         }
 
         Ok(())
