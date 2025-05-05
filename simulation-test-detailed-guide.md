@@ -321,12 +321,12 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
     let second_operator = &test_ncn.operators[1];
     let third_operator = &test_ncn.operators[2];
 
-    // Vote from zero_delegation_operator (won't affect consensus due to no weight)
+    // Vote from zero_delegation_operator (should fail with an error since operators with zero delegations cannot vote)
     {
-        // TODO: if they have zero stake, throw on voting
         let weather_status = WeatherStatus::Rainy as u8;
 
-        tip_router_client
+        // We expect this to fail since the operator has zero delegations
+        let result = tip_router_client
             .do_cast_vote(
                 ncn_pubkey,
                 zero_delegation_operator.operator_pubkey,
@@ -334,7 +334,10 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
                 weather_status,
                 epoch,
             )
-            .await?;
+            .await;
+        
+        // Verify that voting with zero delegation returns an error
+        assert!(result.is_err(), "Expected error when voting with zero delegation");
     }
 
     // First operator votes for Cloudy
@@ -387,7 +390,7 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
 
 This code:
 
-- Has the zero-delegation operator vote for "Rainy" (this shouldn't affect the outcome due to no voting power)
+- Tests that an operator with zero delegation cannot vote (expects an error)
 - Has the first operator vote for "Cloudy"
 - Has all other operators vote for "Sunny"
 - Tests consensus reaching with different votes but a clear majority
@@ -480,9 +483,9 @@ This code:
 
 ## Expected Outcomes
 
-1. All operators should be able to cast votes
-2. The system should reach consensus with "Sunny" as the winning weather status
-3. The zero-delegation operator's vote should not affect the outcome
+1. All operators with delegations should be able to cast votes
+2. Operators with zero delegations should not be able to vote (should return an error)
+3. The system should reach consensus with "Sunny" as the winning weather status
 4. All accounts should be properly created and cleaned up
 5. The consensus result account should persist after cleaning up other accounts
 
@@ -944,6 +947,6 @@ The test implicitly verifies handling of:
 
 - Multiple token types
 - Various delegation amounts
-- Zero delegation operators
+- Zero delegation operators (should be rejected with an error)
 - Majority vs minority voting
 - Account initialization and cleanup

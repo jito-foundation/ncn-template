@@ -94,6 +94,8 @@ pub enum TipRouterError {
     DuplicateVaultOperatorDelegation,
     #[error("Duplicate Vote Cast")]
     DuplicateVoteCast,
+    #[error("Cannot Vote With Zero Delegation")]
+    CannotVoteWithZeroStake,
     #[error("Operator Already Voted")]
     OperatorAlreadyVoted,
     #[error("Operator votes full")]

@@ -90,10 +90,10 @@ pub fn process_cast_vote(
         *operator_snapshot.stake_weights()
     };
 
-    // if operator_stake_weights.stake_weight() == 0 {
-    //     msg!("Operator has zero stake weight, cannot vote");
-    //     return Err(TipRouterError::CannotVoteWithZeroStake.into());
-    // }
+    if operator_stake_weights.stake_weight() == 0 {
+        msg!("Operator has zero stake weight, cannot vote");
+        return Err(TipRouterError::CannotVoteWithZeroStake.into());
+    }
 
     let slot = Clock::get()?.slot;
 

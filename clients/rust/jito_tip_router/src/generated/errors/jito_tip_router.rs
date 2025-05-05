@@ -145,135 +145,138 @@ pub enum JitoTipRouterError {
     /// 8738 - Duplicate Vote Cast
     #[error("Duplicate Vote Cast")]
     DuplicateVoteCast = 0x2222,
-    /// 8739 - Operator Already Voted
+    /// 8739 - Cannot Vote With Zero Delegation
+    #[error("Cannot Vote With Zero Delegation")]
+    CannotVoteWithZeroStake = 0x2223,
+    /// 8740 - Operator Already Voted
     #[error("Operator Already Voted")]
-    OperatorAlreadyVoted = 0x2223,
-    /// 8740 - Operator votes full
+    OperatorAlreadyVoted = 0x2224,
+    /// 8741 - Operator votes full
     #[error("Operator votes full")]
-    OperatorVotesFull = 0x2224,
-    /// 8741 - Merkle root tally full
+    OperatorVotesFull = 0x2225,
+    /// 8742 - Merkle root tally full
     #[error("Merkle root tally full")]
-    BallotTallyFull = 0x2225,
-    /// 8742 - Ballot tally not found
+    BallotTallyFull = 0x2226,
+    /// 8743 - Ballot tally not found
     #[error("Ballot tally not found")]
-    BallotTallyNotFoundFull = 0x2226,
-    /// 8743 - Ballot tally not empty
+    BallotTallyNotFoundFull = 0x2227,
+    /// 8744 - Ballot tally not empty
     #[error("Ballot tally not empty")]
-    BallotTallyNotEmpty = 0x2227,
-    /// 8744 - Consensus already reached, cannot change vote
+    BallotTallyNotEmpty = 0x2228,
+    /// 8745 - Consensus already reached, cannot change vote
     #[error("Consensus already reached, cannot change vote")]
-    ConsensusAlreadyReached = 0x2228,
-    /// 8745 - Consensus not reached
+    ConsensusAlreadyReached = 0x2229,
+    /// 8746 - Consensus not reached
     #[error("Consensus not reached")]
-    ConsensusNotReached = 0x2229,
-    /// 8746 - Epoch snapshot not finalized
+    ConsensusNotReached = 0x222A,
+    /// 8747 - Epoch snapshot not finalized
     #[error("Epoch snapshot not finalized")]
-    EpochSnapshotNotFinalized = 0x222A,
-    /// 8747 - Voting not valid, too many slots after consensus reached
+    EpochSnapshotNotFinalized = 0x222B,
+    /// 8748 - Voting not valid, too many slots after consensus reached
     #[error("Voting not valid, too many slots after consensus reached")]
-    VotingNotValid = 0x222B,
-    /// 8748 - Tie breaker admin invalid
+    VotingNotValid = 0x222C,
+    /// 8749 - Tie breaker admin invalid
     #[error("Tie breaker admin invalid")]
-    TieBreakerAdminInvalid = 0x222C,
-    /// 8749 - Voting not finalized
+    TieBreakerAdminInvalid = 0x222D,
+    /// 8750 - Voting not finalized
     #[error("Voting not finalized")]
-    VotingNotFinalized = 0x222D,
-    /// 8750 - Tie breaking ballot must be one of the prior votes
+    VotingNotFinalized = 0x222E,
+    /// 8751 - Tie breaking ballot must be one of the prior votes
     #[error("Tie breaking ballot must be one of the prior votes")]
-    TieBreakerNotInPriorVotes = 0x222E,
-    /// 8751 - Invalid merkle proof
+    TieBreakerNotInPriorVotes = 0x222F,
+    /// 8752 - Invalid merkle proof
     #[error("Invalid merkle proof")]
-    InvalidMerkleProof = 0x222F,
-    /// 8752 - Operator voter needs to sign its vote
+    InvalidMerkleProof = 0x2230,
+    /// 8753 - Operator voter needs to sign its vote
     #[error("Operator voter needs to sign its vote")]
-    InvalidOperatorVoter = 0x2230,
-    /// 8753 - Not a valid NCN fee group
+    InvalidOperatorVoter = 0x2231,
+    /// 8754 - Not a valid NCN fee group
     #[error("Not a valid NCN fee group")]
-    InvalidNcnFeeGroup = 0x2231,
-    /// 8754 - Not a valid base fee group
+    InvalidNcnFeeGroup = 0x2232,
+    /// 8755 - Not a valid base fee group
     #[error("Not a valid base fee group")]
-    InvalidBaseFeeGroup = 0x2232,
-    /// 8755 - Operator reward list full
+    InvalidBaseFeeGroup = 0x2233,
+    /// 8756 - Operator reward list full
     #[error("Operator reward list full")]
-    OperatorRewardListFull = 0x2233,
-    /// 8756 - Operator Reward not found
+    OperatorRewardListFull = 0x2234,
+    /// 8757 - Operator Reward not found
     #[error("Operator Reward not found")]
-    OperatorRewardNotFound = 0x2234,
-    /// 8757 - Vault Reward not found
+    OperatorRewardNotFound = 0x2235,
+    /// 8758 - Vault Reward not found
     #[error("Vault Reward not found")]
-    VaultRewardNotFound = 0x2235,
-    /// 8758 - Destination mismatch
+    VaultRewardNotFound = 0x2236,
+    /// 8759 - Destination mismatch
     #[error("Destination mismatch")]
-    DestinationMismatch = 0x2236,
-    /// 8759 - Ncn reward route not found
+    DestinationMismatch = 0x2237,
+    /// 8760 - Ncn reward route not found
     #[error("Ncn reward route not found")]
-    NcnRewardRouteNotFound = 0x2237,
-    /// 8760 - Fee not active
+    NcnRewardRouteNotFound = 0x2238,
+    /// 8761 - Fee not active
     #[error("Fee not active")]
-    FeeNotActive = 0x2238,
-    /// 8761 - No rewards to distribute
+    FeeNotActive = 0x2239,
+    /// 8762 - No rewards to distribute
     #[error("No rewards to distribute")]
-    NoRewards = 0x2239,
-    /// 8762 - Weight not set
+    NoRewards = 0x223A,
+    /// 8763 - Weight not set
     #[error("Weight not set")]
-    WeightNotSet = 0x223A,
-    /// 8763 - Router still routing
+    WeightNotSet = 0x223B,
+    /// 8764 - Router still routing
     #[error("Router still routing")]
-    RouterStillRouting = 0x223B,
-    /// 8764 - Invalid epochs before stall
+    RouterStillRouting = 0x223C,
+    /// 8765 - Invalid epochs before stall
     #[error("Invalid epochs before stall")]
-    InvalidEpochsBeforeStall = 0x223C,
-    /// 8765 - Invalid epochs before accounts can close
+    InvalidEpochsBeforeStall = 0x223D,
+    /// 8766 - Invalid epochs before accounts can close
     #[error("Invalid epochs before accounts can close")]
-    InvalidEpochsBeforeClose = 0x223D,
-    /// 8766 - Invalid slots after consensus
+    InvalidEpochsBeforeClose = 0x223E,
+    /// 8767 - Invalid slots after consensus
     #[error("Invalid slots after consensus")]
-    InvalidSlotsAfterConsensus = 0x223E,
-    /// 8767 - Vault needs to be updated
+    InvalidSlotsAfterConsensus = 0x223F,
+    /// 8768 - Vault needs to be updated
     #[error("Vault needs to be updated")]
-    VaultNeedsUpdate = 0x223F,
-    /// 8768 - Invalid Account Status
+    VaultNeedsUpdate = 0x2240,
+    /// 8769 - Invalid Account Status
     #[error("Invalid Account Status")]
-    InvalidAccountStatus = 0x2240,
-    /// 8769 - Account already initialized
+    InvalidAccountStatus = 0x2241,
+    /// 8770 - Account already initialized
     #[error("Account already initialized")]
-    AccountAlreadyInitialized = 0x2241,
-    /// 8770 - Cannot vote with uninitialized account
+    AccountAlreadyInitialized = 0x2242,
+    /// 8771 - Cannot vote with uninitialized account
     #[error("Cannot vote with uninitialized account")]
-    BadBallot = 0x2242,
-    /// 8771 - Cannot route until voting is over
+    BadBallot = 0x2243,
+    /// 8772 - Cannot route until voting is over
     #[error("Cannot route until voting is over")]
-    VotingIsNotOver = 0x2243,
-    /// 8772 - Operator is not in snapshot
+    VotingIsNotOver = 0x2244,
+    /// 8773 - Operator is not in snapshot
     #[error("Operator is not in snapshot")]
-    OperatorIsNotInSnapshot = 0x2244,
-    /// 8773 - Invalid account_to_close Discriminator
+    OperatorIsNotInSnapshot = 0x2245,
+    /// 8774 - Invalid account_to_close Discriminator
     #[error("Invalid account_to_close Discriminator")]
-    InvalidAccountToCloseDiscriminator = 0x2245,
-    /// 8774 - Cannot close account
+    InvalidAccountToCloseDiscriminator = 0x2246,
+    /// 8775 - Cannot close account
     #[error("Cannot close account")]
-    CannotCloseAccount = 0x2246,
-    /// 8775 - Cannot close account - Already closed
+    CannotCloseAccount = 0x2247,
+    /// 8776 - Cannot close account - Already closed
     #[error("Cannot close account - Already closed")]
-    CannotCloseAccountAlreadyClosed = 0x2247,
-    /// 8776 - Cannot close account - Not enough epochs have passed since consensus reached
+    CannotCloseAccountAlreadyClosed = 0x2248,
+    /// 8777 - Cannot close account - Not enough epochs have passed since consensus reached
     #[error("Cannot close account - Not enough epochs have passed since consensus reached")]
-    CannotCloseAccountNotEnoughEpochs = 0x2248,
-    /// 8777 - Cannot close account - No receiver provided
+    CannotCloseAccountNotEnoughEpochs = 0x2249,
+    /// 8778 - Cannot close account - No receiver provided
     #[error("Cannot close account - No receiver provided")]
-    CannotCloseAccountNoReceiverProvided = 0x2249,
-    /// 8778 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
+    CannotCloseAccountNoReceiverProvided = 0x224A,
+    /// 8779 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
     #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
-    CannotCloseEpochStateAccount = 0x224A,
-    /// 8779 - Invalid DAO wallet
+    CannotCloseEpochStateAccount = 0x224B,
+    /// 8780 - Invalid DAO wallet
     #[error("Invalid DAO wallet")]
-    InvalidDaoWallet = 0x224B,
-    /// 8780 - Epoch is closing down
+    InvalidDaoWallet = 0x224C,
+    /// 8781 - Epoch is closing down
     #[error("Epoch is closing down")]
-    EpochIsClosingDown = 0x224C,
-    /// 8781 - Marker exists
+    EpochIsClosingDown = 0x224D,
+    /// 8782 - Marker exists
     #[error("Marker exists")]
-    MarkerExists = 0x224D,
+    MarkerExists = 0x224E,
 }
 
 impl solana_program::program_error::PrintProgramError for JitoTipRouterError {

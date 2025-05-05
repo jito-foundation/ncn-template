@@ -1,10 +1,15 @@
 #[cfg(test)]
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use jito_tip_router_core::{ballot_box::WeatherStatus, constants::WEIGHT};
-    use solana_sdk::{msg, native_token::sol_to_lamports, signature::Keypair, signer::Signer};
+    use jito_tip_router_core::{
+        ballot_box::WeatherStatus, constants::WEIGHT, error::TipRouterError,
+    };
 
-    use crate::fixtures::{test_builder::TestBuilder, TestResult};
+    use solana_sdk::{msg, signature::Keypair, signer::Signer};
+
+    use crate::fixtures::{
+        test_builder::TestBuilder, tip_router_client::assert_tip_router_error, TestResult,
+    };
 
     // #[ignore = "20-30 minute test"]
     #[tokio::test]
@@ -20,7 +25,7 @@ mod tests {
         let mut restaking_client = fixture.restaking_program_client();
 
         // 1. Preparing the test variables
-        const OPERATOR_COUNT: usize = 13;  // Number of operators to create for testing
+        const OPERATOR_COUNT: usize = 13; // Number of operators to create for testing
         let mints = vec![
             (Keypair::new(), WEIGHT),     // TKN1 with base weight
             (Keypair::new(), WEIGHT * 2), // TKN2 with double weight
@@ -77,7 +82,7 @@ mod tests {
             for (index, operator_root) in test_ncn
                 .operators
                 .iter()
-                .take(OPERATOR_COUNT - 1)  // All operators except the last one
+                .take(OPERATOR_COUNT - 1) // All operators except the last one
                 .enumerate()
             {
                 for vault_root in test_ncn.vaults.iter() {
@@ -187,22 +192,41 @@ mod tests {
 
         // Define which weather status we expect to win in the vote
         let winning_weather_status = WeatherStatus::Sunny as u8;
-        
+
         // 5. Cast votes from operators
         {
             let epoch = fixture.clock().await.epoch;
 
-            let zero_delegation_operator = test_ncn.operators.last().unwrap();  // Operator with no delegations
+            let zero_delegation_operator = test_ncn.operators.last().unwrap(); // Operator with no delegations
             let first_operator = &test_ncn.operators[0];
             let second_operator = &test_ncn.operators[1];
             let third_operator = &test_ncn.operators[2];
 
-            // Vote from zero_delegation_operator (won't affect consensus due to no weight)
+            // Vote from zero_delegation_operator (should fail with an error since operators with zero delegations cannot vote)
             {
-                // TODO: if they have zero stake, throw on voting
+                // Verify the operator has no delegations by checking its snapshot
+                let operator_snapshot = tip_router_client
+                    .get_operator_snapshot(
+                        zero_delegation_operator.operator_pubkey,
+                        ncn_pubkey,
+                        epoch,
+                    )
+                    .await?;
+
+                // Log the current stake weight of the zero delegation operator
+                let stake_weight = operator_snapshot.stake_weights().stake_weight();
+                msg!("Zero-delegation operator stake weight: {}", stake_weight);
+
+                // Confirm it has zero stake weight
+                assert_eq!(
+                    stake_weight, 0,
+                    "Zero-delegation operator should have zero stake weight"
+                );
+
                 let weather_status = WeatherStatus::Rainy as u8;
 
-                tip_router_client
+                // We expect this to fail since the operator has zero delegations
+                let result = tip_router_client
                     .do_cast_vote(
                         ncn_pubkey,
                         zero_delegation_operator.operator_pubkey,
@@ -210,9 +234,13 @@ mod tests {
                         weather_status,
                         epoch,
                     )
-                    .await?;
+                    .await;
+
+                // Verify that voting with zero delegation returns an error
+                assert_tip_router_error(result, TipRouterError::CannotVoteWithZeroStake);
             }
 
+            // Continue with operators that have delegations
             // First operator votes for Cloudy
             tip_router_client
                 .do_cast_vote(
@@ -223,7 +251,7 @@ mod tests {
                     epoch,
                 )
                 .await?;
-                
+
             // Second and third operators vote for Sunny (the expected winner)
             tip_router_client
                 .do_cast_vote(
@@ -336,16 +364,16 @@ mod fuzz_tests {
     // Struct to configure mint token parameters for simulation
     struct MintConfig {
         keypair: Keypair,
-        weight: u128,         // Weight for voting power calculation
-        vault_count: usize,   // Number of vaults to create for this mint
+        weight: u128,       // Weight for voting power calculation
+        vault_count: usize, // Number of vaults to create for this mint
     }
 
     // Overall simulation configuration
     struct SimConfig {
-        operator_count: usize,        // Number of operators to create
-        mints: Vec<MintConfig>,       // Token mint configurations
-        delegations: Vec<u64>,        // Array of delegation amounts for vaults
-        operator_fee_bps: u16,        // Operator fee in basis points (100 = 1%)
+        operator_count: usize,  // Number of operators to create
+        mints: Vec<MintConfig>, // Token mint configurations
+        delegations: Vec<u64>,  // Array of delegation amounts for vaults
+        operator_fee_bps: u16,  // Operator fee in basis points (100 = 1%)
     }
 
     // Main simulation function that runs a full voting cycle with the given configuration
@@ -560,21 +588,21 @@ mod fuzz_tests {
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    weight: WEIGHT_PRECISION,  // Minimum weight precision
+                    weight: WEIGHT_PRECISION, // Minimum weight precision
                     vault_count: 1,
                 },
             ],
             delegations: vec![
                 // 7 delegation amounts for 7 total vaults
-                1,                          // Minimum delegation amount
-                sol_to_lamports(1000.0),    // 1,000 SOL
-                sol_to_lamports(10000.0),   // 10,000 SOL
-                sol_to_lamports(100000.0),  // 100,000 SOL
-                sol_to_lamports(1000000.0), // 1,000,000 SOL
-                sol_to_lamports(10000000.0),// 10,000,000 SOL
-                255,                        // Arbitrary small amount
+                1,                           // Minimum delegation amount
+                sol_to_lamports(1000.0),     // 1,000 SOL
+                sol_to_lamports(10000.0),    // 10,000 SOL
+                sol_to_lamports(100000.0),   // 100,000 SOL
+                sol_to_lamports(1000000.0),  // 1,000,000 SOL
+                sol_to_lamports(10000000.0), // 10,000,000 SOL
+                255,                         // Arbitrary small amount
             ],
-            operator_fee_bps: 100,  // 1% operator fee
+            operator_fee_bps: 100, // 1% operator fee
         };
 
         run_simulation(config).await
@@ -585,7 +613,7 @@ mod fuzz_tests {
     async fn test_high_operator_count_simulation() -> TestResult<()> {
         // Test with a large number of operators to verify scalability
         let config = SimConfig {
-            operator_count: 50,  // High number of operators
+            operator_count: 50, // High number of operators
             mints: vec![MintConfig {
                 keypair: Keypair::new(),
                 weight: WEIGHT,
@@ -619,55 +647,53 @@ mod fuzz_tests {
                     },
                 ],
                 delegations: vec![
-                    sol_to_lamports(500.0),    // Small delegation
-                    sol_to_lamports(5000.0),   // Medium delegation
-                    sol_to_lamports(50000.0),  // Large delegation
+                    sol_to_lamports(500.0),   // Small delegation
+                    sol_to_lamports(5000.0),  // Medium delegation
+                    sol_to_lamports(50000.0), // Large delegation
                 ],
-                operator_fee_bps: 90,  // 0.9% fee
+                operator_fee_bps: 90, // 0.9% fee
             },
-            
             // Test 2: Extreme delegation amounts
             SimConfig {
                 operator_count: 20,
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
-                    weight: 2 * WEIGHT_PRECISION,  // Double precision weight
+                    weight: 2 * WEIGHT_PRECISION, // Double precision weight
                     vault_count: 3,
                 }],
                 delegations: vec![
-                    1,                           // Minimum possible delegation
-                    sol_to_lamports(1.0),        // Very small delegation
-                    sol_to_lamports(1_000_000.0),// Extremely large delegation
+                    1,                            // Minimum possible delegation
+                    sol_to_lamports(1.0),         // Very small delegation
+                    sol_to_lamports(1_000_000.0), // Extremely large delegation
                 ],
-                operator_fee_bps: 150,  // 1.5% fee
+                operator_fee_bps: 150, // 1.5% fee
             },
-            
             // Test 3: Mixed token weights and varied delegation amounts
             SimConfig {
                 operator_count: 30,
                 mints: vec![
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT,           // Standard weight
+                        weight: WEIGHT, // Standard weight
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT * 2,       // Double weight
+                        weight: WEIGHT * 2, // Double weight
                         vault_count: 1,
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT_PRECISION / 2,  // Half precision weight
+                        weight: WEIGHT_PRECISION / 2, // Half precision weight
                         vault_count: 1,
                     },
                 ],
                 delegations: vec![
-                    sol_to_lamports(100.0),    // Small delegation
-                    sol_to_lamports(1000.0),   // Medium delegation
-                    sol_to_lamports(10000.0),  // Large delegation
+                    sol_to_lamports(100.0),   // Small delegation
+                    sol_to_lamports(1000.0),  // Medium delegation
+                    sol_to_lamports(10000.0), // Large delegation
                 ],
-                operator_fee_bps: 80,  // 0.8% fee
+                operator_fee_bps: 80, // 0.8% fee
             },
         ];
 

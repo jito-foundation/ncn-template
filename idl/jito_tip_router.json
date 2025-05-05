@@ -2075,216 +2075,221 @@
     },
     {
       "code": 8739,
+      "name": "CannotVoteWithZeroStake",
+      "msg": "Cannot Vote With Zero Delegation"
+    },
+    {
+      "code": 8740,
       "name": "OperatorAlreadyVoted",
       "msg": "Operator Already Voted"
     },
     {
-      "code": 8740,
+      "code": 8741,
       "name": "OperatorVotesFull",
       "msg": "Operator votes full"
     },
     {
-      "code": 8741,
+      "code": 8742,
       "name": "BallotTallyFull",
       "msg": "Merkle root tally full"
     },
     {
-      "code": 8742,
+      "code": 8743,
       "name": "BallotTallyNotFoundFull",
       "msg": "Ballot tally not found"
     },
     {
-      "code": 8743,
+      "code": 8744,
       "name": "BallotTallyNotEmpty",
       "msg": "Ballot tally not empty"
     },
     {
-      "code": 8744,
+      "code": 8745,
       "name": "ConsensusAlreadyReached",
       "msg": "Consensus already reached, cannot change vote"
     },
     {
-      "code": 8745,
+      "code": 8746,
       "name": "ConsensusNotReached",
       "msg": "Consensus not reached"
     },
     {
-      "code": 8746,
+      "code": 8747,
       "name": "EpochSnapshotNotFinalized",
       "msg": "Epoch snapshot not finalized"
     },
     {
-      "code": 8747,
+      "code": 8748,
       "name": "VotingNotValid",
       "msg": "Voting not valid, too many slots after consensus reached"
     },
     {
-      "code": 8748,
+      "code": 8749,
       "name": "TieBreakerAdminInvalid",
       "msg": "Tie breaker admin invalid"
     },
     {
-      "code": 8749,
+      "code": 8750,
       "name": "VotingNotFinalized",
       "msg": "Voting not finalized"
     },
     {
-      "code": 8750,
+      "code": 8751,
       "name": "TieBreakerNotInPriorVotes",
       "msg": "Tie breaking ballot must be one of the prior votes"
     },
     {
-      "code": 8751,
+      "code": 8752,
       "name": "InvalidMerkleProof",
       "msg": "Invalid merkle proof"
     },
     {
-      "code": 8752,
+      "code": 8753,
       "name": "InvalidOperatorVoter",
       "msg": "Operator voter needs to sign its vote"
     },
     {
-      "code": 8753,
+      "code": 8754,
       "name": "InvalidNcnFeeGroup",
       "msg": "Not a valid NCN fee group"
     },
     {
-      "code": 8754,
+      "code": 8755,
       "name": "InvalidBaseFeeGroup",
       "msg": "Not a valid base fee group"
     },
     {
-      "code": 8755,
+      "code": 8756,
       "name": "OperatorRewardListFull",
       "msg": "Operator reward list full"
     },
     {
-      "code": 8756,
+      "code": 8757,
       "name": "OperatorRewardNotFound",
       "msg": "Operator Reward not found"
     },
     {
-      "code": 8757,
+      "code": 8758,
       "name": "VaultRewardNotFound",
       "msg": "Vault Reward not found"
     },
     {
-      "code": 8758,
+      "code": 8759,
       "name": "DestinationMismatch",
       "msg": "Destination mismatch"
     },
     {
-      "code": 8759,
+      "code": 8760,
       "name": "NcnRewardRouteNotFound",
       "msg": "Ncn reward route not found"
     },
     {
-      "code": 8760,
+      "code": 8761,
       "name": "FeeNotActive",
       "msg": "Fee not active"
     },
     {
-      "code": 8761,
+      "code": 8762,
       "name": "NoRewards",
       "msg": "No rewards to distribute"
     },
     {
-      "code": 8762,
+      "code": 8763,
       "name": "WeightNotSet",
       "msg": "Weight not set"
     },
     {
-      "code": 8763,
+      "code": 8764,
       "name": "RouterStillRouting",
       "msg": "Router still routing"
     },
     {
-      "code": 8764,
+      "code": 8765,
       "name": "InvalidEpochsBeforeStall",
       "msg": "Invalid epochs before stall"
     },
     {
-      "code": 8765,
+      "code": 8766,
       "name": "InvalidEpochsBeforeClose",
       "msg": "Invalid epochs before accounts can close"
     },
     {
-      "code": 8766,
+      "code": 8767,
       "name": "InvalidSlotsAfterConsensus",
       "msg": "Invalid slots after consensus"
     },
     {
-      "code": 8767,
+      "code": 8768,
       "name": "VaultNeedsUpdate",
       "msg": "Vault needs to be updated"
     },
     {
-      "code": 8768,
+      "code": 8769,
       "name": "InvalidAccountStatus",
       "msg": "Invalid Account Status"
     },
     {
-      "code": 8769,
+      "code": 8770,
       "name": "AccountAlreadyInitialized",
       "msg": "Account already initialized"
     },
     {
-      "code": 8770,
+      "code": 8771,
       "name": "BadBallot",
       "msg": "Cannot vote with uninitialized account"
     },
     {
-      "code": 8771,
+      "code": 8772,
       "name": "VotingIsNotOver",
       "msg": "Cannot route until voting is over"
     },
     {
-      "code": 8772,
+      "code": 8773,
       "name": "OperatorIsNotInSnapshot",
       "msg": "Operator is not in snapshot"
     },
     {
-      "code": 8773,
+      "code": 8774,
       "name": "InvalidAccountToCloseDiscriminator",
       "msg": "Invalid account_to_close Discriminator"
     },
     {
-      "code": 8774,
+      "code": 8775,
       "name": "CannotCloseAccount",
       "msg": "Cannot close account"
     },
     {
-      "code": 8775,
+      "code": 8776,
       "name": "CannotCloseAccountAlreadyClosed",
       "msg": "Cannot close account - Already closed"
     },
     {
-      "code": 8776,
+      "code": 8777,
       "name": "CannotCloseAccountNotEnoughEpochs",
       "msg": "Cannot close account - Not enough epochs have passed since consensus reached"
     },
     {
-      "code": 8777,
+      "code": 8778,
       "name": "CannotCloseAccountNoReceiverProvided",
       "msg": "Cannot close account - No receiver provided"
     },
     {
-      "code": 8778,
+      "code": 8779,
       "name": "CannotCloseEpochStateAccount",
       "msg": "Cannot close epoch state account - Epoch state needs all other accounts to be closed first"
     },
     {
-      "code": 8779,
+      "code": 8780,
       "name": "InvalidDaoWallet",
       "msg": "Invalid DAO wallet"
     },
     {
-      "code": 8780,
+      "code": 8781,
       "name": "EpochIsClosingDown",
       "msg": "Epoch is closing down"
     },
     {
-      "code": 8781,
+      "code": 8782,
       "name": "MarkerExists",
       "msg": "Marker exists"
     }
