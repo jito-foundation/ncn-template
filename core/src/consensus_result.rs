@@ -9,7 +9,7 @@ use jito_bytemuck::{
 use shank::ShankAccount;
 use solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 
-use crate::{discriminators::Discriminators, error::TipRouterError, loaders::check_load};
+use crate::{discriminators::Discriminators, error::NCNProgramError, loaders::check_load};
 
 // PDA'd ["consensus-result", NCN, NCN_EPOCH_SLOT]
 #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
@@ -150,7 +150,7 @@ impl ConsensusResult {
         total_vote_weight: u64,
         consensus_slot: u64,
         consensus_recorder: &Pubkey,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.is_consensus_reached() {
             self.vote_weight = PodU64::from(vote_weight);
         } else {

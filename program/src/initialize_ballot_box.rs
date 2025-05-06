@@ -1,7 +1,7 @@
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::{load_system_account, load_system_program};
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer, ballot_box::BallotBox, config::Config as NcnConfig,
     consensus_result::ConsensusResult, constants::MAX_REALLOC_BYTES, epoch_marker::EpochMarker,
     epoch_state::EpochState,

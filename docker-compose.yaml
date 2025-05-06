@@ -1,9 +1,9 @@
 services:
-  jito-tip-router-ncn-keeper:
+  ncn-program-ncn-keeper:
     build:
       context: .
       dockerfile: cli/Dockerfile
-    container_name: jito-tip-router-ncn-keeper
+    container_name: ncn-program-ncn-keeper
     environment:
       - RUST_LOG=${RUST_LOG:-info}
       - RPC_URL=${RPC_URL}
@@ -13,7 +13,8 @@ services:
       - EPOCH=${EPOCH}
       - VAULT_PROGRAM_ID=${VAULT_PROGRAM_ID}
       - RESTAKING_PROGRAM_ID=${RESTAKING_PROGRAM_ID}
-      - TIP_ROUTER_PROGRAM_ID=${TIP_ROUTER_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
       - SOLANA_METRICS_CONFIG=${SOLANA_METRICS_CONFIG}
       - LOOP_TIMEOUT_MS=${LOOP_TIMEOUT_MS}
       - ERROR_TIMEOUT_MS=${ERROR_TIMEOUT_MS}
@@ -27,11 +28,11 @@ services:
     volumes:
       - ./credentials:/credentials
     restart: on-failure:5
-  jito-tip-router-ncn-keeper-metrics-only:
+  ncn-program-ncn-keeper-metrics-only:
     build:
       context: .
       dockerfile: cli/Dockerfile
-    container_name: jito-tip-router-ncn-keeper-metrics-only
+    container_name: ncn-program-ncn-keeper-metrics-only
     environment:
       - RUST_LOG=${RUST_LOG:-info}
       - RPC_URL=${RPC_URL}
@@ -41,7 +42,8 @@ services:
       - EPOCH=${EPOCH}
       - VAULT_PROGRAM_ID=${VAULT_PROGRAM_ID}
       - RESTAKING_PROGRAM_ID=${RESTAKING_PROGRAM_ID}
-      - TIP_ROUTER_PROGRAM_ID=${TIP_ROUTER_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
       - SOLANA_METRICS_CONFIG=${SOLANA_METRICS_CONFIG}
       - LOOP_TIMEOUT_MS=${LOOP_TIMEOUT_MS}
       - ERROR_TIMEOUT_MS=${ERROR_TIMEOUT_MS}
@@ -54,11 +56,11 @@ services:
     volumes:
       - ./credentials:/credentials
     restart: on-failure:5
-  jito-tip-router-ncn-keeper-migrate-only:
+  ncn-program-ncn-keeper-migrate-only:
     build:
       context: .
       dockerfile: cli/Dockerfile
-    container_name: jito-tip-router-ncn-keeper-migrate-only
+    container_name: ncn-program-ncn-keeper-migrate-only
     environment:
       - RUST_LOG=${RUST_LOG:-info}
       - RPC_URL=${RPC_URL}
@@ -68,7 +70,8 @@ services:
       - EPOCH=751
       - VAULT_PROGRAM_ID=${VAULT_PROGRAM_ID}
       - RESTAKING_PROGRAM_ID=${RESTAKING_PROGRAM_ID}
-      - TIP_ROUTER_PROGRAM_ID=${TIP_ROUTER_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
+      - NCN_PROGRAM_ID=${NCN_PROGRAM_ID}
       - SOLANA_METRICS_CONFIG=${SOLANA_METRICS_CONFIG}
       - LOOP_TIMEOUT_MS=34000
       - ERROR_TIMEOUT_MS=${ERROR_TIMEOUT_MS}

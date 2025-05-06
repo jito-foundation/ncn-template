@@ -41,7 +41,7 @@ It handles routing rewards from the `BaseRewardReceiver` to the `BaseRewardRoute
 *Figure: Overview of the Route Base Rewards
 
 ```rust
-pub fn route_reward_pool(&mut self, fee: &Fees) -> Result<(), TipRouterError> {
+pub fn route_reward_pool(&mut self, fee: &Fees) -> Result<(), NCNProgramError> {
     let rewards_to_process: u64 = self.reward_pool();
 
     let total_fee_bps = fee.total_fees_bps()?;
@@ -106,7 +106,7 @@ let rewards = {
 
     if base_reward_router_account.still_routing() {
         msg!("Rewards still routing");
-        return Err(TipRouterError::RouterStillRouting.into());
+        return Err(NCNProgramError::RouterStillRouting.into());
     }
 
     base_reward_router_account
@@ -138,7 +138,7 @@ This instruction is focused on determining how rewards should be distributed by 
         {
             iterations = iterations
                 .checked_add(1)
-                .ok_or(TipRouterError::ArithmeticOverflow)?;
+                .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
             if iterations > max_iterations {
                 msg!(

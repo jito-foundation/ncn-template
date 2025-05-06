@@ -1,13 +1,13 @@
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::{load_system_account, load_system_program};
 use jito_restaking_core::{ncn::Ncn, ncn_operator_state::NcnOperatorState, operator::Operator};
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer,
     config::Config,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
-    error::TipRouterError,
+    error::NCNProgramError,
     loaders::load_ncn_epoch,
     stake_weight::StakeWeights,
 };
@@ -69,7 +69,7 @@ pub fn process_initialize_operator_snapshot(
 
         if operator_index >= operator_count {
             msg!("Operator index is out of bounds");
-            return Err(TipRouterError::OperatorIsNotInSnapshot.into());
+            return Err(NCNProgramError::OperatorIsNotInSnapshot.into());
         }
     }
 

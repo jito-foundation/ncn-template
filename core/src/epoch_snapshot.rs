@@ -12,7 +12,7 @@ use solana_program::{account_info::AccountInfo, program_error::ProgramError, pub
 use spl_math::precise_number::PreciseNumber;
 
 use crate::{
-    constants::MAX_VAULTS, discriminators::Discriminators, error::TipRouterError,
+    constants::MAX_VAULTS, discriminators::Discriminators, error::NCNProgramError,
     loaders::check_load, stake_weight::StakeWeights, weight_table::WeightTable,
 };
 
@@ -157,21 +157,21 @@ impl EpochSnapshot {
         current_slot: u64,
         vault_operator_delegations: u64,
         stake_weight: &StakeWeights,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.finalized() {
-            return Err(TipRouterError::OperatorFinalized);
+            return Err(NCNProgramError::OperatorFinalized);
         }
 
         self.operators_registered = PodU64::from(
             self.operators_registered()
                 .checked_add(1)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         self.valid_operator_vault_delegations = PodU64::from(
             self.valid_operator_vault_delegations()
                 .checked_add(vault_operator_delegations)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         self.stake_weights.increment(stake_weight)?;
@@ -230,9 +230,9 @@ impl OperatorSnapshot {
         operator_index: u64,
         operator_fee_bps: u16,
         vault_operator_delegation_count: u64,
-    ) -> Result<Self, TipRouterError> {
+    ) -> Result<Self, NCNProgramError> {
         if vault_operator_delegation_count > MAX_VAULTS as u64 {
-            return Err(TipRouterError::TooManyVaultOperatorDelegations);
+            return Err(NCNProgramError::TooManyVaultOperatorDelegations);
         }
 
         Ok(Self {
@@ -267,9 +267,9 @@ impl OperatorSnapshot {
         operator_index: u64,
         operator_fee_bps: u16,
         vault_operator_delegation_count: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if vault_operator_delegation_count > MAX_VAULTS as u64 {
-            return Err(TipRouterError::TooManyVaultOperatorDelegations);
+            return Err(NCNProgramError::TooManyVaultOperatorDelegations);
         }
         let slot_finalized = if !is_active { current_slot } else { 0 };
         let operator_fee_bps = if is_active { operator_fee_bps } else { 0 };
@@ -424,18 +424,18 @@ impl OperatorSnapshot {
         vault: &Pubkey,
         vault_index: u64,
         stake_weights: &StakeWeights,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self
             .vault_operator_delegations_registered()
             .checked_add(1)
-            .ok_or(TipRouterError::ArithmeticOverflow)?
+            .ok_or(NCNProgramError::ArithmeticOverflow)?
             > MAX_VAULTS as u64
         {
-            return Err(TipRouterError::TooManyVaultOperatorDelegations);
+            return Err(NCNProgramError::TooManyVaultOperatorDelegations);
         }
 
         if self.contains_vault_index(vault_index) {
-            return Err(TipRouterError::DuplicateVaultOperatorDelegation);
+            return Err(NCNProgramError::DuplicateVaultOperatorDelegation);
         }
 
         self.vault_operator_stake_weight[self.vault_operator_delegations_registered() as usize] =
@@ -450,9 +450,9 @@ impl OperatorSnapshot {
         vault: &Pubkey,
         vault_index: u64,
         stake_weights: &StakeWeights,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.finalized() {
-            return Err(TipRouterError::VaultOperatorDelegationFinalized);
+            return Err(NCNProgramError::VaultOperatorDelegationFinalized);
         }
 
         self.insert_vault_operator_stake_weight(vault, vault_index, stake_weights)?;
@@ -460,14 +460,14 @@ impl OperatorSnapshot {
         self.vault_operator_delegations_registered = PodU64::from(
             self.vault_operator_delegations_registered()
                 .checked_add(1)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         if stake_weights.stake_weight() > 0 {
             self.valid_operator_vault_delegations = PodU64::from(
                 self.valid_operator_vault_delegations()
                     .checked_add(1)
-                    .ok_or(TipRouterError::ArithmeticOverflow)?,
+                    .ok_or(NCNProgramError::ArithmeticOverflow)?,
             );
         }
 
@@ -490,17 +490,17 @@ impl OperatorSnapshot {
             .total_security()?;
 
         let precise_total_security = PreciseNumber::new(total_security as u128)
-            .ok_or(TipRouterError::NewPreciseNumberError)?;
+            .ok_or(NCNProgramError::NewPreciseNumberError)?;
 
         let precise_weight = weight_table.get_precise_weight(st_mint)?;
 
         let precise_total_stake_weight = precise_total_security
             .checked_mul(&precise_weight)
-            .ok_or(TipRouterError::ArithmeticOverflow)?;
+            .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
         let total_stake_weight = precise_total_stake_weight
             .to_imprecise()
-            .ok_or(TipRouterError::CastToImpreciseNumberError)?;
+            .ok_or(NCNProgramError::CastToImpreciseNumberError)?;
 
         Ok(total_stake_weight)
     }
@@ -673,7 +673,7 @@ mod tests {
         // Verify we get the expected error
         assert_eq!(
             result.unwrap_err(),
-            TipRouterError::VaultOperatorDelegationFinalized
+            NCNProgramError::VaultOperatorDelegationFinalized
         );
     }
 
@@ -711,7 +711,7 @@ mod tests {
         // Verify we get the expected error
         assert_eq!(
             result.unwrap_err(),
-            TipRouterError::TooManyVaultOperatorDelegations
+            NCNProgramError::TooManyVaultOperatorDelegations
         );
     }
 
@@ -745,7 +745,7 @@ mod tests {
         // Verify we get the expected error
         assert_eq!(
             result.unwrap_err(),
-            TipRouterError::TooManyVaultOperatorDelegations
+            NCNProgramError::TooManyVaultOperatorDelegations
         );
     }
 
@@ -790,7 +790,7 @@ mod tests {
         // Verify we get the expected error
         assert_eq!(
             result.unwrap_err(),
-            TipRouterError::DuplicateVaultOperatorDelegation
+            NCNProgramError::DuplicateVaultOperatorDelegation
         );
     }
 
@@ -813,7 +813,7 @@ mod tests {
         // Verify we get the expected error
         assert_eq!(
             result.unwrap_err(),
-            TipRouterError::TooManyVaultOperatorDelegations
+            NCNProgramError::TooManyVaultOperatorDelegations
         );
     }
 
@@ -840,7 +840,7 @@ mod tests {
         );
 
         // Verify we get the expected error
-        assert_eq!(result.unwrap_err(), TipRouterError::OperatorFinalized);
+        assert_eq!(result.unwrap_err(), NCNProgramError::OperatorFinalized);
     }
 
     #[test]

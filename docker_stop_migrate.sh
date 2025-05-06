@@ -1,3 +1,3 @@
 #! /bin/bash
 
-docker stop jito-tip-router-ncn-keeper-migrate-only; docker rm jito-tip-router-ncn-keeper-migrate-only;
+docker stop ncn-program-ncn-keeper-migrate-only; docker rm ncn-program-ncn-keeper-migrate-only;

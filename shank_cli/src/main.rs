@@ -16,14 +16,14 @@ fn main() -> Result<()> {
     let crate_root = std::env::current_dir()?;
 
     let envs = envfile::EnvFile::new(crate_root.join(".cargo").join("programs.env"))?;
-    let tip_router_program_id = envs
-        .get("TIP_ROUTER_PROGRAM_ID")
-        .ok_or_else(|| anyhow!("TIP_ROUTER_PROGRAM_ID not found"))?
+    let ncn_program_id = envs
+        .get("NCN_PROGRAM_ID")
+        .ok_or_else(|| anyhow!("NCN_PROGRAM_ID not found"))?
         .to_string();
 
     let idl_configs = vec![IdlConfiguration {
-        program_id: tip_router_program_id,
-        name: "jito_tip_router",
+        program_id: ncn_program_id,
+        name: "ncn_program",
         paths: vec!["core", "program"],
     }];
 

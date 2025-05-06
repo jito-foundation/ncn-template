@@ -1,7 +1,7 @@
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::load_system_program;
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer, config::Config as NcnConfig, epoch_state::EpochState,
     utils::get_new_size, vault_registry::VaultRegistry, weight_table::WeightTable,
 };

@@ -14,8 +14,8 @@ use crate::{
     },
 };
 use anyhow::Result;
-use jito_tip_router_core::epoch_state::State;
 use log::info;
+use ncn_program_core::epoch_state::State;
 use solana_metrics::set_host_id;
 use std::process::Command;
 use tokio::time::sleep;
@@ -114,7 +114,7 @@ pub async fn startup_keeper(
         .to_string();
 
     set_host_id(format!(
-        "tip-router-keeper_{}_{}_{}",
+        "ncn-program-keeper_{}_{}_{}",
         region, cluster_label, hostname
     ));
 

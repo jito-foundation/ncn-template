@@ -21,14 +21,14 @@
 
 ## Overview
 
-The simulation test is a comprehensive test case that simulates a complete tip router system with multiple operators, vaults, and token types. It tests the entire flow from setup to voting and consensus reaching.
+The simulation test is a comprehensive test case that simulates a complete NCN system with multiple operators, vaults, and token types. It tests the entire flow from setup to voting and consensus reaching.
 
 ## Prerequisites
 
 Before running the simulation test, ensure you have:
 
-1. Set up the test ledger using `./tip-router-operator-cli/scripts/setup-test-ledger.sh`
-1. Built the tip router program using `cargo build-sbf`
+1. Set up the test ledger using `./ncn-program-operator-cli/scripts/setup-test-ledger.sh`
+1. Built the NCN program using `cargo build-sbf`
 1. Set the correct Solana version (1.18.26 recommended)
 
 ## Test Components
@@ -44,13 +44,13 @@ let mut fixture = TestBuilder::new().await;
 This function initializes the test environment by:
 
 1. Determining whether to run using BPF (Solana's Berkeley Packet Filter)
-1. Setting up the program test environment with the TipRouter, Vault, and Restaking programs
+1. Setting up the program test environment with the NCNProgram, Vault, and Restaking programs
 1. Starting the test context that simulates the Solana runtime
 
 After that, the following code is executed:
 
 ```rust
-let mut tip_router_client = fixture.tip_router_client();
+let mut ncn_program_client = fixture.ncn_program_client();
 let mut vault_program_client = fixture.vault_client();
 let mut restaking_client = fixture.restaking_program_client();
 
@@ -78,9 +78,9 @@ This setup:
 1. Defines 13 operators
 1. Sets up 4 different token types with their respective weights:
    - TKN1: Base weight (WEIGHT)
-   - TKN2: Double weight (WEIGHT * 2)
-   - TKN3: Triple weight (WEIGHT * 3)
-   - TKN4: Quadruple weight (WEIGHT * 4)
+   - TKN2: Double weight (WEIGHT \* 2)
+   - TKN3: Triple weight (WEIGHT \* 3)
+   - TKN4: Quadruple weight (WEIGHT \* 4)
 1. Defines various delegation amounts for testing, from minimal (1 lamport) to very large (10M SOL)
 
 ### 1. NCN Setup
@@ -169,12 +169,12 @@ This step tracks each mint supported by the NCN and its weight. This information
 
 ```rust
 // 3.a. Initialize the config for the ncn-program
-tip_router_client
+ncn_program_client
     .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
     .await?;
 
 // 3.b Initialize the vault_registry - creates accounts to track vaults
-tip_router_client
+ncn_program_client
     .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
     .await?;
 
@@ -194,7 +194,7 @@ fixture
 // 3.c. Register all the ST (Support Token) mints in the ncn program
 // This assigns weights to each mint for voting power calculations
 for (mint, weight) in mints.iter() {
-    tip_router_client
+    ncn_program_client
         .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
         .await?;
 }
@@ -209,7 +209,7 @@ for vault in test_ncn.vaults.iter() {
         &vault,
     );
 
-    tip_router_client
+    ncn_program_client
         .do_register_vault(ncn_pubkey, vault, ncn_vault_ticket)
         .await?;
 }
@@ -222,9 +222,9 @@ This code:
 3. Warps time forward by 2 epoch lengths to ensure all handshake relationships are active
 4. Registers each ST mint with its corresponding weight:
    - TKN1: base weight (WEIGHT)
-   - TKN2: double weight (WEIGHT * 2) 
-   - TKN3: triple weight (WEIGHT * 3)
-   - TKN4: quadruple weight (WEIGHT * 4)
+   - TKN2: double weight (WEIGHT \* 2)
+   - TKN3: triple weight (WEIGHT \* 3)
+   - TKN4: quadruple weight (WEIGHT \* 4)
 5. Registers each vault with the NCN, connecting it to the token it supports
 
 The weights play a crucial role in the voting system as they multiply the delegation amounts to determine voting power. This setup tests how different token weights affect voting outcomes.
@@ -259,18 +259,19 @@ This creates an epoch state account that tracks:
 // 4.b. Initialize the weight table - prepares the table that will track voting weights
 let clock = fixture.clock().await;
 let epoch = clock.epoch;
-tip_router_client
+ncn_program_client
     .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
     .await?;
 
 // 4.c. Take a snapshot of the weights for each ST mint
 // This records the current weights for the voting calculations
-tip_router_client
+ncn_program_client
     .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
     .await?;
 ```
 
 This step:
+
 1. Creates a weight table for the current epoch
 2. Copies the weights from the vault registry to the weight table, locking them for this voting cycle
 3. This is especially important when weights are dynamic (like token prices)
@@ -291,6 +292,7 @@ fixture
 ```
 
 This code:
+
 1. Creates an epoch snapshot with aggregate data
 2. Takes individual snapshots for each operator
 3. Records all vault-to-operator delegations to determine voting power
@@ -326,7 +328,7 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
         let weather_status = WeatherStatus::Rainy as u8;
 
         // We expect this to fail since the operator has zero delegations
-        let result = tip_router_client
+        let result = ncn_program_client
             .do_cast_vote(
                 ncn_pubkey,
                 zero_delegation_operator.operator_pubkey,
@@ -335,13 +337,13 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
                 epoch,
             )
             .await;
-        
+
         // Verify that voting with zero delegation returns an error
         assert!(result.is_err(), "Expected error when voting with zero delegation");
     }
 
     // First operator votes for Cloudy
-    tip_router_client
+    ncn_program_client
         .do_cast_vote(
             ncn_pubkey,
             first_operator.operator_pubkey,
@@ -350,9 +352,9 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
             epoch,
         )
         .await?;
-        
+
     // Second and third operators vote for Sunny (the expected winner)
-    tip_router_client
+    ncn_program_client
         .do_cast_vote(
             ncn_pubkey,
             second_operator.operator_pubkey,
@@ -361,7 +363,7 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
             epoch,
         )
         .await?;
-    tip_router_client
+    ncn_program_client
         .do_cast_vote(
             ncn_pubkey,
             third_operator.operator_pubkey,
@@ -375,7 +377,7 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
     for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
         let operator = operator_root.operator_pubkey;
 
-        tip_router_client
+        ncn_program_client
             .do_cast_vote(
                 ncn_pubkey,
                 operator,
@@ -399,7 +401,7 @@ This code:
 
 ```rust
 // 6. Verify voting results
-let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
+let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
 assert!(ballot_box.has_winning_ballot());
 assert!(ballot_box.is_consensus_reached());
 assert_eq!(
@@ -410,7 +412,7 @@ assert_eq!(
 // 7. Fetch and verify the consensus_result account
 {
     let epoch = fixture.clock().await.epoch;
-    let consensus_result = tip_router_client
+    let consensus_result = ncn_program_client
         .get_consensus_result(ncn_pubkey, epoch)
         .await?;
 
@@ -420,7 +422,7 @@ assert_eq!(
     assert_eq!(consensus_result.weather_status(), winning_weather_status);
 
     // Get ballot box to compare values
-    let ballot_box = tip_router_client.get_ballot_box(ncn_pubkey, epoch).await?;
+    let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
     let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
 
     // Verify vote weights match between ballot box and consensus result
@@ -456,7 +458,7 @@ fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
 // Verify that consensus_result account is not closed (it should persist)
 {
-    let consensus_result = tip_router_client
+    let consensus_result = ncn_program_client
         .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
         .await?;
 
@@ -514,10 +516,10 @@ pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
 
 This function:
 
-1. Gets clients for the restaking, vault, and tip router programs
+1. Gets clients for the restaking, vault, and NCN programs
 1. Initializes configurations for both the vault and restaking programs
 1. Creates a new NCN using the restaking program
-1. Sets up the tip router with the newly created NCN
+1. Sets up the NCN with the newly created NCN
 1. Returns a TestNcn struct containing the NCN root and empty lists for operators and vaults
 
 ### `do_admin_register_st_mint()`
@@ -530,10 +532,10 @@ pub async fn do_admin_register_st_mint(
     weight: u128,
 ) -> TestResult<()> {
     let vault_registry =
-        VaultRegistry::find_program_address(&jito_tip_router_program::id(), &ncn).0;
+        VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
 
     let (ncn_config, _, _) =
-        NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn);
+        NcnConfig::find_program_address(&ncn_program::id(), &ncn);
 
     let admin = self.payer.pubkey();
 
@@ -562,7 +564,7 @@ pub async fn do_initialize_config(
 
     // Setup account payer
     let (account_payer, _, _) =
-        AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
+        AccountPayer::find_program_address(&ncn_program::id(), &ncn);
     self.airdrop(&account_payer, 100.0).await?;
 
     let ncn_admin_pubkey = ncn_admin.pubkey();
@@ -593,10 +595,10 @@ pub async fn initialize_config(
     epochs_after_consensus_before_close: u64,
     valid_slots_after_consensus: u64,
 ) -> TestResult<()> {
-    let config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
+    let config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
 
     let (account_payer, _, _) =
-        AccountPayer::find_program_address(&jito_tip_router_program::id(), &ncn);
+        AccountPayer::find_program_address(&ncn_program::id(), &ncn);
 
     // calls the NCN program
     let ix = InitializeConfigBuilder::new()
@@ -758,14 +760,14 @@ This function:
 
 ```rust
 pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-    let mut tip_router_client = self.tip_router_client();
+    let mut ncn_program_client = self.ncn_program_client();
 
     // Not sure if this is needed
     self.warp_slot_incremental(1000).await?;
 
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    tip_router_client
+    ncn_program_client
         .do_intialize_epoch_state(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
 
@@ -783,15 +785,15 @@ This function:
 
 ```rust
 pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-    let mut tip_router_client = self.tip_router_client();
+    let mut ncn_program_client = self.ncn_program_client();
 
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    tip_router_client
+    ncn_program_client
         .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
 
-    tip_router_client
+    ncn_program_client
         .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
 
@@ -809,13 +811,13 @@ This function:
 
 ```rust
 pub async fn add_ballot_box_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-    let mut tip_router_client = self.tip_router_client();
+    let mut ncn_program_client = self.ncn_program_client();
 
     let clock = self.clock().await;
     let epoch = clock.epoch;
     let ncn = test_ncn.ncn_root.ncn_pubkey;
 
-    tip_router_client
+    ncn_program_client
         .do_full_initialize_ballot_box(ncn, epoch)
         .await?;
 
@@ -840,15 +842,15 @@ pub async fn do_cast_vote(
     epoch: u64,
 ) -> TestResult<()> {
     let epoch_state =
-        EpochState::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
+        EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
     let ncn_config =
-        NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
+        NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
     let ballot_box =
-        BallotBox::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
+        BallotBox::find_program_address(&ncn_program::id(), &ncn, epoch).0;
     let epoch_snapshot =
-        EpochSnapshot::find_program_address(&jito_tip_router_program::id(), &ncn, epoch).0;
+        EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch).0;
     let operator_snapshot =
-        OperatorSnapshot::find_program_address(&jito_tip_router_program::id(),
+        OperatorSnapshot::find_program_address(&ncn_program::id(),
                                               &operator, &ncn, epoch).0;
 
     let ix = CastVoteBuilder::new()

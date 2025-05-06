@@ -4,7 +4,7 @@ use shank::ShankType;
 use solana_program::pubkey::Pubkey;
 use spl_math::precise_number::PreciseNumber;
 
-use crate::{error::TipRouterError, vault_registry::StMintEntry};
+use crate::{error::NCNProgramError, vault_registry::StMintEntry};
 
 #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
@@ -69,8 +69,8 @@ impl WeightEntry {
         self.weight.into()
     }
 
-    pub fn precise_weight(&self) -> Result<PreciseNumber, TipRouterError> {
-        PreciseNumber::new(self.weight.into()).ok_or(TipRouterError::NewPreciseNumberError)
+    pub fn precise_weight(&self) -> Result<PreciseNumber, NCNProgramError> {
+        PreciseNumber::new(self.weight.into()).ok_or(NCNProgramError::NewPreciseNumberError)
     }
 
     pub fn set_weight(&mut self, weight: u128, current_slot: u64) {

@@ -1,8 +1,8 @@
 use jito_bytemuck::AccountDeserialize;
 use jito_jsm_core::loader::load_signer;
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
-    epoch_state::EpochState, error::TipRouterError, weight_table::WeightTable,
+use ncn_program_core::{
+    epoch_state::EpochState, error::NCNProgramError, weight_table::WeightTable,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -34,7 +34,7 @@ pub fn process_admin_set_weight(
 
     if ncn_weight_table_admin.ne(weight_table_admin.key) {
         msg!("Vault update delegations ticket is not at the correct PDA");
-        return Err(TipRouterError::IncorrectWeightTableAdmin.into());
+        return Err(NCNProgramError::IncorrectWeightTableAdmin.into());
     }
 
     let mut weight_table_data = weight_table.try_borrow_mut_data()?;

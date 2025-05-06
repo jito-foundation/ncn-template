@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-use jito_tip_router_core::{
+use ncn_program_core::{
     ballot_box::{BallotBox, WeatherStatus},
     constants::WEIGHT,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
@@ -17,7 +17,7 @@ use solana_sdk::{
     signature::{Keypair, Signer},
 };
 
-use super::{restaking_client::NcnRoot, tip_router_client::TipRouterClient};
+use super::{ncn_program_client::NCNProgramClient, restaking_client::NcnRoot};
 use crate::fixtures::{
     restaking_client::{OperatorRoot, RestakingProgramClient},
     vault_client::{VaultProgramClient, VaultRoot},
@@ -56,20 +56,16 @@ impl TestBuilder {
         let run_as_bpf = std::env::vars().any(|(key, _)| key.eq("SBF_OUT_DIR"));
 
         let program_test = if run_as_bpf {
-            let mut program_test = ProgramTest::new(
-                "jito_tip_router_program",
-                jito_tip_router_program::id(),
-                None,
-            );
+            let mut program_test = ProgramTest::new("ncn_program", ncn_program::id(), None);
             program_test.add_program("jito_vault_program", jito_vault_program::id(), None);
             program_test.add_program("jito_restaking_program", jito_restaking_program::id(), None);
 
             program_test
         } else {
             let mut program_test = ProgramTest::new(
-                "jito_tip_router_program",
-                jito_tip_router_program::id(),
-                processor!(jito_tip_router_program::process_instruction),
+                "ncn_program",
+                ncn_program::id(),
+                processor!(ncn_program::process_instruction),
             );
             program_test.add_program(
                 "jito_vault_program",
@@ -131,8 +127,8 @@ impl TestBuilder {
         self.context.banks_client.get_sysvar().await.unwrap()
     }
 
-    pub fn tip_router_client(&self) -> TipRouterClient {
-        TipRouterClient::new(
+    pub fn ncn_program_client(&self) -> NCNProgramClient {
+        NCNProgramClient::new(
             self.context.banks_client.clone(),
             self.context.payer.insecure_clone(),
         )
@@ -353,7 +349,7 @@ impl TestBuilder {
 
     // 5. Setup Tracked Mints
     pub async fn add_vault_registry_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
         let mut restaking_client = self.restaking_program_client();
         let mut vault_client = self.vault_program_client();
 
@@ -386,11 +382,11 @@ impl TestBuilder {
             let ncn_vault_ticket =
                 NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
 
-            tip_router_client
+            ncn_program_client
                 .do_admin_register_st_mint(ncn, st_mint, WEIGHT)
                 .await?;
 
-            tip_router_client
+            ncn_program_client
                 .do_register_vault(ncn, vault, ncn_vault_ticket)
                 .await?;
         }
@@ -409,9 +405,9 @@ impl TestBuilder {
 
         let mut test_ncn = self.create_test_ncn().await?;
 
-        let mut tip_router_client = self.tip_router_client();
-        tip_router_client
-            .setup_tip_router(&test_ncn.ncn_root)
+        let mut ncn_program_client = self.ncn_program_client();
+        ncn_program_client
+            .setup_ncn_program(&test_ncn.ncn_root)
             .await?;
 
         self.add_operators_to_test_ncn(&mut test_ncn, operator_count, operator_fees_bps)
@@ -425,14 +421,14 @@ impl TestBuilder {
     }
 
     pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         // Not sure if this is needed
         self.warp_slot_incremental(1000).await?;
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
-        tip_router_client
+        ncn_program_client
             .do_intialize_epoch_state(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
@@ -441,16 +437,16 @@ impl TestBuilder {
 
     // 6a. Admin Set weights
     pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
-        tip_router_client
+        ncn_program_client
             .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
         let ncn = test_ncn.ncn_root.ncn_pubkey;
-        let vault_registry = tip_router_client.get_vault_registry(ncn).await?;
+        let vault_registry = ncn_program_client.get_vault_registry(ncn).await?;
 
         for entry in vault_registry.st_mint_list {
             if entry.is_empty() {
@@ -458,7 +454,7 @@ impl TestBuilder {
             }
 
             let st_mint = entry.st_mint();
-            tip_router_client
+            ncn_program_client
                 .do_admin_set_weight(
                     test_ncn.ncn_root.ncn_pubkey,
                     epoch,
@@ -473,15 +469,15 @@ impl TestBuilder {
 
     // 6b. Set weights using vault registry
     pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
-        tip_router_client
+        ncn_program_client
             .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
-        tip_router_client
+        ncn_program_client
             .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
@@ -490,12 +486,12 @@ impl TestBuilder {
 
     // 7. Create Epoch Snapshot
     pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
 
-        tip_router_client
+        ncn_program_client
             .do_initialize_epoch_snapshot(test_ncn.ncn_root.ncn_pubkey, epoch)
             .await?;
 
@@ -507,7 +503,7 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
@@ -517,8 +513,8 @@ impl TestBuilder {
         for operator_root in test_ncn.operators.iter() {
             let operator = operator_root.operator_pubkey;
 
-            tip_router_client
-                .do_full_initialize_operator_snapshot(operator, ncn, epoch)
+            ncn_program_client
+                .do_initialize_operator_snapshot(operator, ncn, epoch)
                 .await?;
         }
 
@@ -530,7 +526,7 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
         let mut vault_program_client = self.vault_program_client();
 
         let clock = self.clock().await;
@@ -547,7 +543,7 @@ impl TestBuilder {
         for operator_root in test_ncn.operators.iter() {
             let operator = operator_root.operator_pubkey;
 
-            let operator_snapshot = tip_router_client
+            let operator_snapshot = ncn_program_client
                 .get_operator_snapshot(operator, ncn, epoch)
                 .await?;
 
@@ -569,7 +565,7 @@ impl TestBuilder {
                         .await?;
                 }
 
-                tip_router_client
+                ncn_program_client
                     .do_snapshot_vault_operator_delegation(vault, operator, ncn, epoch)
                     .await?;
             }
@@ -592,13 +588,13 @@ impl TestBuilder {
 
     // 10 - Initialize Ballot Box
     pub async fn add_ballot_box_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
         let ncn = test_ncn.ncn_root.ncn_pubkey;
 
-        tip_router_client
+        ncn_program_client
             .do_full_initialize_ballot_box(ncn, epoch)
             .await?;
 
@@ -607,7 +603,7 @@ impl TestBuilder {
 
     // 11 - Cast all votes for active operators
     pub async fn cast_votes_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
@@ -617,12 +613,12 @@ impl TestBuilder {
 
         for operator_root in test_ncn.operators.iter() {
             let operator = operator_root.operator_pubkey;
-            let operator_snapshot = tip_router_client
+            let operator_snapshot = ncn_program_client
                 .get_operator_snapshot(operator, ncn, epoch)
                 .await?;
 
             if operator_snapshot.is_active() {
-                tip_router_client
+                ncn_program_client
                     .do_cast_vote(
                         ncn,
                         operator,
@@ -649,12 +645,12 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
-        let mut tip_router_client = self.tip_router_client();
+        let mut ncn_program_client = self.ncn_program_client();
 
         let epoch_to_close = self.clock().await.epoch;
         let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
 
-        let config_account = tip_router_client.get_ncn_config(ncn).await?;
+        let config_account = ncn_program_client.get_ncn_config(ncn).await?;
 
         // Wait until we can close the accounts
         {
@@ -669,13 +665,10 @@ impl TestBuilder {
 
         // Ballot Box
         {
-            let (ballot_box, _, _) = BallotBox::find_program_address(
-                &jito_tip_router_program::id(),
-                &ncn,
-                epoch_to_close,
-            );
+            let (ballot_box, _, _) =
+                BallotBox::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
 
-            tip_router_client
+            ncn_program_client
                 .do_close_epoch_account(ncn, epoch_to_close, ballot_box)
                 .await?;
 
@@ -688,13 +681,13 @@ impl TestBuilder {
             let operator = operator_root.operator_pubkey;
 
             let (operator_snapshot, _, _) = OperatorSnapshot::find_program_address(
-                &jito_tip_router_program::id(),
+                &ncn_program::id(),
                 &operator,
                 &ncn,
                 epoch_to_close,
             );
 
-            tip_router_client
+            ncn_program_client
                 .do_close_epoch_account(ncn, epoch_to_close, operator_snapshot)
                 .await?;
 
@@ -704,13 +697,10 @@ impl TestBuilder {
 
         // Epoch Snapshot
         {
-            let (epoch_snapshot, _, _) = EpochSnapshot::find_program_address(
-                &jito_tip_router_program::id(),
-                &ncn,
-                epoch_to_close,
-            );
+            let (epoch_snapshot, _, _) =
+                EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
 
-            tip_router_client
+            ncn_program_client
                 .do_close_epoch_account(ncn, epoch_to_close, epoch_snapshot)
                 .await?;
 
@@ -720,13 +710,10 @@ impl TestBuilder {
 
         // Weight Table
         {
-            let (weight_table, _, _) = WeightTable::find_program_address(
-                &jito_tip_router_program::id(),
-                &ncn,
-                epoch_to_close,
-            );
+            let (weight_table, _, _) =
+                WeightTable::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
 
-            tip_router_client
+            ncn_program_client
                 .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await?;
 
@@ -736,13 +723,10 @@ impl TestBuilder {
 
         // Epoch State
         {
-            let (epoch_state, _, _) = EpochState::find_program_address(
-                &jito_tip_router_program::id(),
-                &ncn,
-                epoch_to_close,
-            );
+            let (epoch_state, _, _) =
+                EpochState::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
 
-            tip_router_client
+            ncn_program_client
                 .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await?;
 
@@ -751,7 +735,7 @@ impl TestBuilder {
         }
 
         {
-            let epoch_marker = tip_router_client
+            let epoch_marker = ncn_program_client
                 .get_epoch_marker(ncn, epoch_to_close)
                 .await?;
 

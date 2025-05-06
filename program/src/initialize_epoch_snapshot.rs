@@ -1,9 +1,9 @@
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::{load_system_account, load_system_program};
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer, config::Config, epoch_marker::EpochMarker,
-    epoch_snapshot::EpochSnapshot, epoch_state::EpochState, error::TipRouterError,
+    epoch_snapshot::EpochSnapshot, epoch_state::EpochState, error::NCNProgramError,
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -44,7 +44,7 @@ pub fn process_initialize_epoch_snapshot(
 
         if !weight_table_account.finalized() {
             msg!("Weight table must be finalized before initializing epoch snapshot");
-            return Err(TipRouterError::WeightTableNotFinalized.into());
+            return Err(NCNProgramError::WeightTableNotFinalized.into());
         }
 
         weight_table_account.vault_count()
@@ -84,7 +84,7 @@ pub fn process_initialize_epoch_snapshot(
 
     if operator_count == 0 {
         msg!("No operators to snapshot");
-        return Err(TipRouterError::NoOperators.into());
+        return Err(NCNProgramError::NoOperators.into());
     }
 
     let mut epoch_snapshot_data: std::cell::RefMut<'_, &mut [u8]> =

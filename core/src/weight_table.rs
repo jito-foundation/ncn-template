@@ -10,7 +10,7 @@ use spl_math::precise_number::PreciseNumber;
 use crate::{
     constants::{MAX_ST_MINTS, MAX_VAULTS},
     discriminators::Discriminators,
-    error::TipRouterError,
+    error::NCNProgramError,
     loaders::check_load,
     vault_registry::{StMintEntry, VaultEntry},
     weight_entry::WeightEntry,
@@ -87,7 +87,7 @@ impl WeightTable {
         bump: u8,
         vault_entries: &[VaultEntry; MAX_VAULTS],
         mint_entries: &[StMintEntry; MAX_ST_MINTS],
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         // Initializes field by field to avoid overflowing stack
         self.ncn = *ncn;
         self.epoch = PodU64::from(ncn_epoch);
@@ -104,9 +104,9 @@ impl WeightTable {
     fn set_vault_entries(
         &mut self,
         vault_entries: &[VaultEntry; MAX_VAULTS],
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.vault_registry_initialized() {
-            return Err(TipRouterError::WeightTableAlreadyInitialized);
+            return Err(NCNProgramError::WeightTableAlreadyInitialized);
         }
 
         // Copy the entire slice into vault_registry
@@ -122,9 +122,9 @@ impl WeightTable {
     fn set_mint_entries(
         &mut self,
         mint_entries: &[StMintEntry; MAX_ST_MINTS],
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.table_initialized() {
-            return Err(TipRouterError::WeightTableAlreadyInitialized);
+            return Err(NCNProgramError::WeightTableAlreadyInitialized);
         }
 
         // Set table using iterator
@@ -142,35 +142,35 @@ impl WeightTable {
         mint: &Pubkey,
         weight: u128,
         current_slot: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         self.table
             .iter_mut()
             .find(|entry| entry.st_mint().eq(mint))
-            .map_or(Err(TipRouterError::InvalidMintForWeightTable), |entry| {
+            .map_or(Err(NCNProgramError::InvalidMintForWeightTable), |entry| {
                 entry.set_weight(weight, current_slot);
                 Ok(())
             })
     }
 
-    pub fn get_weight(&self, mint: &Pubkey) -> Result<u128, TipRouterError> {
+    pub fn get_weight(&self, mint: &Pubkey) -> Result<u128, NCNProgramError> {
         self.table
             .iter()
             .find(|entry| entry.st_mint().eq(mint))
-            .map_or(Err(TipRouterError::InvalidMintForWeightTable), |entry| {
+            .map_or(Err(NCNProgramError::InvalidMintForWeightTable), |entry| {
                 Ok(entry.weight())
             })
     }
 
-    pub fn get_weight_entry(&self, mint: &Pubkey) -> Result<&WeightEntry, TipRouterError> {
+    pub fn get_weight_entry(&self, mint: &Pubkey) -> Result<&WeightEntry, NCNProgramError> {
         self.table
             .iter()
             .find(|entry| entry.st_mint().eq(mint))
-            .ok_or(TipRouterError::InvalidMintForWeightTable)
+            .ok_or(NCNProgramError::InvalidMintForWeightTable)
     }
 
-    pub fn get_precise_weight(&self, mint: &Pubkey) -> Result<PreciseNumber, TipRouterError> {
+    pub fn get_precise_weight(&self, mint: &Pubkey) -> Result<PreciseNumber, NCNProgramError> {
         let weight = self.get_weight(mint)?;
-        PreciseNumber::new(weight).ok_or(TipRouterError::NewPreciseNumberError)
+        PreciseNumber::new(weight).ok_or(NCNProgramError::NewPreciseNumberError)
     }
 
     pub fn get_mints(&self) -> Vec<Pubkey> {
@@ -238,23 +238,23 @@ impl WeightTable {
             && self.mint_count() == self.weight_count()
     }
 
-    pub fn check_table_initialized(&self) -> Result<(), TipRouterError> {
+    pub fn check_table_initialized(&self) -> Result<(), NCNProgramError> {
         if !self.table_initialized() {
-            return Err(TipRouterError::TableNotInitialized);
+            return Err(NCNProgramError::TableNotInitialized);
         }
         Ok(())
     }
 
-    pub fn check_registry_initialized(&self) -> Result<(), TipRouterError> {
+    pub fn check_registry_initialized(&self) -> Result<(), NCNProgramError> {
         if !self.vault_registry_initialized() {
-            return Err(TipRouterError::RegistryNotInitialized);
+            return Err(NCNProgramError::RegistryNotInitialized);
         }
         Ok(())
     }
 
-    pub fn check_registry_for_vault(&self, vault_index: u64) -> Result<(), TipRouterError> {
+    pub fn check_registry_for_vault(&self, vault_index: u64) -> Result<(), NCNProgramError> {
         if vault_index == VaultEntry::EMPTY_VAULT_INDEX {
-            return Err(TipRouterError::VaultNotInRegistry);
+            return Err(NCNProgramError::VaultNotInRegistry);
         }
 
         if !self
@@ -262,7 +262,7 @@ impl WeightTable {
             .iter()
             .any(|entry| entry.vault_index().eq(&vault_index))
         {
-            return Err(TipRouterError::VaultNotInRegistry);
+            return Err(NCNProgramError::VaultNotInRegistry);
         }
         Ok(())
     }
@@ -404,21 +404,21 @@ mod tests {
         // Test 2: Check non-existent vault indices should fail
         assert_eq!(
             table.check_registry_for_vault(2),
-            Err(TipRouterError::VaultNotInRegistry)
+            Err(NCNProgramError::VaultNotInRegistry)
         );
         assert_eq!(
             table.check_registry_for_vault(0),
-            Err(TipRouterError::VaultNotInRegistry)
+            Err(NCNProgramError::VaultNotInRegistry)
         );
         assert_eq!(
             table.check_registry_for_vault(11),
-            Err(TipRouterError::VaultNotInRegistry)
+            Err(NCNProgramError::VaultNotInRegistry)
         );
 
         // Test 3: Check edge case values
         assert_eq!(
             table.check_registry_for_vault(u64::MAX),
-            Err(TipRouterError::VaultNotInRegistry)
+            Err(NCNProgramError::VaultNotInRegistry)
         );
     }
 
@@ -453,7 +453,7 @@ mod tests {
 
         assert_eq!(
             table.set_mint_entries(&second_mints),
-            Err(TipRouterError::WeightTableAlreadyInitialized)
+            Err(NCNProgramError::WeightTableAlreadyInitialized)
         );
     }
 
@@ -481,7 +481,7 @@ mod tests {
         let invalid_mint = Pubkey::new_unique();
         assert_eq!(
             table.set_weight(&invalid_mint, 100, 1),
-            Err(TipRouterError::InvalidMintForWeightTable)
+            Err(NCNProgramError::InvalidMintForWeightTable)
         );
     }
 

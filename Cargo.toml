@@ -1,12 +1,12 @@
 [workspace]
 members = [
     "cli",
-    "clients/rust/jito_tip_router",
+    "clients/rust/ncn_program",
     "core",
     "integration_tests",
     "program",
     "shank_cli",
-    "tip-router-operator-cli",
+    "ncn-program-operator-cli",
 ]
 
 resolver = "2"
@@ -105,10 +105,10 @@ switchboard-on-demand = "0.3.4"
 syn = "2.0.72"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
-jito-tip-router-client = { path = "./clients/rust/jito_tip_router", version = "0.0.1" }
-jito-tip-router-core = { path = "./core", version = "=0.0.1" }
-jito-tip-router-program = { path = "./program", version = "=0.0.1" }
-jito-tip-router-shank-cli = { path = "./shank_cli", version = "=0.0.1" }
+ncn-program-client = { path = "./clients/rust/ncn_program", version = "0.0.1" }
+ncn-program-core = { path = "./core", version = "=0.0.1" }
+ncn-program = { path = "./program", version = "=0.0.1" }
+ncn-program-shank-cli = { path = "./shank_cli", version = "=0.0.1" }
 jito-bytemuck = { package = "jito-bytemuck", git = "https://github.com/jito-foundation/restaking", branch = "v2.1-upgrade" }
 jito-account-traits-derive = { package = "jito-account-traits-derive", git = "https://github.com/jito-foundation/restaking", branch = "v2.1-upgrade" }
 jito-jsm-core = { package = "jito-jsm-core", git = "https://github.com/jito-foundation/restaking", branch = "v2.1-upgrade" }
@@ -180,7 +180,6 @@ solana-msg = { package = "solana-msg", git = "https://github.com/jito-foundation
 solana-native-token = { package = "solana-native-token", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
 solana-net-utils = { package = "solana-net-utils", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
 solana-packet = { package = "solana-packet", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
-solana-perf = { package = "solana-perf", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
 solana-poh = { package = "solana-poh", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
 solana-poseidon = { package = "solana-poseidon", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }
 solana-precompile-error = { package = "solana-precompile-error", git = "https://github.com/jito-foundation/jito-solana.git", rev = "87dcd086af931d81a0a71ad49cbea38e9655f166" }

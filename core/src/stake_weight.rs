@@ -2,7 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use jito_bytemuck::types::PodU128;
 use shank::ShankType;
 
-use crate::error::TipRouterError;
+use crate::error::NCNProgramError;
 
 #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
@@ -26,7 +26,7 @@ impl StakeWeights {
         }
     }
 
-    pub fn snapshot(stake_weight: u128) -> Result<Self, TipRouterError> {
+    pub fn snapshot(stake_weight: u128) -> Result<Self, NCNProgramError> {
         let mut stake_weights = Self::default();
 
         stake_weights.increment_stake_weight(stake_weight)?;
@@ -38,33 +38,33 @@ impl StakeWeights {
         self.stake_weight.into()
     }
 
-    pub fn increment(&mut self, stake_weight: &Self) -> Result<(), TipRouterError> {
+    pub fn increment(&mut self, stake_weight: &Self) -> Result<(), NCNProgramError> {
         self.increment_stake_weight(stake_weight.stake_weight())?;
 
         Ok(())
     }
 
-    fn increment_stake_weight(&mut self, stake_weight: u128) -> Result<(), TipRouterError> {
+    fn increment_stake_weight(&mut self, stake_weight: u128) -> Result<(), NCNProgramError> {
         self.stake_weight = PodU128::from(
             self.stake_weight()
                 .checked_add(stake_weight)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         Ok(())
     }
 
-    pub fn decrement(&mut self, other: &Self) -> Result<(), TipRouterError> {
+    pub fn decrement(&mut self, other: &Self) -> Result<(), NCNProgramError> {
         self.decrement_stake_weight(other.stake_weight())?;
 
         Ok(())
     }
 
-    fn decrement_stake_weight(&mut self, stake_weight: u128) -> Result<(), TipRouterError> {
+    fn decrement_stake_weight(&mut self, stake_weight: u128) -> Result<(), NCNProgramError> {
         self.stake_weight = PodU128::from(
             self.stake_weight()
                 .checked_sub(stake_weight)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         Ok(())

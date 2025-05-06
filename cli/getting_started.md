@@ -13,13 +13,13 @@ Install the Tip Router CLI
 
 ```bash
 cargo build --release
-cargo install --path ./cli --bin jito-tip-router-cli --locked
+cargo install --path ./cli --bin ncn-program-cli --locked
 ```
 
 Ensure it has been installed
 
 ```bash
-jito-tip-router-cli -- help
+ncn-program-cli -- help
 ```
 
 Clone and Install the Restaking and Vault CLI in a different directory

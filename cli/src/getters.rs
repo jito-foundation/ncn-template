@@ -10,22 +10,22 @@ use jito_restaking_core::{
     ncn_vault_ticket::NcnVaultTicket, operator::Operator,
     operator_vault_ticket::OperatorVaultTicket,
 };
-use jito_tip_router_core::{
-    account_payer::AccountPayer,
-    ballot_box::BallotBox,
-    config::Config as TipRouterConfig,
-    epoch_marker::EpochMarker,
-    epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
-    epoch_state::EpochState,
-    vault_registry::VaultRegistry,
-    weight_table::WeightTable,
-};
 use jito_vault_core::{
     config::Config as VaultConfig, vault::Vault, vault_ncn_ticket::VaultNcnTicket,
     vault_operator_delegation::VaultOperatorDelegation,
     vault_update_state_tracker::VaultUpdateStateTracker,
 };
 use log::info;
+use ncn_program_core::{
+    account_payer::AccountPayer,
+    ballot_box::BallotBox,
+    config::Config as NCNProgramConfig,
+    epoch_marker::EpochMarker,
+    epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
+    epoch_state::EpochState,
+    vault_registry::VaultRegistry,
+    weight_table::WeightTable,
+};
 use solana_account_decoder::{UiAccountEncoding, UiDataSliceConfig};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::{
@@ -78,10 +78,10 @@ pub async fn get_guaranteed_epoch_and_slot(handler: &CliHandler) -> (u64, u64) {
     }
 }
 
-// ---------------------- TIP ROUTER ----------------------
-pub async fn get_tip_router_config(handler: &CliHandler) -> Result<TipRouterConfig> {
+// ---------------------- NCN Program ----------------------
+pub async fn get_ncn_program_config(handler: &CliHandler) -> Result<NCNProgramConfig> {
     let (address, _, _) =
-        TipRouterConfig::find_program_address(&handler.tip_router_program_id, handler.ncn()?);
+        NCNProgramConfig::find_program_address(&handler.ncn_program_id, handler.ncn()?);
 
     let account = get_account(handler, &address).await?;
 
@@ -90,13 +90,13 @@ pub async fn get_tip_router_config(handler: &CliHandler) -> Result<TipRouterConf
     }
     let account = account.unwrap();
 
-    let account = TipRouterConfig::try_from_slice_unchecked(account.data.as_slice())?;
+    let account = NCNProgramConfig::try_from_slice_unchecked(account.data.as_slice())?;
     Ok(*account)
 }
 
 pub async fn get_vault_registry(handler: &CliHandler) -> Result<VaultRegistry> {
     let (address, _, _) =
-        VaultRegistry::find_program_address(&handler.tip_router_program_id, handler.ncn()?);
+        VaultRegistry::find_program_address(&handler.ncn_program_id, handler.ncn()?);
 
     let account = get_account(handler, &address).await?;
 
@@ -111,7 +111,7 @@ pub async fn get_vault_registry(handler: &CliHandler) -> Result<VaultRegistry> {
 
 pub async fn get_epoch_state(handler: &CliHandler, epoch: u64) -> Result<EpochState> {
     let (address, _, _) =
-        EpochState::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        EpochState::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 
@@ -126,7 +126,7 @@ pub async fn get_epoch_state(handler: &CliHandler, epoch: u64) -> Result<EpochSt
 
 pub async fn get_weight_table(handler: &CliHandler, epoch: u64) -> Result<WeightTable> {
     let (address, _, _) =
-        WeightTable::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        WeightTable::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 
@@ -141,7 +141,7 @@ pub async fn get_weight_table(handler: &CliHandler, epoch: u64) -> Result<Weight
 
 pub async fn get_epoch_snapshot(handler: &CliHandler, epoch: u64) -> Result<EpochSnapshot> {
     let (address, _, _) =
-        EpochSnapshot::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        EpochSnapshot::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 
@@ -160,7 +160,7 @@ pub async fn get_operator_snapshot(
     epoch: u64,
 ) -> Result<OperatorSnapshot> {
     let (address, _, _) = OperatorSnapshot::find_program_address(
-        &handler.tip_router_program_id,
+        &handler.ncn_program_id,
         operator,
         handler.ncn()?,
         epoch,
@@ -179,7 +179,7 @@ pub async fn get_operator_snapshot(
 
 pub async fn get_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBox> {
     let (address, _, _) =
-        BallotBox::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        BallotBox::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 
@@ -194,7 +194,7 @@ pub async fn get_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBo
 
 pub async fn get_account_payer(handler: &CliHandler) -> Result<Account> {
     let (address, _, _) =
-        AccountPayer::find_program_address(&handler.tip_router_program_id, handler.ncn()?);
+        AccountPayer::find_program_address(&handler.ncn_program_id, handler.ncn()?);
 
     let account = get_account(handler, &address).await?;
 
@@ -208,7 +208,7 @@ pub async fn get_account_payer(handler: &CliHandler) -> Result<Account> {
 
 pub async fn get_epoch_marker(handler: &CliHandler, epoch: u64) -> Result<EpochMarker> {
     let (address, _, _) =
-        EpochMarker::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        EpochMarker::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 
@@ -223,7 +223,7 @@ pub async fn get_epoch_marker(handler: &CliHandler, epoch: u64) -> Result<EpochM
 
 pub async fn get_is_epoch_completed(handler: &CliHandler, epoch: u64) -> Result<bool> {
     let (address, _, _) =
-        EpochMarker::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+        EpochMarker::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
 
     let account = get_account(handler, &address).await?;
 

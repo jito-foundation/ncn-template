@@ -1,5 +1,5 @@
 [package]
-name = "jito-tip-router-program"
+name = "ncn-program"
 description = "Jito's MEV Tip Distribution NCN Program"
 version = { workspace = true }
 authors = { workspace = true }
@@ -11,7 +11,7 @@ readme = { workspace = true }
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "jito_tip_router_program"
+name = "ncn_program"
 
 [features]
 no-entrypoint = []
@@ -34,7 +34,7 @@ jito-jsm-core = { workspace = true }
 jito-restaking-core = { workspace = true }
 jito-restaking-program = { workspace = true }
 jito-restaking-sdk = { workspace = true }
-jito-tip-router-core = { workspace = true }
+ncn-program-core = { workspace = true }
 jito-vault-core = { workspace = true }
 jito-vault-program = { workspace = true }
 jito-vault-sdk = { workspace = true }

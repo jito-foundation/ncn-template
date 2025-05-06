@@ -16,8 +16,8 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN cargo build --release --bin jito-tip-router-cli
-RUN cargo install --path ./cli --bin jito-tip-router-cli --locked
+RUN cargo build --release --bin ncn-program-cli
+RUN cargo install --path ./cli --bin ncn-program-cli --locked
 
 ##### Final image
 FROM debian:bullseye-slim
@@ -27,6 +27,6 @@ RUN apt-get update && apt-get install -y \
     libssl1.1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/src/app/target/release/jito-tip-router-cli /usr/local/bin/jito-tip-router-cli
+COPY --from=builder /usr/src/app/target/release/ncn-program-cli /usr/local/bin/ncn-program-cli
 
-ENTRYPOINT ["jito-tip-router-cli", "keeper"]
+ENTRYPOINT ["ncn-program-cli", "keeper"]

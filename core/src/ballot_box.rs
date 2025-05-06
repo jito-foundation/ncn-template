@@ -13,7 +13,7 @@ use spl_math::precise_number::PreciseNumber;
 use crate::{
     constants::{precise_consensus, DEFAULT_CONSENSUS_REACHED_SLOT, MAX_OPERATORS},
     discriminators::Discriminators,
-    error::TipRouterError,
+    error::NCNProgramError,
     loaders::check_load,
     stake_weight::StakeWeights,
 };
@@ -185,23 +185,23 @@ impl BallotTally {
         self.ballot.is_valid()
     }
 
-    pub fn increment_tally(&mut self, stake_weights: &StakeWeights) -> Result<(), TipRouterError> {
+    pub fn increment_tally(&mut self, stake_weights: &StakeWeights) -> Result<(), NCNProgramError> {
         self.stake_weights.increment(stake_weights)?;
         self.tally = PodU64::from(
             self.tally()
                 .checked_add(1)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         Ok(())
     }
 
-    pub fn decrement_tally(&mut self, stake_weights: &StakeWeights) -> Result<(), TipRouterError> {
+    pub fn decrement_tally(&mut self, stake_weights: &StakeWeights) -> Result<(), NCNProgramError> {
         self.stake_weights.decrement(stake_weights)?;
         self.tally = PodU64::from(
             self.tally()
                 .checked_sub(1)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         Ok(())
@@ -415,23 +415,23 @@ impl BallotBox {
             && self.winning_ballot.is_valid()
     }
 
-    pub fn get_winning_ballot(&self) -> Result<&Ballot, TipRouterError> {
+    pub fn get_winning_ballot(&self) -> Result<&Ballot, NCNProgramError> {
         if !self.winning_ballot.is_valid() {
-            Err(TipRouterError::ConsensusNotReached)
+            Err(NCNProgramError::ConsensusNotReached)
         } else {
             Ok(&self.winning_ballot)
         }
     }
 
-    pub fn get_winning_ballot_tally(&self) -> Result<&BallotTally, TipRouterError> {
+    pub fn get_winning_ballot_tally(&self) -> Result<&BallotTally, NCNProgramError> {
         if !self.winning_ballot.is_valid() {
-            Err(TipRouterError::ConsensusNotReached)
+            Err(NCNProgramError::ConsensusNotReached)
         } else {
             let winning_ballot_tally = self
                 .ballot_tallies
                 .iter()
                 .find(|t| t.ballot.eq(&self.winning_ballot))
-                .ok_or(TipRouterError::BallotTallyNotFoundFull)?;
+                .ok_or(NCNProgramError::BallotTallyNotFoundFull)?;
 
             Ok(winning_ballot_tally)
         }
@@ -453,7 +453,7 @@ impl BallotBox {
         &mut self,
         ballot: &Ballot,
         stake_weights: &StakeWeights,
-    ) -> Result<usize, TipRouterError> {
+    ) -> Result<usize, NCNProgramError> {
         let result = self
             .ballot_tallies
             .iter()
@@ -472,14 +472,14 @@ impl BallotBox {
                 self.unique_ballots = PodU64::from(
                     self.unique_ballots()
                         .checked_add(1)
-                        .ok_or(TipRouterError::ArithmeticOverflow)?,
+                        .ok_or(NCNProgramError::ArithmeticOverflow)?,
                 );
 
                 return Ok(tally_index);
             }
         }
 
-        Err(TipRouterError::BallotTallyFull)
+        Err(NCNProgramError::BallotTallyFull)
     }
 
     /// Casts a vote for a ballot from an operator
@@ -496,19 +496,19 @@ impl BallotBox {
         stake_weights: &StakeWeights,
         current_slot: u64,
         valid_slots_after_consensus: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if !self.is_voting_valid(current_slot, valid_slots_after_consensus)? {
-            return Err(TipRouterError::VotingNotValid);
+            return Err(NCNProgramError::VotingNotValid);
         }
 
         if !ballot.is_valid() {
-            return Err(TipRouterError::BadBallot);
+            return Err(NCNProgramError::BadBallot);
         }
 
         // Check if operator has already voted
         for vote in self.operator_votes.iter() {
             if vote.operator().eq(operator) {
-                return Err(TipRouterError::OperatorAlreadyVoted);
+                return Err(NCNProgramError::OperatorAlreadyVoted);
             }
         }
 
@@ -521,13 +521,13 @@ impl BallotBox {
                 self.operators_voted = PodU64::from(
                     self.operators_voted()
                         .checked_add(1)
-                        .ok_or(TipRouterError::ArithmeticOverflow)?,
+                        .ok_or(NCNProgramError::ArithmeticOverflow)?,
                 );
                 return Ok(());
             }
         }
 
-        Err(TipRouterError::OperatorVotesFull)
+        Err(NCNProgramError::OperatorVotesFull)
     }
 
     /// Tallies all votes and determines if consensus has been reached
@@ -536,7 +536,7 @@ impl BallotBox {
         &mut self,
         total_stake_weight: u128,
         current_slot: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if self.slot_consensus_reached() != DEFAULT_CONSENSUS_REACHED_SLOT {
             return Ok(());
         }
@@ -546,23 +546,23 @@ impl BallotBox {
             .ballot_tallies
             .iter()
             .max_by_key(|t| t.stake_weights().stake_weight())
-            .ok_or(TipRouterError::NoValidBallots)?;
+            .ok_or(NCNProgramError::NoValidBallots)?;
 
         let ballot_stake_weight = max_tally.stake_weights().stake_weight();
 
         // Prevent division by zero
         if total_stake_weight == 0 {
-            return Err(TipRouterError::DenominatorIsZero);
+            return Err(NCNProgramError::DenominatorIsZero);
         }
 
-        let precise_ballot_stake_weight =
-            PreciseNumber::new(ballot_stake_weight).ok_or(TipRouterError::NewPreciseNumberError)?;
+        let precise_ballot_stake_weight = PreciseNumber::new(ballot_stake_weight)
+            .ok_or(NCNProgramError::NewPreciseNumberError)?;
         let precise_total_stake_weight =
-            PreciseNumber::new(total_stake_weight).ok_or(TipRouterError::NewPreciseNumberError)?;
+            PreciseNumber::new(total_stake_weight).ok_or(NCNProgramError::NewPreciseNumberError)?;
 
         let ballot_percentage_of_total = precise_ballot_stake_weight
             .checked_div(&precise_total_stake_weight)
-            .ok_or(TipRouterError::DenominatorIsZero)?;
+            .ok_or(NCNProgramError::DenominatorIsZero)?;
 
         let target_precise_percentage = precise_consensus()?;
 
@@ -585,32 +585,32 @@ impl BallotBox {
         weather_status: u8,
         current_epoch: u64,
         epochs_before_stall: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         // Check that consensus has not been reached
         if self.is_consensus_reached() {
-            return Err(TipRouterError::ConsensusAlreadyReached);
+            return Err(NCNProgramError::ConsensusAlreadyReached);
         }
 
         // Check if voting is stalled and setting the tie breaker is eligible
         let stall_epoch = self
             .epoch()
             .checked_add(epochs_before_stall)
-            .ok_or(TipRouterError::ArithmeticOverflow)?;
+            .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
         if current_epoch < stall_epoch {
-            return Err(TipRouterError::VotingNotFinalized);
+            return Err(NCNProgramError::VotingNotFinalized);
         }
 
         // Validate weather status
         if weather_status > WeatherStatus::Rainy as u8 {
-            return Err(TipRouterError::BadBallot);
+            return Err(NCNProgramError::BadBallot);
         }
 
         let finalized_ballot = Ballot::new(weather_status);
 
         // Check that the ballot is one of the existing options
         if !self.has_ballot(&finalized_ballot) {
-            return Err(TipRouterError::TieBreakerNotInPriorVotes);
+            return Err(NCNProgramError::TieBreakerNotInPriorVotes);
         }
 
         self.set_winning_ballot(&finalized_ballot);
@@ -624,7 +624,7 @@ impl BallotBox {
         &self,
         current_slot: u64,
         valid_slots_after_consensus: u64,
-    ) -> Result<bool, TipRouterError> {
+    ) -> Result<bool, NCNProgramError> {
         if self.tie_breaker_set() {
             return Ok(false);
         }
@@ -634,7 +634,7 @@ impl BallotBox {
                 <= self
                     .slot_consensus_reached()
                     .checked_add(valid_slots_after_consensus)
-                    .ok_or(TipRouterError::ArithmeticOverflow)?;
+                    .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
             return Ok(vote_window_valid);
         }
@@ -690,7 +690,7 @@ impl fmt::Display for BallotBox {
 mod tests {
     use solana_program::msg;
 
-    use crate::utils::assert_tip_router_error;
+    use crate::{epoch_snapshot, utils::assert_ncn_program_error};
 
     use super::*;
 
@@ -773,7 +773,7 @@ mod tests {
             new_slot,
             valid_slots_after_consensus,
         );
-        assert!(matches!(result, Err(TipRouterError::OperatorAlreadyVoted)));
+        assert!(matches!(result, Err(NCNProgramError::OperatorAlreadyVoted)));
 
         // Test can vote after consensus reached but before window expires
         {
@@ -807,7 +807,7 @@ mod tests {
             valid_slots_after_consensus,
         );
         msg!("result: {:?}", result);
-        assert!(matches!(result, Err(TipRouterError::VotingNotValid)));
+        assert!(matches!(result, Err(NCNProgramError::VotingNotValid)));
     }
 
     #[test]
@@ -819,7 +819,7 @@ mod tests {
         let result = ballot_box.get_winning_ballot();
         assert_eq!(
             result,
-            Err(TipRouterError::ConsensusNotReached),
+            Err(NCNProgramError::ConsensusNotReached),
             "Should return ConsensusNotReached when no winning ballot is set"
         );
 
@@ -871,7 +871,7 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(TipRouterError::OperatorVotesFull),
+            Err(NCNProgramError::OperatorVotesFull),
             "Should return OperatorVotesFull when no slots available"
         );
     }
@@ -946,7 +946,7 @@ mod tests {
         );
         assert!(matches!(
             ballot_box.get_winning_ballot_tally(),
-            Err(TipRouterError::ConsensusNotReached)
+            Err(NCNProgramError::ConsensusNotReached)
         ));
 
         // Test consensus reached when above threshold
@@ -1037,7 +1037,7 @@ mod tests {
         );
 
         msg!("result: {:?}", result);
-        assert_tip_router_error(result, TipRouterError::BadBallot);
+        assert_ncn_program_error(result, NCNProgramError::BadBallot);
     }
 
     #[test]
@@ -1141,7 +1141,7 @@ mod tests {
                 current_epoch,
                 epochs_before_stall,
             ),
-            Err(TipRouterError::VotingNotFinalized)
+            Err(NCNProgramError::VotingNotFinalized)
         );
 
         // Test setting tie breaker with invalid weather status
@@ -1151,7 +1151,7 @@ mod tests {
                 current_epoch + epochs_before_stall,
                 epochs_before_stall,
             ),
-            Err(TipRouterError::BadBallot)
+            Err(NCNProgramError::BadBallot)
         );
 
         // Test setting tie breaker with non-existent ballot
@@ -1161,7 +1161,7 @@ mod tests {
                 current_epoch + epochs_before_stall,
                 epochs_before_stall,
             ),
-            Err(TipRouterError::TieBreakerNotInPriorVotes)
+            Err(NCNProgramError::TieBreakerNotInPriorVotes)
         );
 
         // Test successful tie breaker setting
@@ -1233,7 +1233,7 @@ mod tests {
             current_slot + 1,
             valid_slots_after_consensus,
         );
-        assert!(matches!(result, Err(TipRouterError::OperatorAlreadyVoted)));
+        assert!(matches!(result, Err(NCNProgramError::OperatorAlreadyVoted)));
 
         // Verify first vote remains unchanged
         {

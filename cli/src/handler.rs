@@ -7,7 +7,7 @@ use crate::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
         get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot,
         get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
-        get_ncn_vault_ticket, get_operator_snapshot, get_tip_router_config,
+        get_ncn_program_config, get_ncn_vault_ticket, get_operator_snapshot,
         get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
         get_vault_registry, get_weight_table,
     },
@@ -24,8 +24,8 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
-use jito_tip_router_core::account_payer::AccountPayer;
 use log::info;
+use ncn_program_core::account_payer::AccountPayer;
 use solana_account_decoder::{UiAccountEncoding, UiDataSliceConfig};
 use solana_client::{
     rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
@@ -45,7 +45,7 @@ pub struct CliHandler {
     keypair: Option<Keypair>,
     pub restaking_program_id: Pubkey,
     pub vault_program_id: Pubkey,
-    pub tip_router_program_id: Pubkey,
+    pub ncn_program_id: Pubkey,
     pub token_program_id: Pubkey,
     ncn: Option<Pubkey>,
     pub epoch: u64,
@@ -70,7 +70,7 @@ impl CliHandler {
 
         let vault_program_id = Pubkey::from_str(&args.vault_program_id)?;
 
-        let tip_router_program_id = Pubkey::from_str(&args.tip_router_program_id)?;
+        let ncn_program_id = Pubkey::from_str(&args.ncn_program_id)?;
 
         let token_program_id = Pubkey::from_str(&args.token_program_id)?;
 
@@ -88,7 +88,7 @@ impl CliHandler {
             keypair,
             restaking_program_id,
             vault_program_id,
-            tip_router_program_id,
+            ncn_program_id,
             token_program_id,
             ncn,
             epoch: u64::MAX,
@@ -233,7 +233,7 @@ impl CliHandler {
                     starting_valid_epoch,
                 )
                 .await?;
-                let config = get_tip_router_config(self).await?;
+                let config = get_ncn_program_config(self).await?;
                 info!("\n\n--- Parameters Set ---\nepochs_before_stall: {}\nepochs_after_consensus_before_close: {}\nvalid_slots_after_consensus: {}\nstarting_valid_epoch: {}\n",
                     config.epochs_before_stall(),
                     config.epochs_after_consensus_before_close(),
@@ -348,8 +348,8 @@ impl CliHandler {
 
                 Ok(())
             }
-            ProgramCommand::GetTipRouterConfig {} => {
-                let config = get_tip_router_config(self).await?;
+            ProgramCommand::GetNCNProgramConfig {} => {
+                let config = get_ncn_program_config(self).await?;
                 info!("{}", config);
                 Ok(())
             }
@@ -375,7 +375,7 @@ impl CliHandler {
                 let current_slot = get_current_slot(self).await?;
                 let current_state = {
                     let (valid_slots_after_consensus, epochs_after_consensus_before_close) = {
-                        let config = get_tip_router_config(self).await?;
+                        let config = get_ncn_program_config(self).await?;
                         (
                             config.valid_slots_after_consensus(),
                             config.epochs_after_consensus_before_close(),
@@ -425,7 +425,7 @@ impl CliHandler {
             ProgramCommand::GetAccountPayer {} => {
                 let account_payer = get_account_payer(self).await?;
                 let (account_payer_address, _, _) =
-                    AccountPayer::find_program_address(&self.tip_router_program_id, self.ncn()?);
+                    AccountPayer::find_program_address(&self.ncn_program_id, self.ncn()?);
                 info!(
                     "\n\n--- Account Payer ---\n{}\nBalance: {}\n",
                     account_payer_address,

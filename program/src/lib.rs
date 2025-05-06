@@ -23,7 +23,7 @@ mod snapshot_vault_operator_delegation;
 use admin_set_new_admin::process_admin_set_new_admin;
 use borsh::BorshDeserialize;
 use initialize_epoch_state::process_initialize_epoch_state;
-use jito_tip_router_core::instruction::TipRouterInstruction;
+use ncn_program_core::instruction::NCNProgramInstruction;
 use solana_program::{
     account_info::AccountInfo, declare_id, entrypoint::ProgramResult, msg,
     program_error::ProgramError, pubkey::Pubkey,
@@ -51,7 +51,7 @@ use crate::{
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
-declare_id!(env!("TIP_ROUTER_PROGRAM_ID"));
+declare_id!(env!("NCN_PROGRAM_ID"));
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -59,10 +59,10 @@ security_txt! {
     name: "Jito's MEV Tip Distribution NCN Program",
     project_url: "https://jito.network/",
     contacts: "email:team@jito.network",
-    policy: "https://github.com/jito-foundation/jito-tip-router",
+    policy: "https://github.com/jito-foundation/ncn-program",
     // Optional Fields
     preferred_languages: "en",
-    source_code: "https://github.com/jito-foundation/jito-tip-router"
+    source_code: "https://github.com/jito-foundation/ncn-program"
 }
 
 #[cfg(not(feature = "no-entrypoint"))]
@@ -77,13 +77,13 @@ pub fn process_instruction(
         return Err(ProgramError::IncorrectProgramId);
     }
 
-    let instruction = TipRouterInstruction::try_from_slice(instruction_data)?;
+    let instruction = NCNProgramInstruction::try_from_slice(instruction_data)?;
 
     match instruction {
         // ---------------------------------------------------- //
         //                         GLOBAL                       //
         // ---------------------------------------------------- //
-        TipRouterInstruction::InitializeConfig {
+        NCNProgramInstruction::InitializeConfig {
             epochs_before_stall,
             epochs_after_consensus_before_close,
             valid_slots_after_consensus,
@@ -97,15 +97,15 @@ pub fn process_instruction(
                 valid_slots_after_consensus,
             )
         }
-        TipRouterInstruction::InitializeVaultRegistry => {
+        NCNProgramInstruction::InitializeVaultRegistry => {
             msg!("Instruction: InitializeVaultRegistry");
             process_initialize_vault_registry(program_id, accounts)
         }
-        TipRouterInstruction::ReallocVaultRegistry => {
+        NCNProgramInstruction::ReallocVaultRegistry => {
             msg!("Instruction: ReallocVaultRegistry");
             process_realloc_vault_registry(program_id, accounts)
         }
-        TipRouterInstruction::RegisterVault => {
+        NCNProgramInstruction::RegisterVault => {
             msg!("Instruction: RegisterVault");
             process_register_vault(program_id, accounts)
         }
@@ -113,27 +113,27 @@ pub fn process_instruction(
         // ---------------------------------------------------- //
         //                       SNAPSHOT                       //
         // ---------------------------------------------------- //
-        TipRouterInstruction::InitializeEpochState { epoch } => {
+        NCNProgramInstruction::InitializeEpochState { epoch } => {
             msg!("Instruction: InitializeEpochState");
             process_initialize_epoch_state(program_id, accounts, epoch)
         }
-        TipRouterInstruction::InitializeWeightTable { epoch } => {
+        NCNProgramInstruction::InitializeWeightTable { epoch } => {
             msg!("Instruction: InitializeWeightTable");
             process_initialize_weight_table(program_id, accounts, epoch)
         }
-        TipRouterInstruction::ReallocWeightTable { epoch } => {
+        NCNProgramInstruction::ReallocWeightTable { epoch } => {
             msg!("Instruction: ReallocWeightTable");
             process_realloc_weight_table(program_id, accounts, epoch)
         }
-        TipRouterInstruction::InitializeEpochSnapshot { epoch } => {
+        NCNProgramInstruction::InitializeEpochSnapshot { epoch } => {
             msg!("Instruction: InitializeEpochSnapshot");
             process_initialize_epoch_snapshot(program_id, accounts, epoch)
         }
-        TipRouterInstruction::InitializeOperatorSnapshot { epoch } => {
+        NCNProgramInstruction::InitializeOperatorSnapshot { epoch } => {
             msg!("Instruction: InitializeOperatorSnapshot");
             process_initialize_operator_snapshot(program_id, accounts, epoch)
         }
-        TipRouterInstruction::SnapshotVaultOperatorDelegation { epoch } => {
+        NCNProgramInstruction::SnapshotVaultOperatorDelegation { epoch } => {
             msg!("Instruction: SnapshotVaultOperatorDelegation");
             process_snapshot_vault_operator_delegation(program_id, accounts, epoch)
         }
@@ -141,15 +141,15 @@ pub fn process_instruction(
         // ---------------------------------------------------- //
         //                         VOTE                         //
         // ---------------------------------------------------- //
-        TipRouterInstruction::InitializeBallotBox { epoch } => {
+        NCNProgramInstruction::InitializeBallotBox { epoch } => {
             msg!("Instruction: InitializeBallotBox");
             process_initialize_ballot_box(program_id, accounts, epoch)
         }
-        TipRouterInstruction::ReallocBallotBox { epoch } => {
+        NCNProgramInstruction::ReallocBallotBox { epoch } => {
             msg!("Instruction: ReallocBallotBox");
             process_realloc_ballot_box(program_id, accounts, epoch)
         }
-        TipRouterInstruction::CastVote {
+        NCNProgramInstruction::CastVote {
             weather_status,
             epoch,
         } => {
@@ -160,7 +160,7 @@ pub fn process_instruction(
         // ---------------------------------------------------- //
         //                ROUTE AND DISTRIBUTE                  //
         // ---------------------------------------------------- //
-        TipRouterInstruction::CloseEpochAccount { epoch } => {
+        NCNProgramInstruction::CloseEpochAccount { epoch } => {
             msg!("Instruction: CloseEpochAccount");
             process_close_epoch_account(program_id, accounts, epoch)
         }
@@ -168,7 +168,7 @@ pub fn process_instruction(
         // ---------------------------------------------------- //
         //                        ADMIN                         //
         // ---------------------------------------------------- //
-        TipRouterInstruction::AdminSetParameters {
+        NCNProgramInstruction::AdminSetParameters {
             starting_valid_epoch,
             epochs_before_stall,
             epochs_after_consensus_before_close,
@@ -184,18 +184,18 @@ pub fn process_instruction(
                 valid_slots_after_consensus,
             )
         }
-        TipRouterInstruction::AdminSetNewAdmin { role } => {
+        NCNProgramInstruction::AdminSetNewAdmin { role } => {
             msg!("Instruction: AdminSetNewAdmin");
             process_admin_set_new_admin(program_id, accounts, role)
         }
-        TipRouterInstruction::AdminSetTieBreaker {
+        NCNProgramInstruction::AdminSetTieBreaker {
             weather_status,
             epoch,
         } => {
             msg!("Instruction: AdminSetTieBreaker");
             process_admin_set_tie_breaker(program_id, accounts, weather_status, epoch)
         }
-        TipRouterInstruction::AdminSetWeight {
+        NCNProgramInstruction::AdminSetWeight {
             st_mint,
             weight,
             epoch,
@@ -203,16 +203,16 @@ pub fn process_instruction(
             msg!("Instruction: AdminSetWeight");
             process_admin_set_weight(program_id, accounts, &st_mint, epoch, weight)
         }
-        TipRouterInstruction::AdminRegisterStMint { weight } => {
+        NCNProgramInstruction::AdminRegisterStMint { weight } => {
             msg!("Instruction: AdminRegisterStMint");
             process_admin_register_st_mint(program_id, accounts, weight)
         }
-        TipRouterInstruction::AdminSetStMint { st_mint, weight } => {
+        NCNProgramInstruction::AdminSetStMint { st_mint, weight } => {
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
         }
 
-        TipRouterInstruction::SetEpochWeights { epoch } => {
+        NCNProgramInstruction::SetEpochWeights { epoch } => {
             msg!("Instruction: SetEpochWeights");
             process_set_epoch_weights(program_id, accounts, epoch)
         }

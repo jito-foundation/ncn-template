@@ -1,13 +1,13 @@
-use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::load_signer;
 use jito_restaking_core::{ncn::Ncn, operator::Operator};
-use jito_tip_router_core::{
-    ballot_box::{Ballot, BallotBox},
+use ncn_program_core::{
+    ballot_box::{Ballot, BallotBox, WeatherStatus},
     config::Config as NcnConfig,
     consensus_result::ConsensusResult,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
-    error::TipRouterError,
+    error::NCNProgramError,
 };
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -59,7 +59,7 @@ pub fn process_cast_vote(
     let operator_account = Operator::try_from_slice_unchecked(&operator_data)?;
 
     if *operator_admin.key != operator_account.voter {
-        return Err(TipRouterError::InvalidOperatorVoter.into());
+        return Err(NCNProgramError::InvalidOperatorVoter.into());
     }
 
     let valid_slots_after_consensus = {
@@ -76,7 +76,7 @@ pub fn process_cast_vote(
         let epoch_snapshot = EpochSnapshot::try_from_slice_unchecked(&epoch_snapshot_data)?;
 
         if !epoch_snapshot.finalized() {
-            return Err(TipRouterError::EpochSnapshotNotFinalized.into());
+            return Err(NCNProgramError::EpochSnapshotNotFinalized.into());
         }
 
         *epoch_snapshot.stake_weights()
@@ -92,7 +92,7 @@ pub fn process_cast_vote(
 
     if operator_stake_weights.stake_weight() == 0 {
         msg!("Operator has zero stake weight, cannot vote");
-        return Err(TipRouterError::CannotVoteWithZeroStake.into());
+        return Err(NCNProgramError::CannotVoteWithZeroStake.into());
     }
 
     let slot = Clock::get()?.slot;
