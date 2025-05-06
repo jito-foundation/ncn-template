@@ -1,5 +1,5 @@
 [package]
-name = "jito-tip-router-cli"
+name = "ncn-program-cli"
 description = "Jito MEV Tip Distribution NCN CLI"
 version = { workspace = true }
 authors = { workspace = true }
@@ -28,9 +28,9 @@ jito-restaking-client = { workspace = true }
 jito-restaking-core = { workspace = true }
 jito-restaking-program = { workspace = true }
 jito-restaking-sdk = { workspace = true }
-jito-tip-router-client = { workspace = true }
-jito-tip-router-core = { workspace = true }
-jito-tip-router-program = { workspace = true }
+ncn-program-client = { workspace = true }
+ncn-program-core = { workspace = true }
+ncn-program = { workspace = true }
 jito-vault-client = { workspace = true }
 jito-vault-core = { workspace = true }
 jito-vault-program = { workspace = true }
@@ -52,5 +52,5 @@ tokio = { workspace = true }
 assert_matches = { workspace = true }
 
 [[bin]]
-name = "jito-tip-router-cli"
+name = "ncn-program-cli"
 path = "src/bin/main.rs"

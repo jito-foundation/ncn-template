@@ -1,19 +1,20 @@
-use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::{AccountDeserialize, Discriminator};
+use jito_jsm_core::loader;
 use jito_restaking_core::{
     config::Config, ncn::Ncn, ncn_vault_ticket::NcnVaultTicket, operator::Operator,
-};
-use jito_tip_router_core::{
-    config::Config as NcnConfig,
-    epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
-    epoch_state::EpochState,
-    error::TipRouterError,
-    loaders::load_ncn_epoch,
-    stake_weight::StakeWeights,
-    weight_table::WeightTable,
 };
 use jito_vault_core::{
     vault::Vault, vault_ncn_ticket::VaultNcnTicket,
     vault_operator_delegation::VaultOperatorDelegation,
+};
+use ncn_program_core::{
+    config::Config as NcnConfig,
+    epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
+    epoch_state::EpochState,
+    error::NCNProgramError,
+    loaders::load_ncn_epoch,
+    stake_weight::StakeWeights,
+    weight_table::WeightTable,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -89,7 +90,7 @@ pub fn process_snapshot_vault_operator_delegation(
     };
     if vault_needs_update {
         msg!("Vault is not up to date");
-        return Err(TipRouterError::VaultNeedsUpdate.into());
+        return Err(NCNProgramError::VaultNeedsUpdate.into());
     }
 
     let (vault_index, st_mint) = {

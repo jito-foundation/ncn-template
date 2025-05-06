@@ -15,7 +15,7 @@ use solana_program::{
 use crate::{
     constants::{DEFAULT_CONSENSUS_REACHED_SLOT, MAX_OPERATORS},
     discriminators::Discriminators,
-    error::TipRouterError,
+    error::NCNProgramError,
     loaders::check_load,
 };
 
@@ -53,33 +53,33 @@ impl Default for EpochAccountStatus {
 impl EpochAccountStatus {
     pub const SIZE: usize = size_of::<Self>();
 
-    pub const fn get_account_status(u: u8) -> Result<AccountStatus, TipRouterError> {
+    pub const fn get_account_status(u: u8) -> Result<AccountStatus, NCNProgramError> {
         match u {
             0 => Ok(AccountStatus::DNE),
             1 => Ok(AccountStatus::Created),
             2 => Ok(AccountStatus::CreatedWithReceiver),
             3 => Ok(AccountStatus::Closed),
-            _ => Err(TipRouterError::InvalidAccountStatus),
+            _ => Err(NCNProgramError::InvalidAccountStatus),
         }
     }
 
-    pub const fn epoch_state(&self) -> Result<AccountStatus, TipRouterError> {
+    pub const fn epoch_state(&self) -> Result<AccountStatus, NCNProgramError> {
         Self::get_account_status(self.epoch_state)
     }
 
-    pub const fn weight_table(&self) -> Result<AccountStatus, TipRouterError> {
+    pub const fn weight_table(&self) -> Result<AccountStatus, NCNProgramError> {
         Self::get_account_status(self.weight_table)
     }
 
-    pub const fn epoch_snapshot(&self) -> Result<AccountStatus, TipRouterError> {
+    pub const fn epoch_snapshot(&self) -> Result<AccountStatus, NCNProgramError> {
         Self::get_account_status(self.epoch_snapshot)
     }
 
-    pub const fn operator_snapshot(&self, index: usize) -> Result<AccountStatus, TipRouterError> {
+    pub const fn operator_snapshot(&self, index: usize) -> Result<AccountStatus, NCNProgramError> {
         Self::get_account_status(self.operator_snapshot[index])
     }
 
-    pub const fn ballot_box(&self) -> Result<AccountStatus, TipRouterError> {
+    pub const fn ballot_box(&self) -> Result<AccountStatus, NCNProgramError> {
         Self::get_account_status(self.ballot_box)
     }
 
@@ -169,15 +169,15 @@ impl Progress {
         self.total.into()
     }
 
-    pub fn increment_one(&mut self) -> Result<(), TipRouterError> {
+    pub fn increment_one(&mut self) -> Result<(), NCNProgramError> {
         self.increment(1)
     }
 
-    pub fn increment(&mut self, amount: u64) -> Result<(), TipRouterError> {
+    pub fn increment(&mut self, amount: u64) -> Result<(), NCNProgramError> {
         self.tally = PodU64::from(
             self.tally()
                 .checked_add(amount)
-                .ok_or(TipRouterError::ArithmeticOverflow)?,
+                .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
 
         Ok(())
@@ -330,18 +330,18 @@ impl EpochState {
     ) -> Result<(), ProgramError> {
         if account_to_close.ncn().ne(ncn) {
             msg!("Epoch State NCN does not match NCN");
-            return Err(TipRouterError::CannotCloseAccount.into());
+            return Err(NCNProgramError::CannotCloseAccount.into());
         }
 
         if account_to_close.epoch().ne(&epoch) {
             msg!("Epoch State epoch does not match epoch");
-            return Err(TipRouterError::CannotCloseAccount.into());
+            return Err(NCNProgramError::CannotCloseAccount.into());
         }
 
         // Check all other accounts are closed
         if !account_to_close.account_status.are_all_closed() {
             msg!("Cannot close Epoch State until all other accounts are closed");
-            return Err(TipRouterError::CannotCloseEpochStateAccount.into());
+            return Err(NCNProgramError::CannotCloseEpochStateAccount.into());
         }
 
         Ok(())
@@ -359,7 +359,7 @@ impl EpochState {
 
         if account_struct.is_closing() {
             msg!("Epoch is closing down");
-            return Err(TipRouterError::EpochIsClosingDown.into());
+            return Err(NCNProgramError::EpochIsClosingDown.into());
         }
 
         Self::load(program_id, account, ncn, epoch, expect_writable)
@@ -396,9 +396,9 @@ impl EpochState {
         self.is_closing.into()
     }
 
-    pub fn get_slot_consensus_reached(&self) -> Result<u64, TipRouterError> {
+    pub fn get_slot_consensus_reached(&self) -> Result<u64, NCNProgramError> {
         if self.slot_consensus_reached() == DEFAULT_CONSENSUS_REACHED_SLOT {
-            Err(TipRouterError::ConsensusNotReached)
+            Err(NCNProgramError::ConsensusNotReached)
         } else {
             Ok(self.slot_consensus_reached.into())
         }
@@ -471,7 +471,7 @@ impl EpochState {
         &mut self,
         ncn_operator_index: usize,
         is_active: bool,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         self.account_status
             .set_operator_snapshot(ncn_operator_index, AccountStatus::Created);
 
@@ -491,7 +491,7 @@ impl EpochState {
         &mut self,
         ncn_operator_index: usize,
         finalized: bool,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         self.operator_snapshot_progress[ncn_operator_index].increment_one()?;
         if finalized {
             self.epoch_snapshot_progress.increment_one()?;
@@ -510,7 +510,7 @@ impl EpochState {
         operators_voted: u64,
         is_consensus_reached: bool,
         current_slot: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if is_consensus_reached && !self.is_consensus_reached() {
             self.slot_consensus_reached = PodU64::from(current_slot);
         }
@@ -524,7 +524,7 @@ impl EpochState {
         &mut self,
         is_consensus_reached: bool,
         current_slot: u64,
-    ) -> Result<(), TipRouterError> {
+    ) -> Result<(), NCNProgramError> {
         if is_consensus_reached && !self.is_consensus_reached() {
             self.slot_consensus_reached = PodU64::from(current_slot);
             self.was_tie_breaker_set = PodBool::from(true);
@@ -573,7 +573,7 @@ impl EpochState {
         let slot_consensus_reached = self.get_slot_consensus_reached()?;
         let slot_can_start_routing = slot_consensus_reached
             .checked_add(valid_slots_after_consensus)
-            .ok_or(TipRouterError::ArithmeticOverflow)?;
+            .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
         Ok(current_slot >= slot_can_start_routing)
     }

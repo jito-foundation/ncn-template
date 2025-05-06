@@ -1,3 +1,3 @@
 #! /bin/bash
 
-docker logs jito-tip-router-ncn-keeper -f
+docker logs ncn-program-ncn-keeper -f

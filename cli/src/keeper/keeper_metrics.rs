@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer, constants::MAX_OPERATORS, epoch_state::AccountStatus,
 };
 use solana_metrics::datapoint_info;
@@ -9,7 +9,7 @@ use crate::{
     getters::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults_in_ncn,
         get_ballot_box, get_current_epoch_and_slot, get_epoch_snapshot, get_epoch_state,
-        get_is_epoch_completed, get_operator, get_operator_snapshot, get_tip_router_config,
+        get_is_epoch_completed, get_ncn_program_config, get_operator, get_operator_snapshot,
         get_vault, get_vault_config, get_vault_operator_delegation, get_vault_registry,
         get_weight_table,
     },
@@ -109,7 +109,7 @@ pub async fn emit_ncn_metrics_account_payer(handler: &CliHandler) -> Result<()> 
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
     let (account_payer_address, _, _) =
-        AccountPayer::find_program_address(&handler.tip_router_program_id, handler.ncn()?);
+        AccountPayer::find_program_address(&handler.ncn_program_id, handler.ncn()?);
     let account_payer = get_account_payer(handler).await?;
 
     datapoint_info!(
@@ -360,7 +360,7 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
 pub async fn emit_ncn_metrics_config(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
-    let config = get_tip_router_config(handler).await?;
+    let config = get_ncn_program_config(handler).await?;
 
     datapoint_info!(
         "tr-beta-em-config",
@@ -420,7 +420,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
     let is_current_epoch = current_epoch == epoch;
 
     let valid_slots_after_consensus = {
-        let config = get_tip_router_config(handler).await?;
+        let config = get_ncn_program_config(handler).await?;
 
         config.valid_slots_after_consensus()
     };
@@ -701,7 +701,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
     let state = get_epoch_state(handler, epoch).await?;
     let current_state = {
         let (valid_slots_after_consensus, epochs_after_consensus_before_close) = {
-            let config = get_tip_router_config(handler).await?;
+            let config = get_ncn_program_config(handler).await?;
             (
                 config.valid_slots_after_consensus(),
                 config.epochs_after_consensus_before_close(),

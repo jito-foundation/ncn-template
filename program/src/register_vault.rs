@@ -1,7 +1,7 @@
 use jito_bytemuck::AccountDeserialize;
 use jito_restaking_core::{ncn::Ncn, ncn_vault_ticket::NcnVaultTicket};
-use jito_tip_router_core::{config::Config, vault_registry::VaultRegistry};
 use jito_vault_core::vault::Vault;
+use ncn_program_core::{config::Config, vault_registry::VaultRegistry};
 use solana_program::{
     account_info::AccountInfo,
     entrypoint::ProgramResult,

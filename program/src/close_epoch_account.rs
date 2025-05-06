@@ -1,14 +1,14 @@
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::load_system_program;
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
+use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
     config::Config as NcnConfig,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
-    error::TipRouterError,
+    error::NCNProgramError,
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -42,7 +42,7 @@ pub fn process_close_epoch_account(
     // Empty Account Check
     if account_to_close.data_is_empty() {
         msg!("Account already closed");
-        return Err(TipRouterError::CannotCloseAccountAlreadyClosed.into());
+        return Err(NCNProgramError::CannotCloseAccountAlreadyClosed.into());
     }
 
     {
@@ -68,7 +68,7 @@ pub fn process_close_epoch_account(
 
             if !can_close_epoch_accounts {
                 msg!("Not enough epochs have passed since consensus reached");
-                return Err(TipRouterError::CannotCloseAccountNotEnoughEpochs.into());
+                return Err(NCNProgramError::CannotCloseAccountNotEnoughEpochs.into());
             }
 
             epoch_state_account.set_is_closing();
@@ -112,7 +112,7 @@ pub fn process_close_epoch_account(
                     epoch_state_account.close_ballot_box();
                 }
                 _ => {
-                    return Err(TipRouterError::InvalidAccountToCloseDiscriminator.into());
+                    return Err(NCNProgramError::InvalidAccountToCloseDiscriminator.into());
                 }
             }
         }

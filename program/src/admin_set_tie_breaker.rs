@@ -1,9 +1,9 @@
-use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::loader::load_signer;
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
+use ncn_program_core::{
     ballot_box::BallotBox, config::Config as NcnConfig, epoch_state::EpochState,
-    error::TipRouterError,
+    error::NCNProgramError,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -31,7 +31,7 @@ pub fn process_admin_set_tie_breaker(
 
     if ncn_config.tie_breaker_admin.ne(tie_breaker_admin.key) {
         msg!("Tie breaker admin invalid");
-        return Err(TipRouterError::TieBreakerAdminInvalid.into());
+        return Err(NCNProgramError::TieBreakerAdminInvalid.into());
     }
 
     let mut ballot_box_data = ballot_box.data.borrow_mut();

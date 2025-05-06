@@ -1,5 +1,5 @@
 [package]
-name = "jito-tip-router-core"
+name = "ncn-program-core"
 description = "Jito's MEV Tip Distribution NCN Core"
 version = { workspace = true }
 authors = { workspace = true }

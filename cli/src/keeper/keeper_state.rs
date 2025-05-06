@@ -1,16 +1,16 @@
 use crate::{
     getters::{
         get_account, get_all_operators_in_ncn, get_all_vaults_in_ncn, get_is_epoch_completed,
-        get_tip_router_config,
+        get_ncn_program_config,
     },
     handler::CliHandler,
 };
 use anyhow::{anyhow, Ok, Result};
 use jito_bytemuck::AccountDeserialize;
 
-use jito_tip_router_core::{
+use ncn_program_core::{
     ballot_box::BallotBox,
-    config::Config as TipRouterConfig,
+    config::Config as NCNProgramConfig,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::{EpochState, State},
     vault_registry::VaultRegistry,
@@ -24,7 +24,7 @@ pub struct KeeperState {
     pub ncn: Pubkey,
     pub vaults: Vec<Pubkey>,
     pub operators: Vec<Pubkey>,
-    pub tip_router_config_address: Pubkey,
+    pub ncn_program_config_address: Pubkey,
     pub vault_registry_address: Pubkey,
     pub epoch_state_address: Pubkey,
     pub weight_table_address: Pubkey,
@@ -48,29 +48,29 @@ impl KeeperState {
         let operators = get_all_operators_in_ncn(handler).await?;
         self.operators = operators;
 
-        let (tip_router_config_address, _, _) =
-            TipRouterConfig::find_program_address(&handler.tip_router_program_id, &ncn);
-        self.tip_router_config_address = tip_router_config_address;
+        let (ncn_program_config_address, _, _) =
+            NCNProgramConfig::find_program_address(&handler.ncn_program_id, &ncn);
+        self.ncn_program_config_address = ncn_program_config_address;
 
         let (vault_registry_address, _, _) =
-            VaultRegistry::find_program_address(&handler.tip_router_program_id, &ncn);
+            VaultRegistry::find_program_address(&handler.ncn_program_id, &ncn);
         self.vault_registry_address = vault_registry_address;
 
         let (epoch_state_address, _, _) =
-            EpochState::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+            EpochState::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.epoch_state_address = epoch_state_address;
 
         let (weight_table_address, _, _) =
-            WeightTable::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+            WeightTable::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.weight_table_address = weight_table_address;
 
         let (epoch_snapshot_address, _, _) =
-            EpochSnapshot::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+            EpochSnapshot::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.epoch_snapshot_address = epoch_snapshot_address;
 
         for operator in self.operators.iter() {
             let (operator_snapshot_address, _, _) = OperatorSnapshot::find_program_address(
-                &handler.tip_router_program_id,
+                &handler.ncn_program_id,
                 operator,
                 &ncn,
                 epoch,
@@ -80,7 +80,7 @@ impl KeeperState {
         }
 
         let (ballot_box_address, _, _) =
-            BallotBox::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
+            BallotBox::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.ballot_box_address = ballot_box_address;
 
         self.update_epoch_state(handler).await?;
@@ -124,14 +124,17 @@ impl KeeperState {
         Ok(())
     }
 
-    pub async fn tip_router_config(&self, handler: &CliHandler) -> Result<Option<TipRouterConfig>> {
-        let raw_account = get_account(handler, &self.tip_router_config_address).await?;
+    pub async fn ncn_program_config(
+        &self,
+        handler: &CliHandler,
+    ) -> Result<Option<NCNProgramConfig>> {
+        let raw_account = get_account(handler, &self.ncn_program_config_address).await?;
 
         if raw_account.is_none() {
             Ok(None)
         } else {
             let raw_account = raw_account.unwrap();
-            let account = TipRouterConfig::try_from_slice_unchecked(raw_account.data.as_slice())?;
+            let account = NCNProgramConfig::try_from_slice_unchecked(raw_account.data.as_slice())?;
             Ok(Some(*account))
         }
     }
@@ -217,7 +220,7 @@ impl KeeperState {
         let epoch_schedule = rpc_client.get_epoch_schedule().await?;
 
         let (valid_slots_after_consensus, epochs_after_consensus_before_close) = {
-            let config = get_tip_router_config(handler).await?;
+            let config = get_ncn_program_config(handler).await?;
             (
                 config.valid_slots_after_consensus(),
                 config.epochs_after_consensus_before_close(),

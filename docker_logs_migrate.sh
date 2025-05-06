@@ -1,3 +1,3 @@
 #! /bin/bash
 
-docker logs jito-tip-router-ncn-keeper-migrate-only -f
+docker logs ncn-program-ncn-keeper-migrate-only -f

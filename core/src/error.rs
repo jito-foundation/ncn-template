@@ -2,7 +2,7 @@ use solana_program::{decode_error::DecodeError, program_error::ProgramError};
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq)]
-pub enum TipRouterError {
+pub enum NCNProgramError {
     #[error("No valid Ballot")]
     NoValidBallots,
     #[error("Zero in the denominator")]
@@ -185,26 +185,26 @@ pub enum TipRouterError {
     MarkerExists,
 }
 
-impl<T> DecodeError<T> for TipRouterError {
+impl<T> DecodeError<T> for NCNProgramError {
     fn type_of() -> &'static str {
         "jito::weight_table"
     }
 }
 
-impl From<TipRouterError> for ProgramError {
-    fn from(e: TipRouterError) -> Self {
+impl From<NCNProgramError> for ProgramError {
+    fn from(e: NCNProgramError) -> Self {
         Self::Custom(e as u32)
     }
 }
 
-impl From<TipRouterError> for u64 {
-    fn from(e: TipRouterError) -> Self {
+impl From<NCNProgramError> for u64 {
+    fn from(e: NCNProgramError) -> Self {
         e as Self
     }
 }
 
-impl From<TipRouterError> for u32 {
-    fn from(e: TipRouterError) -> Self {
+impl From<NCNProgramError> for u32 {
+    fn from(e: NCNProgramError) -> Self {
         e as Self
     }
 }
@@ -216,17 +216,17 @@ mod tests {
     #[test]
     fn test_error_codes() {
         // Test base error codes are correct
-        assert_eq!(TipRouterError::DenominatorIsZero as u32, 0x2100);
-        assert_eq!(TipRouterError::IncorrectWeightTableAdmin as u32, 0x2200);
+        assert_eq!(NCNProgramError::DenominatorIsZero as u32, 0x2100);
+        assert_eq!(NCNProgramError::IncorrectWeightTableAdmin as u32, 0x2200);
 
         // Test sequential error codes
         assert_eq!(
-            TipRouterError::ArithmeticOverflow as u32,
-            TipRouterError::DenominatorIsZero as u32 + 1
+            NCNProgramError::ArithmeticOverflow as u32,
+            NCNProgramError::DenominatorIsZero as u32 + 1
         );
         assert_eq!(
-            TipRouterError::ArithmeticUnderflowError as u32,
-            TipRouterError::ArithmeticOverflow as u32 + 1
+            NCNProgramError::ArithmeticUnderflowError as u32,
+            NCNProgramError::ArithmeticOverflow as u32 + 1
         );
     }
 
@@ -234,16 +234,16 @@ mod tests {
     fn test_error_messages() {
         // Test error messages match their definitions
         assert_eq!(
-            TipRouterError::DenominatorIsZero.to_string(),
+            NCNProgramError::DenominatorIsZero.to_string(),
             "Zero in the denominator"
         );
-        assert_eq!(TipRouterError::ArithmeticOverflow.to_string(), "Overflow");
+        assert_eq!(NCNProgramError::ArithmeticOverflow.to_string(), "Overflow");
         assert_eq!(
-            TipRouterError::WeightTableNotFinalized.to_string(),
+            NCNProgramError::WeightTableNotFinalized.to_string(),
             "Weight table not finalized"
         );
         assert_eq!(
-            TipRouterError::InvalidMerkleProof.to_string(),
+            NCNProgramError::InvalidMerkleProof.to_string(),
             "Invalid merkle proof"
         );
     }
@@ -251,38 +251,44 @@ mod tests {
     #[test]
     fn test_program_error_conversion() {
         // Test conversion to ProgramError
-        let program_error: ProgramError = TipRouterError::DenominatorIsZero.into();
+        let program_error: ProgramError = NCNProgramError::DenominatorIsZero.into();
         assert_eq!(
             program_error,
-            ProgramError::Custom(TipRouterError::DenominatorIsZero as u32)
+            ProgramError::Custom(NCNProgramError::DenominatorIsZero as u32)
         );
 
-        let program_error: ProgramError = TipRouterError::WeightTableNotFinalized.into();
+        let program_error: ProgramError = NCNProgramError::WeightTableNotFinalized.into();
         assert_eq!(
             program_error,
-            ProgramError::Custom(TipRouterError::WeightTableNotFinalized as u32)
+            ProgramError::Custom(NCNProgramError::WeightTableNotFinalized as u32)
         );
     }
 
     #[test]
     fn test_numeric_conversions() {
         // Test conversion to u64
-        let error_u64: u64 = TipRouterError::DenominatorIsZero.into();
+        let error_u64: u64 = NCNProgramError::DenominatorIsZero.into();
         assert_eq!(error_u64, 0x2100);
 
         // Test conversion to u32
-        let error_u32: u32 = TipRouterError::DenominatorIsZero.into();
+        let error_u32: u32 = NCNProgramError::DenominatorIsZero.into();
         assert_eq!(error_u32, 0x2100);
 
         // Test conversion for different error types
-        assert_eq!(u64::from(TipRouterError::IncorrectWeightTableAdmin), 0x2200);
-        assert_eq!(u32::from(TipRouterError::IncorrectWeightTableAdmin), 0x2200);
+        assert_eq!(
+            u64::from(NCNProgramError::IncorrectWeightTableAdmin),
+            0x2200
+        );
+        assert_eq!(
+            u32::from(NCNProgramError::IncorrectWeightTableAdmin),
+            0x2200
+        );
     }
 
     #[test]
     fn test_decode_error_type() {
         assert_eq!(
-            <TipRouterError as DecodeError<ProgramError>>::type_of(),
+            <NCNProgramError as DecodeError<ProgramError>>::type_of(),
             "jito::weight_table"
         );
     }
@@ -291,22 +297,22 @@ mod tests {
     fn test_error_equality() {
         // Test PartialEq implementation
         assert_eq!(
-            TipRouterError::DenominatorIsZero,
-            TipRouterError::DenominatorIsZero
+            NCNProgramError::DenominatorIsZero,
+            NCNProgramError::DenominatorIsZero
         );
         assert_ne!(
-            TipRouterError::DenominatorIsZero,
-            TipRouterError::ArithmeticOverflow
+            NCNProgramError::DenominatorIsZero,
+            NCNProgramError::ArithmeticOverflow
         );
 
         // Test with different error variants
         assert_eq!(
-            TipRouterError::WeightTableNotFinalized,
-            TipRouterError::WeightTableNotFinalized
+            NCNProgramError::WeightTableNotFinalized,
+            NCNProgramError::WeightTableNotFinalized
         );
         assert_ne!(
-            TipRouterError::WeightTableNotFinalized,
-            TipRouterError::InvalidMerkleProof
+            NCNProgramError::WeightTableNotFinalized,
+            NCNProgramError::InvalidMerkleProof
         );
     }
 }

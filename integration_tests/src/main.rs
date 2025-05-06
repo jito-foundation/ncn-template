@@ -1,5 +1,5 @@
-use jito_tip_router_client::programs::JITO_TIP_ROUTER_ID;
+use ncn_program_client::programs::NCN_PROGRAM_ID;
 
 pub fn main() {
-    println!("Hello, world! {:?}", JITO_TIP_ROUTER_ID);
+    println!("Hello, world! {:?}", NCN_PROGRAM_ID);
 }

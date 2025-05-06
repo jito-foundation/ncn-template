@@ -263,7 +263,7 @@ pub struct BallotBox {
 
 #### Cast Votes
 
-Operators cast votes as ballots containing their chosen vote data. In the Jito Tip Router example, this is represented by a simple `WeatherStatus`, but in a real implementation, this could be a hash of proposed data, transaction, or any other consensus item your NCN requires.
+Operators cast votes as ballots containing their chosen vote data. In the Program example, this is represented by a simple `WeatherStatus`, but in a real implementation, this could be a hash of proposed data, transaction, or any other consensus item your NCN requires.
 
 ```rust
 pub struct Ballot {

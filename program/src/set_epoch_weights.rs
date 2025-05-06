@@ -1,7 +1,7 @@
-use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_restaking_core::ncn::Ncn;
-use jito_tip_router_core::{
-    epoch_state::EpochState, error::TipRouterError, vault_registry::VaultRegistry,
+use ncn_program_core::{
+    epoch_state::EpochState, error::NCNProgramError, vault_registry::VaultRegistry,
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -41,7 +41,7 @@ pub fn process_set_epoch_weights(
         let weight_from_mint_entry = mint_entry.weight();
         if weight_from_mint_entry == 0 {
             msg!("Weight is not set");
-            return Err(TipRouterError::WeightNotSet.into());
+            return Err(NCNProgramError::WeightNotSet.into());
         }
 
         weight_table_account.set_weight(

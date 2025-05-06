@@ -12,7 +12,7 @@ use solana_program::{account_info::AccountInfo, program_error::ProgramError, pub
 use crate::{
     constants::{MAX_ST_MINTS, MAX_VAULTS},
     discriminators::Discriminators,
-    error::TipRouterError,
+    error::NCNProgramError,
     loaders::check_load,
 };
 
@@ -189,7 +189,7 @@ impl VaultRegistry {
 
     pub fn check_st_mint_entry(entry: &StMintEntry) -> Result<(), ProgramError> {
         if entry.weight() == 0 {
-            return Err(TipRouterError::WeightNotSet.into());
+            return Err(NCNProgramError::WeightNotSet.into());
         }
 
         Ok(())
@@ -198,7 +198,7 @@ impl VaultRegistry {
     pub fn register_st_mint(&mut self, st_mint: &Pubkey, weight: u128) -> Result<(), ProgramError> {
         // Check if mint is already in the list
         if self.st_mint_list.iter().any(|m| m.st_mint.eq(st_mint)) {
-            return Err(TipRouterError::MintInTable.into());
+            return Err(NCNProgramError::MintInTable.into());
         }
 
         // Insert at the first empty slot
@@ -206,7 +206,7 @@ impl VaultRegistry {
             .st_mint_list
             .iter_mut()
             .find(|m| m.st_mint == StMintEntry::default().st_mint)
-            .ok_or(TipRouterError::VaultRegistryListFull)?;
+            .ok_or(NCNProgramError::VaultRegistryListFull)?;
 
         let new_mint_entry = StMintEntry::new(st_mint, weight);
 
@@ -226,7 +226,7 @@ impl VaultRegistry {
             .st_mint_list
             .iter_mut()
             .find(|m| m.st_mint.eq(st_mint))
-            .ok_or(TipRouterError::MintEntryNotFound)?;
+            .ok_or(NCNProgramError::MintEntryNotFound)?;
 
         let mut updated_mint_entry = *mint_entry;
 
@@ -258,7 +258,7 @@ impl VaultRegistry {
             .vault_list
             .iter_mut()
             .find(|m| m.st_mint == VaultEntry::default().st_mint)
-            .ok_or(TipRouterError::VaultRegistryListFull)?;
+            .ok_or(NCNProgramError::VaultRegistryListFull)?;
 
         *mint_entry = VaultEntry::new(vault, st_mint, vault_index, current_slot);
         Ok(())
@@ -301,7 +301,7 @@ impl VaultRegistry {
             .st_mint_list
             .iter()
             .find(|m| m.st_mint().eq(st_mint))
-            .ok_or(TipRouterError::MintEntryNotFound)?;
+            .ok_or(NCNProgramError::MintEntryNotFound)?;
 
         Ok(*mint_entry)
     }
@@ -438,7 +438,7 @@ mod tests {
         let result = vault_registry.set_st_mint(&nonexistent_mint, None);
         assert_eq!(
             result.unwrap_err(),
-            ProgramError::from(TipRouterError::MintEntryNotFound)
+            ProgramError::from(NCNProgramError::MintEntryNotFound)
         );
 
         // Test 8: Setting  weight to invalid values should fail

@@ -6,7 +6,7 @@ use crate::config::ConfigAdminRole;
 
 #[rustfmt::skip]
 #[derive(Debug, BorshSerialize, BorshDeserialize, ShankInstruction)]
-pub enum TipRouterInstruction {
+pub enum NCNProgramInstruction {
 
     // ---------------------------------------------------- //
     //                         GLOBAL                       //

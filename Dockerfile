@@ -28,9 +28,9 @@ RUN echo "Contents of /usr/src/app:" && \
 RUN --mount=type=cache,mode=0777,target=/usr/src/app/target \
     --mount=type=cache,mode=0777,target=/usr/local/cargo/registry \
     echo "Starting cargo build..." && \
-    cargo build --release --bin tip-router-operator-cli -vv && \
+    cargo build --release --bin ncn-program-operator-cli -vv && \
     echo "Build completed, checking results:" && \
-    find /usr/src/app/target -type f -name "tip-router-operator-cli*" && \
+    find /usr/src/app/target -type f -name "ncn-program-operator-cli*" && \
     ls -la /usr/src/app/target/release/ || true
 
 # Production image
@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /solana/ledger /solana/snapshots /solana/snapshots/autosnapshot
 
 # Copy binary from builder
-COPY --from=builder /usr/src/app/target/release/tip-router-operator-cli /usr/local/bin/
+COPY --from=builder /usr/src/app/target/release/ncn-program-operator-cli /usr/local/bin/
 
 # Set up environment
 ENV RUST_LOG=info
@@ -55,4 +55,4 @@ ENV RUST_LOG=info
 RUN ulimit -n 2000000
 
 # Command will be provided by docker-compose
-ENTRYPOINT ["tip-router-operator-cli"]
+ENTRYPOINT ["ncn-program-operator-cli"]

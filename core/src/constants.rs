@@ -3,7 +3,7 @@ use solana_program::{
 };
 use spl_math::precise_number::PreciseNumber;
 
-use crate::error::TipRouterError;
+use crate::error::NCNProgramError;
 
 pub const MAX_FEE_BPS: u64 = 10_000;
 pub const MAX_ST_MINTS: usize = 64;
@@ -17,14 +17,14 @@ pub const MIN_VALID_SLOTS_AFTER_CONSENSUS: u64 = 1000;
 pub const MAX_VALID_SLOTS_AFTER_CONSENSUS: u64 = 50 * DEFAULT_SLOTS_PER_EPOCH;
 const PRECISE_CONSENSUS_NUMERATOR: u128 = 2;
 const PRECISE_CONSENSUS_DENOMINATOR: u128 = 3;
-pub fn precise_consensus() -> Result<PreciseNumber, TipRouterError> {
+pub fn precise_consensus() -> Result<PreciseNumber, NCNProgramError> {
     PreciseNumber::new(PRECISE_CONSENSUS_NUMERATOR)
-        .ok_or(TipRouterError::NewPreciseNumberError)?
+        .ok_or(NCNProgramError::NewPreciseNumberError)?
         .checked_div(
             &PreciseNumber::new(PRECISE_CONSENSUS_DENOMINATOR)
-                .ok_or(TipRouterError::NewPreciseNumberError)?,
+                .ok_or(NCNProgramError::NewPreciseNumberError)?,
         )
-        .ok_or(TipRouterError::DenominatorIsZero)
+        .ok_or(NCNProgramError::DenominatorIsZero)
 }
 
 pub const DEFAULT_CONSENSUS_REACHED_SLOT: u64 = u64::MAX;

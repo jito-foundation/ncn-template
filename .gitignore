@@ -25,3 +25,15 @@ lcov.info
 credentials/
 
 .DS_Store
+
+
+ncn-program-operator-cli/scripts/test-validator-keys
+ncn-program-operator-cli/scripts/validators.txt
+ncn-program-operator-cli/tests/fixtures/local_validators.txt
+ncn-program-operator-cli/tests/fixtures/keys/
+ncn-program-operator-cli/tests/fixtures/tda-accounts/
+
+# Debugging
+integration_tests/tests/fixtures/ncn_program.so
+
+integration_tests/tests/fixtures/ncn_program-keypair.json

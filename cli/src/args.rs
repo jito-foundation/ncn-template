@@ -48,11 +48,11 @@ pub struct Args {
     #[arg(
         long,
         global = true,
-        env = "TIP_ROUTER_PROGRAM_ID",
-        default_value_t = jito_tip_router_program::id().to_string(),
-        help = "Tip router program ID"
+        env = "NCN_PROGRAM_ID",
+        default_value_t = ncn_program::id().to_string(),
+        help = "NCN program ID"
     )]
-    pub tip_router_program_id: String,
+    pub ncn_program_id: String,
 
     #[arg(
         long,
@@ -266,7 +266,7 @@ pub enum ProgramCommand {
     GetAllTickets,
     GetAllOperatorsInNcn,
     GetAllVaultsInNcn,
-    GetTipRouterConfig,
+    GetNCNProgramConfig,
     GetVaultRegistry,
     GetWeightTable,
     GetEpochState,
@@ -331,7 +331,7 @@ impl fmt::Display for Args {
 
         // Program IDs
         writeln!(f, "\n🔑 Program IDs:")?;
-        writeln!(f, "  • Tip Router:        {}", self.tip_router_program_id)?;
+        writeln!(f, "  • NCN Program:        {}", self.ncn_program_id)?;
         writeln!(f, "  • Restaking:         {}", self.restaking_program_id)?;
         writeln!(f, "  • Vault:             {}", self.vault_program_id)?;
         writeln!(f, "  • Token:             {}", self.token_program_id)?;

@@ -2,7 +2,7 @@ use jito_bytemuck::AccountDeserialize;
 use jito_restaking_core::config::Config;
 use solana_program::{account_info::AccountInfo, msg, program_error::ProgramError, pubkey::Pubkey};
 
-use crate::error::TipRouterError;
+use crate::error::NCNProgramError;
 
 pub fn load_ncn_epoch(
     restaking_config: &AccountInfo,
@@ -17,16 +17,16 @@ pub fn load_ncn_epoch(
 
     let current_ncn_epoch = current_slot
         .checked_div(ncn_epoch_length)
-        .ok_or(TipRouterError::DenominatorIsZero)?;
+        .ok_or(NCNProgramError::DenominatorIsZero)?;
 
     let ncn_epoch_slot = first_slot_of_ncn_epoch.unwrap_or(current_slot);
     let ncn_epoch = ncn_epoch_slot
         .checked_div(ncn_epoch_length)
-        .ok_or(TipRouterError::DenominatorIsZero)?;
+        .ok_or(NCNProgramError::DenominatorIsZero)?;
 
     if ncn_epoch > current_ncn_epoch {
         msg!("Epoch snapshots can only be initialized for current or past epochs");
-        return Err(TipRouterError::CannotCreateFutureWeightTables.into());
+        return Err(NCNProgramError::CannotCreateFutureWeightTables.into());
     }
 
     Ok((ncn_epoch, ncn_epoch_length))
