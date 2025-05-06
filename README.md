@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-1. Set up test-ledger: `./ncn-program-operator-cli/scripts/setup-test-ledger.sh`
+1. Set up test-ledger: `./scripts/setup-test-ledger.sh`
 
    - NOTE: This script fails on the edge version of Solana. Currently it's being ran
      with `1.18.26`. `sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.26/install)"`

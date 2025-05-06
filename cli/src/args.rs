@@ -104,50 +104,6 @@ pub struct Args {
 
 #[derive(Subcommand)]
 pub enum ProgramCommand {
-    /// Keeper
-    Keeper {
-        #[arg(
-            long,
-            env,
-            default_value_t = 600_000, // 10 minutes
-            help = "Keeper error timeout in milliseconds"
-        )]
-        loop_timeout_ms: u64,
-        #[arg(
-            long,
-            env,
-            default_value_t = 10_000, // 10 seconds
-            help = "Keeper error timeout in milliseconds"
-        )]
-        error_timeout_ms: u64,
-        #[arg(long, help = "Calls test vote, instead of waiting for a real vote")]
-        test_vote: bool,
-        #[arg(
-            long,
-            env,
-            help = "At the start of the epoch the keeper will update all vaults in the network"
-        )]
-        all_vault_update: bool,
-        #[arg(
-            long,
-            env,
-            help = "Emits metrics to Influx - adds a lot of network calls"
-        )]
-        emit_metrics: bool,
-        #[arg(long, env, help = "Only emit metrics")]
-        metrics_only: bool,
-        #[arg(long, env, help = "Run migration")]
-        run_migration: bool,
-        #[arg(long, env, help = "Cluster label for metrics purposes")]
-        cluster: Cluster,
-        #[arg(
-            long,
-            env,
-            default_value = "local",
-            help = "Region for metrics purposes"
-        )]
-        region: String,
-    },
     /// Crank Functions
     CrankUpdateAllVaults {},
     CrankRegisterVaults {},

@@ -6,7 +6,6 @@ members = [
     "integration_tests",
     "program",
     "shank_cli",
-    "ncn-program-operator-cli",
 ]
 
 resolver = "2"

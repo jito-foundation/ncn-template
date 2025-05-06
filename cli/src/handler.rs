@@ -20,7 +20,6 @@ use crate::{
         full_vault_update, register_vault, set_epoch_weights, snapshot_vault_operator_delegation,
         update_all_vaults_in_network,
     },
-    keeper::keeper_loop::startup_keeper,
 };
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
@@ -155,32 +154,6 @@ impl CliHandler {
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
-            // Keeper
-            ProgramCommand::Keeper {
-                loop_timeout_ms,
-                error_timeout_ms,
-                test_vote,
-                all_vault_update,
-                emit_metrics,
-                metrics_only,
-                run_migration,
-                cluster,
-                region,
-            } => {
-                startup_keeper(
-                    self,
-                    loop_timeout_ms,
-                    error_timeout_ms,
-                    test_vote,
-                    all_vault_update,
-                    emit_metrics,
-                    metrics_only,
-                    run_migration,
-                    cluster.to_string(),
-                    region.to_string(),
-                )
-                .await
-            }
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,

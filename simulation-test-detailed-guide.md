@@ -60,12 +60,11 @@ The simulation test is a comprehensive test case that simulates a complete NCN (
 
 Before running the simulation test, ensure you have:
 
-1. Set up the test ledger using `./ncn-program-operator-cli/scripts/setup-test-ledger.sh`
+1. Set up the test ledger using `./scripts/setup-test-ledger.sh`
 1. Built the NCN program using `cargo build-sbf`
 1. Set the correct Solana version (1.18.26 recommended)
 
 This setup:
-
 
 ## Test Flow
 
@@ -99,6 +98,7 @@ let delegations = [
 ```
 
 This code:
+
 1. Initializes the test environment and required program clients
 2. Configures 13 operators
 3. Sets up 4 different token types with different weights for voting power
@@ -113,6 +113,7 @@ let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 ```
 
 This step:
+
 - Creates a new Node Consensus Network (NCN) using Jito's restaking infrastructure
 - Stores the NCN public key for future operations
 
@@ -130,11 +131,13 @@ fixture
 ```
 
 This step:
+
 - Creates 13 operator accounts using Jito's restaking program
 - Sets each operator's fee to 100 basis points (1%)
 - Establishes a bidirectional handshake between each operator and the NCN
 
 The handshake process involves:
+
 1. Creating operator accounts with their respective admin keypairs
 2. Initializing the NCN-operator relationship state using `do_initialize_ncn_operator_state`
 3. Warming up the NCN-to-operator connection using `do_ncn_warmup_operator`
@@ -167,12 +170,14 @@ These bidirectional relationships are essential for the security model, ensuring
 ```
 
 This step creates a total of 7 vaults distributed across 4 different token types:
+
 - 3 vaults for TKN1 (base weight)
 - 2 vaults for TKN2 (double weight)
 - 1 vault for TKN3 (triple weight)
 - 1 vault for TKN4 (quadruple weight)
 
 For each vault, the system:
+
 1. Initializes a vault account via the vault program with zero fees (important for testing)
 2. Creates a vault mint (token) if not provided directly
 3. Establishes a bidirectional handshake between the vault and the NCN:
@@ -214,11 +219,13 @@ The distribution of vaults across different token types enables testing how the 
 ```
 
 The delegation process is where voting power is established. Each vault delegates tokens to operators, which determines:
+
 1. How much voting power each operator has
 2. How token weights multiply that power
 3. The distribution of influence across the network
 
 Key aspects of the delegation setup:
+
 - Every vault delegates to every operator (except the last one)
 - Delegation amounts cycle through the `delegations` array (which ranges from 1 lamport to 10,000 tokens)
 - The last operator intentionally receives zero delegation to test the system's handling of operators without stake
@@ -227,16 +234,19 @@ Key aspects of the delegation setup:
 #### 3.4 Delegation Architecture and Voting Power Calculation
 
 The delegation architecture follows a multiplication relationship:
+
 - Voting power = Delegation amount × Token weight
 - Each operator accumulates voting power from all vaults that delegate to them
 - For an operator with multiple delegations, the total voting power is the sum of all delegations multiplied by their respective token weights
 
 For example:
+
 - If Vault1 (TKN1, weight=W) delegates 100 tokens to OperatorA, the voting power is 100×W
 - If Vault2 (TKN2, weight=2W) delegates 50 tokens to OperatorA, the additional voting power is 50×2W
 - OperatorA's total voting power would be (100×W) + (50×2W) = 200W
 
 This distributed delegation model enables testing complex scenarios where:
+
 - Operators have different levels of influence
 - Tokens with higher weights have proportionally more impact
 - The distribution of delegations affects consensus outcomes
@@ -257,6 +267,7 @@ ncn_program_client
 ```
 
 This step initializes the core configuration for the NCN program with critical parameters:
+
 - **NCN Admin**: The authority that can modify configuration settings
 - **Epochs Before Stall**: How many epochs before a non-completed voting cycle is considered stalled (default: 3)
 - **Epochs After Consensus Before Close**: How long to wait after consensus before closing epoch data (default: 10)
@@ -274,6 +285,7 @@ ncn_program_client
 ```
 
 The vault registry is a critical data structure that:
+
 - Tracks all supported vault accounts
 - Maintains the list of supported token mints (token types)
 - Records the weight assigned to each token type
@@ -299,6 +311,7 @@ fixture
 ```
 
 This section:
+
 1. Retrieves the epoch length from the restaking program configuration
 2. Advances the simulation time by two full epochs
 3. Ensures all handshake relationships between NCN, operators, and vaults become active
@@ -318,6 +331,7 @@ for (mint, weight) in mints.iter() {
 ```
 
 This step registers each Supported Token (ST) mint with the NCN program and assigns the appropriate weight:
+
 - Each token mint (TKN1, TKN2, etc.) is registered with its corresponding weight
 - The weights determine the voting power multiplier for delegations in that token
 - Only the NCN admin has the authority to register tokens, ensuring trust in the system
@@ -345,6 +359,7 @@ for vault in test_ncn.vaults.iter() {
 ```
 
 The final configuration step registers each vault with the NCN program:
+
 1. For each vault created earlier, the system finds its NCN vault ticket PDA (Program Derived Address)
 2. The vault is registered in the NCN program's vault registry
 3. This creates the association between the vault and its supported token type
@@ -355,6 +370,7 @@ This registration process establishes the complete set of vaults that can contri
 #### 4.6 Architecture Considerations
 
 The NCN program configuration establishes a multi-layered security model:
+
 1. **Authentication Layer**: Only the NCN admin can initialize configuration and register tokens
 2. **Relationship Layer**: Only vaults and operators with established, active handshakes can participate
 3. **Time Security Layer**: Enforced waiting periods prevent quick creation and use of malicious actors
@@ -376,6 +392,7 @@ fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
 ```
 
 The epoch state serves as the control center for the current voting cycle:
+
 - It creates an `EpochState` account tied to the specific NCN and epoch
 - This account tracks the progress through each stage of the voting cycle
 - It maintains flags for each phase (weight setting, snapshot taking, voting, closing)
@@ -403,6 +420,7 @@ ncn_program_client
 The weight table mechanism handles the token weights for the current epoch:
 
 1. **Weight Table Initialization**:
+
    - Creates a `WeightTable` account for the specific epoch
    - Allocates space based on the number of supported tokens
    - Links the table to the NCN and current epoch
@@ -415,6 +433,7 @@ The weight table mechanism handles the token weights for the current epoch:
    - Creates an immutable record of token weights that will be used for voting
 
 This two-step process is critical for the integrity of the system as it:
+
 - Creates a permanent record of weights at the time voting begins
 - Prevents weight changes during a voting cycle from affecting ongoing votes
 - Allows transparent verification of the weights used for a particular vote
@@ -428,6 +447,7 @@ fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
 ```
 
 The epoch snapshot captures the aggregate state of the entire system:
+
 - Creates an `EpochSnapshot` account for the NCN and epoch
 - Records the total number of operators and vaults
 - Captures the total stake weight across all participants
@@ -446,6 +466,7 @@ fixture
 ```
 
 For each operator in the system:
+
 - Creates an `OperatorSnapshot` account linked to the operator, NCN, and epoch
 - Records the operator's total delegated stake at this moment
 - Captures the stake weight breakdown across different token types
@@ -464,6 +485,7 @@ fixture
 ```
 
 For each active vault-to-operator delegation:
+
 - Creates a `VaultOperatorDelegationSnapshot` account
 - Records the exact delegation amount at the current moment
 - Links the snapshot to the specific vault, operator, NCN, and epoch
@@ -471,6 +493,7 @@ For each active vault-to-operator delegation:
 - Adds this weighted delegation to the operator's total stake weight
 
 These granular snapshots serve multiple purposes:
+
 - They provide detailed audit trails of exactly where each operator's voting power comes from
 - They enable verification of correct weight calculation for each delegation
 - They prevent retroactive manipulation of the voting power distribution
@@ -484,6 +507,7 @@ fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 ```
 
 The final preparation step creates the ballot box:
+
 - Initializes a `BallotBox` account linked to the NCN and epoch
 - Creates arrays to track operator votes and ballot tallies
 - Sets up the data structures for recording and counting votes
@@ -491,6 +515,7 @@ The final preparation step creates the ballot box:
 - Links the ballot box to the epoch state for progress tracking
 
 The ballot box becomes the central repository where all votes are recorded and tallied during the voting process. It is designed to efficiently track:
+
 - Which operators have voted and what they voted for
 - The cumulative stake weight behind each voting option
 - The current winning ballot (if any)
@@ -505,16 +530,18 @@ The snapshot system implements several key architectural principles:
 2. **Immutability**: Once taken, snapshots cannot be modified, ensuring the integrity of the voting process.
 
 3. **Layered Verification**: The system enables verification at multiple levels:
+
    - Aggregate level (epoch snapshot)
    - Participant level (operator snapshots)
    - Relationship level (delegation snapshots)
 
 4. **Defense Against Time-Based Attacks**: By freezing the state before voting begins, the system prevents:
+
    - Late stake additions to influence outcomes
    - Strategic withdrawals after seeing early votes
    - Any form of "stake voting power front-running"
 
-5. **Separation of State and Process**: 
+5. **Separation of State and Process**:
    - The state (snapshots) is captured separately from the process (voting)
    - This clear separation simplifies reasoning about the system
    - It enables more effective testing and verification
@@ -582,6 +609,7 @@ For testing purposes, the system defines an expected outcome. In a production en
 ```
 
 This critical security test verifies that:
+
 1. The operator without delegations has a recorded stake weight of zero in its operator snapshot
 2. When this zero-stake operator attempts to vote, the transaction fails with a specific error
 3. The system correctly enforces the rule that only operators with actual stake can influence consensus
@@ -624,11 +652,13 @@ This security mechanism prevents Sybil attacks where an attacker might create ma
 ```
 
 This section demonstrates the system's ability to handle diverse voting preferences:
+
 1. The first operator votes for "Cloudy" (representing a minority view)
 2. The second and third operators vote for "Sunny" (the presumed majority view)
 3. Each `do_cast_vote` call invokes the NCN program with the operator's choice
 
 Under the hood, each vote triggers several key operations:
+
 - The system verifies the operator admin's authority to vote on behalf of the operator
 - It checks that the operator hasn't already voted in this epoch
 - It retrieves the operator's snapshot to determine its voting power
@@ -657,6 +687,7 @@ Under the hood, each vote triggers several key operations:
 To establish a clear consensus, the remaining operators (excluding the zero-delegation operator) all vote for the "Sunny" option. This creates a supermajority that surpasses the required threshold for consensus.
 
 The consensus mechanism works as follows:
+
 1. The system maintains a running tally of stake weight for each voting option
 2. After each vote, it calculates whether any option has reached the consensus threshold (typically 66% of total stake)
 3. If an option reaches consensus, the system marks the slot when consensus was achieved
@@ -668,23 +699,26 @@ The consensus mechanism works as follows:
 When an operator casts a vote, the system performs several critical operations to ensure security and proper consensus calculation:
 
 1. **Authentication**: Verifies that the transaction is signed by the operator's admin key
-   
 2. **Authorization**: Confirms that:
+
    - The operator exists and has an active relationship with the NCN
    - The operator has not already voted in this epoch
    - The operator has non-zero stake weight
 
 3. **Vote Recording**:
+
    - Creates an `OperatorVote` record in the ballot box
    - Stores the operator's public key, slot when voted, stake weight, and ballot choice
    - Marks the operator as having voted for this epoch
 
 4. **Ballot Processing**:
+
    - Updates or creates a `BallotTally` for the chosen option
    - Adds the operator's stake weight to the tally
    - Increments the vote count for this option
 
 5. **Consensus Calculation**:
+
    - Compares the winning ballot's stake weight against the total possible stake
    - If the winning ballot exceeds the threshold (e.g., 66%), marks consensus as reached
    - Records the slot when consensus was reached
@@ -701,23 +735,28 @@ This multi-layered architecture ensures votes are processed securely, tallied co
 
 The voting process incorporates several key security features:
 
-1. **Sybil Attack Prevention**: 
+1. **Sybil Attack Prevention**:
+
    - Voting power is based on stake weight, not operator count
    - Zero-stake operators cannot participate, preventing fake operator attacks
 
 2. **Replay Protection**:
+
    - Each operator can only vote once per epoch
    - The system tracks which operators have already voted
 
 3. **Time-Bound Voting**:
+
    - Votes are only accepted within the appropriate epoch
    - After consensus is reached, there's a limited window for additional votes
 
 4. **Authority Verification**:
+
    - Only the designated operator admin can cast votes for an operator
    - Signature verification ensures proper authorization
 
 5. **Tamper-Proof Tallying**:
+
    - Votes are tallied based on immutable snapshot data
    - The system prevents retroactive changes to stake weights
 
@@ -747,11 +786,13 @@ assert_eq!(
 The first verification step examines the ballot box account:
 
 1. **Winning Ballot Check**:
+
    - `has_winning_ballot()` confirms that a valid winning ballot was identified
    - This means at least one valid weather status received votes
    - A winning ballot must exceed the required consensus threshold
 
 2. **Consensus Status Check**:
+
    - `is_consensus_reached()` verifies that the winning ballot achieved the required supermajority
    - The consensus threshold is typically set at 66% of total stake weight
    - This confirms that the voting process successfully reached a definitive conclusion
@@ -801,19 +842,23 @@ The ballot box serves as the primary record of the voting process, capturing all
 The second verification step examines the `ConsensusResult` account, which serves as the permanent, persistent record of the voting outcome:
 
 1. **Consensus Result Existence**:
+
    - The test confirms that a `ConsensusResult` account was created for this epoch
    - This account is created automatically when consensus is reached
    - It serves as the authoritative record of the voting outcome
 
 2. **Consensus Status Validation**:
+
    - `is_consensus_reached()` verifies the consensus flag is properly set
    - This confirms the outcome is officially recognized by the system
 
 3. **Metadata Verification**:
+
    - The epoch field matches the current epoch, confirming proper account initialization
    - The weather status matches the expected "Sunny" value, validating outcome recording
 
 4. **Cross-Account Consistency Check**:
+
    - The test compares values between the ballot box and consensus result
    - The vote weight in the consensus result must match the stake weight of the winning ballot
    - This ensures consistency between the voting process and the final recorded outcome
@@ -828,22 +873,26 @@ The second verification step examines the `ConsensusResult` account, which serve
 The verification phase highlights several important architectural features of the NCN system:
 
 1. **Dual Record Keeping**:
+
    - The system maintains two separate records of the outcome:
      - The `BallotBox` account contains the complete voting history and tallies
      - The `ConsensusResult` account provides a persistent record of the outcome
    - This redundancy ensures the outcome remains accessible even after cleanup
 
 2. **Record Separation**:
+
    - The voting process (ballot box) is separated from the outcome record (consensus result)
    - This separation allows the system to clean up voting data while preserving results
    - It follows the principle of separating process from outcome
 
 3. **Automated Result Creation**:
+
    - When consensus is reached, the system automatically creates the consensus result
    - This removes the need for a separate administrative action to record the outcome
    - It ensures timely and accurate recording of results
 
 4. **Result Immutability**:
+
    - Once created, the consensus result cannot be modified
    - This immutability ensures that voting outcomes cannot be tampered with
    - It provides a trustworthy historical record of all past decisions
@@ -860,18 +909,22 @@ The verification phase highlights several important architectural features of th
 The verification approach demonstrates several best practices for validating blockchain-based voting systems:
 
 1. **Multi-Level Verification**:
+
    - Tests verify both the process (ballot box) and outcome (consensus result)
    - This catches errors that might occur at different stages of the pipeline
 
 2. **Equality Assertions**:
+
    - Key values are compared using strict equality assertions
    - This ensures exact matching rather than approximate validation
 
 3. **Cross-Structure Validation**:
+
    - Values are compared across different accounts to ensure consistency
    - This validates that data propagated correctly between system components
 
 4. **Complete Outcome Validation**:
+
    - Tests check not just the winning choice, but also:
      - The stake weights behind the decision
      - The consensus status flags
@@ -906,6 +959,7 @@ fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 ```
 
 This cleanup:
+
 1. Records the current epoch
 2. Closes all epoch-related accounts
 3. Verifies that the consensus result account persists (as it contains the final result)
@@ -941,7 +995,7 @@ pub async fn new() -> Self {
 
     // Start the test context
     let mut context = program_test.start_with_context().await;
-    
+
     Self {
         context,
         payer: context.payer.insecure_clone(),
@@ -950,6 +1004,7 @@ pub async fn new() -> Self {
 ```
 
 This function initializes the test environment by:
+
 1. Creating a `ProgramTest` instance for the NCN program
 2. Adding the vault and restaking programs to the test environment
 3. Starting the test context with a simulated Solana runtime
@@ -972,6 +1027,7 @@ pub async fn initialize_staking_and_vault_programs(&mut self) -> TestResult<()> 
 ```
 
 This function:
+
 1. Gets clients for the vault and restaking programs
 2. Initializes their configurations with default parameters
 3. These configurations are required before any operations can be performed with these programs
@@ -998,6 +1054,7 @@ pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
 ```
 
 This function creates a new Node Consensus Network (NCN) by:
+
 1. Getting a client for the restaking program
 2. Calling `do_initialize_ncn()` to create an NCN account
 3. Returning a `TestNcn` struct with the NCN root and empty lists for operators and vaults
@@ -1009,20 +1066,20 @@ pub async fn do_initialize_ncn(&mut self, admin: Option<Keypair>) -> TestResult<
     // Generate a unique NCN keypair
     let ncn_keypair = Keypair::new();
     let ncn_pubkey = ncn_keypair.pubkey();
-    
+
     // Use provided admin or default to payer
     let ncn_admin = admin.unwrap_or_else(|| self.payer.insecure_clone());
-    
+
     // Find the config address
     let config_address = Config::find_program_address(&jito_restaking_program::id()).0;
-    
+
     // Build the initialize NCN instruction
     let ix = InitializeNcnBuilder::new()
         .config(config_address)
         .ncn(ncn_pubkey)
         .ncn_admin(ncn_admin.pubkey())
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1032,7 +1089,7 @@ pub async fn do_initialize_ncn(&mut self, admin: Option<Keypair>) -> TestResult<
         blockhash,
     ))
     .await?;
-    
+
     // Return the NCN root structure
     Ok(NcnRoot {
         ncn_pubkey,
@@ -1043,6 +1100,7 @@ pub async fn do_initialize_ncn(&mut self, admin: Option<Keypair>) -> TestResult<
 ```
 
 This function:
+
 1. Generates a new keypair for the NCN
 2. Uses the provided admin keypair or defaults to the test payer
 3. Finds the restaking program's config address
@@ -1056,15 +1114,16 @@ This function:
 pub async fn setup_ncn_program(&mut self, ncn_root: &NcnRoot) -> TestResult<()> {
     // Initialize the NCN program configuration
     self.do_initialize_config(ncn_root.ncn_pubkey, &ncn_root.ncn_admin).await?;
-    
+
     // Initialize the vault registry
     self.do_full_initialize_vault_registry(ncn_root.ncn_pubkey).await?;
-    
+
     Ok(())
 }
 ```
 
 This function configures the NCN program for a specific NCN by:
+
 1. Initializing the NCN program configuration
 2. Creating a vault registry to track vaults and token mints
 3. This prepares the NCN program to start accepting vault and token registrations
@@ -1112,6 +1171,7 @@ pub async fn add_operators_to_test_ncn(
 ```
 
 This function creates and connects multiple operators to an NCN by:
+
 1. Creating each operator with the specified fee in basis points
 2. Establishing a bidirectional handshake between each operator and the NCN through:
    - Initializing the NCN-operator state
@@ -1130,13 +1190,13 @@ pub async fn do_initialize_operator(
     let operator_keypair = Keypair::new();
     let operator_pubkey = operator_keypair.pubkey();
     let operator_admin = Keypair::new();
-    
+
     // Find the config address
     let config_address = Config::find_program_address(&jito_restaking_program::id()).0;
-    
+
     // Default fee to 0 if not specified
     let fees_bps = operator_fees_bps.unwrap_or(0);
-    
+
     // Build the initialize operator instruction
     let ix = InitializeOperatorBuilder::new()
         .config(config_address)
@@ -1144,7 +1204,7 @@ pub async fn do_initialize_operator(
         .operator_admin(operator_admin.pubkey())
         .fees_bps(fees_bps)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1154,7 +1214,7 @@ pub async fn do_initialize_operator(
         blockhash,
     ))
     .await?;
-    
+
     // Return the operator root structure
     Ok(OperatorRoot {
         operator_pubkey,
@@ -1165,6 +1225,7 @@ pub async fn do_initialize_operator(
 ```
 
 This function:
+
 1. Generates keypairs for the operator and its admin
 2. Finds the restaking program's config address
 3. Uses the provided fee or defaults to 0 basis points
@@ -1239,6 +1300,7 @@ pub async fn add_vaults_to_test_ncn(
 ```
 
 This function creates and connects multiple vaults to an NCN by:
+
 1. Setting vault fees to zero for testing purposes
 2. Using the provided token mint or generating a new one
 3. For each vault:
@@ -1264,7 +1326,7 @@ pub async fn do_initialize_vault(
     // Generate a keypair for the vault
     let vault_keypair = Keypair::new();
     let vault_pubkey = vault_keypair.pubkey();
-    
+
     // Use provided token mint or create a new one
     let (token_mint, token_mint_keypair) = if let Some(keypair) = token_mint_keypair {
         let mint = keypair.pubkey();
@@ -1273,12 +1335,12 @@ pub async fn do_initialize_vault(
         let keypair = Keypair::new();
         (keypair.pubkey(), keypair)
     };
-    
+
     // Find the config address
     let config_address = vault_program::config::Config::find_program_address(
         &vault_program::id()
     ).0;
-    
+
     // Build the initialize vault instruction
     let ix = vault_program::instruction::InitializeVaultBuilder::new()
         .config(config_address)
@@ -1290,7 +1352,7 @@ pub async fn do_initialize_vault(
         .reward_fee_bps(reward_fee_bps)
         .decimals(decimals)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1300,7 +1362,7 @@ pub async fn do_initialize_vault(
         blockhash,
     ))
     .await?;
-    
+
     // Return the vault root structure
     Ok(VaultRoot {
         vault_pubkey,
@@ -1312,6 +1374,7 @@ pub async fn do_initialize_vault(
 ```
 
 This function:
+
 1. Generates a keypair for the vault
 2. Uses the provided token mint keypair or generates a new one
 3. Finds the vault program's config address
@@ -1404,6 +1467,7 @@ pub async fn do_initialize_config(
 ```
 
 This function initializes the NCN program configuration by:
+
 1. Airdrops 1 SOL to the payer account to cover transaction fees
 2. Finds the AccountPayer PDA and airdrops 100 SOL to it to cover rent for created accounts
 3. Calls `initialize_config()` with specific parameters:
@@ -1455,6 +1519,7 @@ pub async fn initialize_config(
 ```
 
 This function:
+
 1. Finds the NcnConfig PDA address
 2. Finds the AccountPayer PDA address
 3. Builds an instruction to initialize the NCN program configuration with:
@@ -1473,17 +1538,17 @@ pub async fn do_full_initialize_vault_registry(
 ) -> TestResult<()> {
     // Find the vault registry PDA
     let (vault_registry, _, _) = VaultRegistry::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Build the initialize vault registry instruction
     let ix = InitializeVaultRegistryBuilder::new()
         .vault_registry(vault_registry)
         .config(ncn_config)
         .ncn(ncn)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1497,6 +1562,7 @@ pub async fn do_full_initialize_vault_registry(
 ```
 
 This function:
+
 1. Finds the VaultRegistry PDA address
 2. Finds the NcnConfig PDA address
 3. Builds an instruction to initialize the vault registry for the NCN
@@ -1530,6 +1596,7 @@ pub async fn do_admin_register_st_mint(
 ```
 
 This function registers a Supported Token (ST) mint with a specific weight by:
+
 1. Finding the vault registry and config PDAs
 2. Using the payer as the admin (must be the NCN admin in production)
 3. Calling `admin_register_st_mint()` with all necessary parameters
@@ -1555,7 +1622,7 @@ pub async fn admin_register_st_mint(
         .st_mint(st_mint)
         .weight(weight)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1569,6 +1636,7 @@ pub async fn admin_register_st_mint(
 ```
 
 This function:
+
 1. Builds an instruction to register an ST mint with the specified weight
 2. Processes the transaction with the payer as the signer
 3. This adds the token mint to the vault registry with its corresponding weight
@@ -1586,11 +1654,11 @@ pub async fn do_register_vault(
     // Find the vault registry PDA
     let vault_registry =
         VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) =
         NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Build the register vault instruction
     let ix = RegisterVaultBuilder::new()
         .config(ncn_config)
@@ -1599,7 +1667,7 @@ pub async fn do_register_vault(
         .vault(vault)
         .ncn_vault_ticket(ncn_vault_ticket)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1613,6 +1681,7 @@ pub async fn do_register_vault(
 ```
 
 This function registers a vault with the NCN program by:
+
 1. Finding the vault registry and config PDAs
 2. Building an instruction to register the vault with its NCN vault ticket
 3. Processing the transaction with the payer as the signer
@@ -1632,7 +1701,7 @@ pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> Test
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Initialize the epoch state
     ncn_program_client
         .do_intialize_epoch_state(test_ncn.ncn_root.ncn_pubkey, epoch)
@@ -1643,6 +1712,7 @@ pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> Test
 ```
 
 This function initializes an epoch state for the current epoch by:
+
 1. Advancing time by 1000 slots to ensure we're in a new epoch
 2. Getting the current epoch from the clock
 3. Calling `do_intialize_epoch_state()` to create an epoch state account
@@ -1654,10 +1724,10 @@ This function initializes an epoch state for the current epoch by:
 pub async fn do_intialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Build the initialize epoch state instruction
     let ix = InitializeEpochStateBuilder::new()
         .epoch_state(epoch_state)
@@ -1665,7 +1735,7 @@ pub async fn do_intialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> Tes
         .ncn(ncn)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1679,6 +1749,7 @@ pub async fn do_intialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> Tes
 ```
 
 This function:
+
 1. Finds the EpochState PDA address for the specific NCN and epoch
 2. Finds the NcnConfig PDA address
 3. Builds an instruction to initialize an epoch state account
@@ -1694,7 +1765,7 @@ pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResu
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Initialize the weight table
     ncn_program_client
         .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
@@ -1710,6 +1781,7 @@ pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResu
 ```
 
 This function sets up token weights for the current epoch by:
+
 1. Getting the current epoch from the clock
 2. Calling `do_full_initialize_weight_table()` to create a weight table
 3. Calling `do_set_epoch_weights()` to copy weights from the vault registry to the weight table
@@ -1721,16 +1793,16 @@ This function sets up token weights for the current epoch by:
 pub async fn do_set_epoch_weights(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the vault registry PDA
     let vault_registry = VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
-    
+
     // Find the weight table PDA
     let weight_table = WeightTable::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Build the set epoch weights instruction
     let ix = SetEpochWeightsBuilder::new()
         .epoch_state(epoch_state)
@@ -1740,7 +1812,7 @@ pub async fn do_set_epoch_weights(&mut self, ncn: Pubkey, epoch: u64) -> TestRes
         .ncn(ncn)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1754,6 +1826,7 @@ pub async fn do_set_epoch_weights(&mut self, ncn: Pubkey, epoch: u64) -> TestRes
 ```
 
 This function:
+
 1. Finds all necessary PDA addresses (epoch state, config, vault registry, weight table)
 2. Builds an instruction to set epoch weights by copying from the vault registry to the weight table
 3. Processes the transaction with the payer as the signer
@@ -1768,22 +1841,22 @@ pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> Te
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(
         &ncn_program::id(),
         &test_ncn.ncn_root.ncn_pubkey,
         epoch,
     ).0;
-    
+
     // Get the epoch state to verify we're at the right stage
     let epoch_state_account = ncn_program_client
         .get_epoch_state(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
-    
+
     // Ensure weights are set before taking snapshot
     assert!(epoch_state_account.set_weight_progress().is_complete());
-    
+
     // Initialize the epoch snapshot
     ncn_program_client
         .do_initialize_epoch_snapshot(test_ncn.ncn_root.ncn_pubkey, epoch)
@@ -1794,6 +1867,7 @@ pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> Te
 ```
 
 This function creates an aggregate epoch snapshot by:
+
 1. Getting the current epoch from the clock
 2. Finding the epoch state PDA address
 3. Verifying that weights have been set (weight setting must be complete)
@@ -1806,19 +1880,19 @@ This function creates an aggregate epoch snapshot by:
 pub async fn do_initialize_epoch_snapshot(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the epoch snapshot PDA
     let epoch_snapshot = EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the weight table PDA
     let weight_table = WeightTable::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the vault registry PDA
     let vault_registry = VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
-    
+
     // Build the initialize epoch snapshot instruction
     let ix = InitializeEpochSnapshotBuilder::new()
         .epoch_state(epoch_state)
@@ -1829,7 +1903,7 @@ pub async fn do_initialize_epoch_snapshot(&mut self, ncn: Pubkey, epoch: u64) ->
         .ncn(ncn)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1843,6 +1917,7 @@ pub async fn do_initialize_epoch_snapshot(&mut self, ncn: Pubkey, epoch: u64) ->
 ```
 
 This function:
+
 1. Finds all necessary PDA addresses (epoch state, config, epoch snapshot, weight table, vault registry)
 2. Builds an instruction to initialize an epoch snapshot account
 3. Processes the transaction with the payer as the signer
@@ -1857,7 +1932,7 @@ pub async fn add_operator_snapshots_to_test_ncn(&mut self, test_ncn: &TestNcn) -
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Create a snapshot for each operator
     for operator_root in test_ncn.operators.iter() {
         ncn_program_client
@@ -1874,6 +1949,7 @@ pub async fn add_operator_snapshots_to_test_ncn(&mut self, test_ncn: &TestNcn) -
 ```
 
 This function creates snapshots for each operator by:
+
 1. Getting the current epoch from the clock
 2. Iterating through each operator in the test NCN
 3. Calling `do_initialize_operator_snapshot()` for each operator
@@ -1890,13 +1966,13 @@ pub async fn do_initialize_operator_snapshot(
 ) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the epoch snapshot PDA
     let epoch_snapshot = EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the operator snapshot PDA
     let operator_snapshot = OperatorSnapshot::find_program_address(
         &ncn_program::id(),
@@ -1904,7 +1980,7 @@ pub async fn do_initialize_operator_snapshot(
         &ncn,
         epoch,
     ).0;
-    
+
     // Build the initialize operator snapshot instruction
     let ix = InitializeOperatorSnapshotBuilder::new()
         .epoch_state(epoch_state)
@@ -1915,7 +1991,7 @@ pub async fn do_initialize_operator_snapshot(
         .operator(operator)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -1929,6 +2005,7 @@ pub async fn do_initialize_operator_snapshot(
 ```
 
 This function:
+
 1. Finds all necessary PDA addresses (epoch state, config, epoch snapshot, operator snapshot)
 2. Builds an instruction to initialize an operator snapshot account
 3. Processes the transaction with the payer as the signer
@@ -1947,24 +2024,24 @@ pub async fn add_vault_operator_delegation_snapshots_to_test_ncn(
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Process each vault
     for vault_root in test_ncn.vaults.iter() {
         // Get the vault's delegation state
         let delegation_state = vault_program_client
             .get_delegation_state(&vault_root.vault_pubkey)
             .await?;
-        
+
         // Process each delegation for this vault
         for i in 0..delegation_state.delegation_count() {
             // Get the delegation details
             let delegation = delegation_state.get_delegation(i);
-            
+
             // Skip if delegation amount is zero
             if delegation.amount() == 0 {
                 continue;
             }
-            
+
             // Take a snapshot of this delegation
             ncn_program_client
                 .do_snapshot_vault_operator_delegation(
@@ -1982,6 +2059,7 @@ pub async fn add_vault_operator_delegation_snapshots_to_test_ncn(
 ```
 
 This function captures all vault-to-operator delegations by:
+
 1. Getting the current epoch from the clock
 2. Iterating through each vault in the test NCN
 3. Getting the vault's delegation state to see which operators it delegates to
@@ -2000,19 +2078,19 @@ pub async fn do_snapshot_vault_operator_delegation(
 ) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the vault registry PDA
     let vault_registry = VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
-    
+
     // Find the weight table PDA
     let weight_table = WeightTable::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the epoch snapshot PDA
     let epoch_snapshot = EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the operator snapshot PDA
     let operator_snapshot = OperatorSnapshot::find_program_address(
         &ncn_program::id(),
@@ -2020,7 +2098,7 @@ pub async fn do_snapshot_vault_operator_delegation(
         &ncn,
         epoch,
     ).0;
-    
+
     // Find the vault delegation snapshot PDA
     let (delegation_snapshot, _, _) = VaultOperatorDelegationSnapshot::find_program_address(
         &ncn_program::id(),
@@ -2029,7 +2107,7 @@ pub async fn do_snapshot_vault_operator_delegation(
         &ncn,
         epoch,
     );
-    
+
     // Build the snapshot vault operator delegation instruction
     let ix = SnapshotVaultOperatorDelegationBuilder::new()
         .epoch_state(epoch_state)
@@ -2044,7 +2122,7 @@ pub async fn do_snapshot_vault_operator_delegation(
         .operator(operator)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -2058,6 +2136,7 @@ pub async fn do_snapshot_vault_operator_delegation(
 ```
 
 This function:
+
 1. Finds all necessary PDA addresses for the involved accounts
 2. Builds an instruction to snapshot a specific vault-operator delegation
 3. Processes the transaction with the payer as the signer
@@ -2084,6 +2163,7 @@ pub async fn add_ballot_box_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestRe
 ```
 
 This function creates a ballot box for collecting votes by:
+
 1. Getting the current epoch from the clock
 2. Calling `do_full_initialize_ballot_box()` to create a ballot box account
 3. The ballot box is where votes are collected and tallied during the voting process
@@ -2094,13 +2174,13 @@ This function creates a ballot box for collecting votes by:
 pub async fn do_full_initialize_ballot_box(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
     // Find the epoch state PDA
     let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Find the ballot box PDA
     let ballot_box = BallotBox::find_program_address(&ncn_program::id(), &ncn, epoch).0;
-    
+
     // Build the initialize ballot box instruction
     let ix = InitializeBallotBoxBuilder::new()
         .epoch_state(epoch_state)
@@ -2109,7 +2189,7 @@ pub async fn do_full_initialize_ballot_box(&mut self, ncn: Pubkey, epoch: u64) -
         .ncn(ncn)
         .epoch(epoch)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -2123,6 +2203,7 @@ pub async fn do_full_initialize_ballot_box(&mut self, ncn: Pubkey, epoch: u64) -
 ```
 
 This function:
+
 1. Finds all necessary PDA addresses (epoch state, config, ballot box)
 2. Builds an instruction to initialize a ballot box account
 3. Processes the transaction with the payer as the signer
@@ -2181,6 +2262,7 @@ pub async fn do_cast_vote(
 ```
 
 This function casts a vote on behalf of an operator by:
+
 1. Finding all necessary PDA addresses for the involved accounts
 2. Building a cast vote instruction with the operator's choice of weather status
 3. Processing the transaction with the payer and operator admin as signers
@@ -2195,12 +2277,12 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
     // Get the current epoch
     let clock = self.clock().await;
     let epoch = clock.epoch;
-    
+
     // Get the epoch state
     let epoch_state = ncn_program_client
         .get_epoch_state(test_ncn.ncn_root.ncn_pubkey, epoch)
         .await?;
-    
+
     // Close each type of epoch account
     ncn_program_client
         .do_close_epoch_accounts(
@@ -2209,7 +2291,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
             CloseAccountType::WeightTable,
         )
         .await?;
-        
+
     ncn_program_client
         .do_close_epoch_accounts(
             test_ncn.ncn_root.ncn_pubkey,
@@ -2217,7 +2299,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
             CloseAccountType::VaultOperatorDelegationSnapshots,
         )
         .await?;
-        
+
     ncn_program_client
         .do_close_epoch_accounts(
             test_ncn.ncn_root.ncn_pubkey,
@@ -2225,7 +2307,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
             CloseAccountType::OperatorSnapshots,
         )
         .await?;
-        
+
     ncn_program_client
         .do_close_epoch_accounts(
             test_ncn.ncn_root.ncn_pubkey,
@@ -2233,7 +2315,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
             CloseAccountType::EpochSnapshot,
         )
         .await?;
-        
+
     ncn_program_client
         .do_close_epoch_accounts(
             test_ncn.ncn_root.ncn_pubkey,
@@ -2241,7 +2323,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
             CloseAccountType::BallotBox,
         )
         .await?;
-        
+
     ncn_program_client
         .do_close_epoch_accounts(
             test_ncn.ncn_root.ncn_pubkey,
@@ -2255,6 +2337,7 @@ pub async fn close_epoch_accounts_for_test_ncn(&mut self, test_ncn: &TestNcn) ->
 ```
 
 This function cleans up all epoch-related accounts by:
+
 1. Getting the current epoch from the clock
 2. Getting the epoch state to verify it's safe to close accounts
 3. Calling `do_close_epoch_accounts()` for each type of account:
@@ -2277,10 +2360,10 @@ pub async fn do_close_epoch_accounts(
 ) -> TestResult<()> {
     // Find the config PDA
     let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Get the account payer (for rent refund)
     let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
-    
+
     // Build the close epoch account instruction
     let ix = CloseEpochAccountBuilder::new()
         .config(ncn_config)
@@ -2289,7 +2372,7 @@ pub async fn do_close_epoch_accounts(
         .epoch(epoch)
         .account_type(account_type as u8)
         .instruction();
-    
+
     // Process the transaction
     let blockhash = self.banks_client.get_latest_blockhash().await?;
     self.process_transaction(&Transaction::new_signed_with_payer(
@@ -2303,6 +2386,7 @@ pub async fn do_close_epoch_accounts(
 ```
 
 This function:
+
 1. Finds the config and account payer PDAs
 2. Builds an instruction to close a specific type of epoch account
 3. Processes the transaction with the payer as the signer
@@ -2327,6 +2411,7 @@ pub enum WeatherStatus {
 ```
 
 This enum:
+
 - Defines three possible weather conditions (Sunny, Cloudy, Rainy)
 - Assigns numeric values (0, 1, 2) to each condition
 - Sets Sunny as the default option

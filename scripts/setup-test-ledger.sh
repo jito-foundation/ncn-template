@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 SBF_PROGRAM_DIR=$PWD/integration_tests/tests/fixtures
-FIXTURES_DIR=$PWD/ncn-program-operator-cli/tests/fixtures
+FIXTURES_DIR=$PWD/integration_tests/tests/fixtures
 LEDGER_DIR=$FIXTURES_DIR/test-ledger
 TDA_ACCOUNT_DIR=$FIXTURES_DIR/tda-accounts
 DESIRED_SLOT=150
