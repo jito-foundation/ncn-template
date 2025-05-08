@@ -3,7 +3,6 @@
 SBF_PROGRAM_DIR=$PWD/integration_tests/tests/fixtures
 FIXTURES_DIR=$PWD/integration_tests/tests/fixtures
 LEDGER_DIR=$FIXTURES_DIR/test-ledger
-TDA_ACCOUNT_DIR=$FIXTURES_DIR/tda-accounts
 DESIRED_SLOT=150
 max_validators=10
 validator_file=$FIXTURES_DIR/local_validators.txt
@@ -20,7 +19,7 @@ create_keypair() {
 }
 
 # Function to create keypairs and serialize accounts
-prepare_keypairs_and_serialize() {
+prepare_keypairs() {
 	max_validators=$1
 	validator_file=$2
 
@@ -38,16 +37,6 @@ prepare_keypairs_and_serialize() {
 
 		# Append the vote public key to the validator file
 		echo "$vote_pubkey" >>"$validator_file"
-
-		# Dynamically run the Rust script with the vote_pubkey
-		RUST_LOG=info cargo run --bin serialize-accounts -- \
-			--validator-vote-account "$vote_pubkey" \
-			--merkle-root-upload-authority "$merkle_root_upload_authority" \
-			--epoch-created-at 4 \
-			--validator-commission-bps 1 \
-			--expires-at 1000 \
-			--bump 1 \
-			--tda-accounts-dir $TDA_ACCOUNT_DIR
 	done
 }
 
@@ -68,24 +57,13 @@ create_vote_accounts() {
 
 # Hoist the creation of keypairs and serialization
 echo "Preparing keypairs and serializing accounts"
-mkdir -p $FIXTURES_DIR/tda-accounts
-prepare_keypairs_and_serialize "$max_validators" "$validator_file"
-
-# Read the TDA account files and add them to args
-tda_account_args=()
-for f in "$TDA_ACCOUNT_DIR"/*; do
-	filename=$(basename $f)
-	account_address=${filename%.*}
-	tda_account_args+=(--account $account_address $f)
-done
+prepare_keypairs "$max_validators" "$validator_file"
 
 echo "tda_account_args ${tda_account_args[@]}"
 
 VALIDATOR_PID=
 setup_test_validator() {
 	solana-test-validator \
-		--bpf-program 4R3gSG8BpU4t19KYj8CfnbtRpnT8gtk4dvTHxVRwc2r7 $SBF_PROGRAM_DIR/jito_tip_distribution.so \
-		--bpf-program T1pyyaTNZsKv2WcRAB8oVnk93mLJw2XzjtVYqCsaHqt $SBF_PROGRAM_DIR/jito_tip_payment.so \
 		--account-dir $FIXTURES_DIR/accounts \
 		"${tda_account_args[@]}" \
 		--ledger $LEDGER_DIR \
