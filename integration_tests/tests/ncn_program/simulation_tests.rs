@@ -1,13 +1,11 @@
 #[cfg(test)]
 mod tests {
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use ncn_program_core::{ballot_box::WeatherStatus, constants::WEIGHT, error::NCNProgramError};
+    use ncn_program_core::{ballot_box::WeatherStatus, constants::WEIGHT};
 
     use solana_sdk::{msg, signature::Keypair, signer::Signer};
 
-    use crate::fixtures::{
-        ncn_program_client::assert_ncn_program_error, test_builder::TestBuilder, TestResult,
-    };
+    use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
     // #[ignore = "20-30 minute test"]
     #[tokio::test]

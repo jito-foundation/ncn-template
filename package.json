@@ -1,7 +1,7 @@
 {
   "name": "ncn-program",
   "version": "0.0.1",
-  "description": "Jito MEV Tip Distribution NCN",
+  "description": "NCN Program Template",
   "dependencies": {
     "@exo-tech-xyz/nodes-from-anchor": "0.21.3",
     "@exo-tech-xyz/renderers": "0.21.4",

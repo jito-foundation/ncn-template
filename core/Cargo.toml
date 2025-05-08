@@ -1,6 +1,6 @@
 [package]
 name = "ncn-program-core"
-description = "Jito's MEV Tip Distribution NCN Core"
+description = "NCN program template core"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }

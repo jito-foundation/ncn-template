@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use solana_sdk::clock::DEFAULT_SLOTS_PER_EPOCH;
 
 #[derive(Parser)]
-#[command(author, version, about = "A CLI for creating and managing the MEV Tip Distribution NCN", long_about = None)]
+#[command(author, version, about = "A CLI for creating and managing the ncn program", long_about = None)]
 pub struct Args {
     #[command(subcommand)]
     pub command: ProgramCommand,
@@ -277,7 +277,7 @@ pub enum ProgramCommand {
 #[rustfmt::skip]
 impl fmt::Display for Args {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "\nMEV Tip Distribution NCN CLI Configuration")?;
+        writeln!(f, "\n NCN Program CLI Configuration")?;
         writeln!(f, "═══════════════════════════════════════")?;
 
         // Network Configuration

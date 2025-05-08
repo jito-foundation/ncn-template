@@ -1,6 +1,6 @@
 [package]
 name = "ncn-program-integration-tests"
-description = "Jito's MEV Tip Distribution NCN Tests"
+description = "NCN program template tests"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }

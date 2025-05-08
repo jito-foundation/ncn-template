@@ -27,7 +27,6 @@ use ncn_program_core::{
     weight_table::WeightTable,
 };
 use solana_account_decoder::{UiAccountEncoding, UiDataSliceConfig};
-use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::{
     rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
     rpc_filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
@@ -412,106 +411,6 @@ pub struct OptedInValidatorInfo {
     pub stake: u64,
     pub active: bool,
 }
-
-// pub async fn get_all_opted_in_validators(
-//     handler: &CliHandler,
-// ) -> Result<Vec<OptedInValidatorInfo>> {
-//     // Vote Account, Validator Identity, Validator Stake, active or not
-//     let client = handler.rpc_client();
-//     let client = RpcClient::new_with_timeout_and_commitment(
-//         client.url(),
-//         Duration::from_secs(3600),
-//         CommitmentConfig::processed(),
-//     );
-//
-//     let tip_distribution_size = size_of::<TipDistributionAccount>() + 8;
-//
-//     let size_filter = RpcFilterType::DataSize(tip_distribution_size as u64);
-//
-//     let discriminator_filter = RpcFilterType::Memcmp(Memcmp::new(
-//         0,                                                                       // offset
-//         MemcmpEncodedBytes::Bytes([85, 64, 113, 198, 234, 94, 120, 123].into()), // encoded bytes
-//     ));
-//     let upload_auth_filter = RpcFilterType::Memcmp(Memcmp::new(
-//         8 + 32, // offset
-//         MemcmpEncodedBytes::Bytes(
-//             Pubkey::from_str("8F4jGUmxF36vQ6yabnsxX6AQVXdKBhs8kGSUuRKSg8Xt")
-//                 .unwrap()
-//                 .to_bytes()
-//                 .into(),
-//         ), // encoded bytes
-//     ));
-//
-//     let config = RpcProgramAccountsConfig {
-//         filters: Some(vec![size_filter, upload_auth_filter, discriminator_filter]),
-//         account_config: RpcAccountInfoConfig {
-//             encoding: Some(UiAccountEncoding::Base64),
-//             data_slice: Some(UiDataSliceConfig {
-//                 offset: 8,
-//                 length: 32,
-//             }),
-//             commitment: Some(CommitmentConfig::processed()),
-//             min_context_slot: None,
-//         },
-//         with_context: Some(false),
-//         sort_results: None,
-//     };
-//
-//     let results = client
-//         .get_program_accounts_with_config(&handler.tip_distribution_program_id, config)
-//         .await?;
-//
-//     let vote_accounts: Vec<Pubkey> = results
-//         .iter()
-//         .map(|result| {
-//             let data_slice = result.1.data.as_slice();
-//             // Convert the slice to a fixed-size array
-//             Pubkey::new_from_array(data_slice[..32].try_into().expect("Slice must be 32 bytes"))
-//         })
-//         .collect();
-//
-//     let mut validator_infos: Vec<OptedInValidatorInfo> = vec![];
-//
-//     for vote_account in vote_accounts {
-//         let config = RpcGetVoteAccountsConfig {
-//             vote_pubkey: Some(vote_account.to_string()),
-//             ..RpcGetVoteAccountsConfig::default()
-//         };
-//         let status_result = client.get_vote_accounts_with_config(config).await;
-//
-//         if status_result.is_err() {
-//             continue;
-//         }
-//
-//         let status = status_result.unwrap();
-//
-//         if !status.current.is_empty() {
-//             let info = status.current[0].clone();
-//             let identity = Pubkey::from_str(&info.node_pubkey)?;
-//             validator_infos.push(OptedInValidatorInfo {
-//                 vote: vote_account,
-//                 identity,
-//                 stake: info.activated_stake,
-//                 active: true,
-//             });
-//         } else if !status.delinquent.is_empty() {
-//             let info = status.delinquent[0].clone();
-//             let identity = Pubkey::from_str(&info.node_pubkey)?;
-//
-//             validator_infos.push(OptedInValidatorInfo {
-//                 vote: vote_account,
-//                 identity,
-//                 stake: info.activated_stake,
-//                 active: false,
-//             });
-//         }
-//     }
-//
-//     validator_infos.sort_by(|a, b| a.identity.cmp(&b.identity));
-//     validator_infos.dedup_by(|a, b| a.identity.eq(&b.identity));
-//
-//     Ok(validator_infos)
-// }
 
 pub async fn get_all_sorted_operators_for_vault(
     handler: &CliHandler,
@@ -1017,54 +916,4 @@ impl fmt::Display for NcnTickets {
 
         Ok(())
     }
-}
-
-pub async fn get_tip_distribution_accounts_to_migrate(
-    handler: &CliHandler,
-    tip_distribution_program_id: &Pubkey,
-    old_merkle_root_upload_authority: &Pubkey,
-    epoch: u64,
-) -> Result<Vec<Pubkey>> {
-    let rpc_client = handler.rpc_client();
-    let rpc_client = RpcClient::new_with_timeout(rpc_client.url(), Duration::from_secs(3600));
-
-    // Filters assume merkle root is None
-    let filters = vec![
-        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
-            8     // Discriminator
-                + 32, // Pubkey - validator_vote_account
-            old_merkle_root_upload_authority.to_bytes().to_vec(),
-        )),
-        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
-            8    // Discriminator
-                + 32 // Pubkey - validator_vote_account
-                + 32 // Pubkey - merkle_root_upload_authority
-                + 1, // Option - "None" merkle_root
-            epoch.to_le_bytes().to_vec(),
-        )),
-    ];
-
-    let tip_distribution_accounts = rpc_client
-        .get_program_accounts_with_config(
-            tip_distribution_program_id,
-            RpcProgramAccountsConfig {
-                filters: Some(filters),
-                account_config: RpcAccountInfoConfig {
-                    encoding: Some(UiAccountEncoding::Base64),
-                    data_slice: Some(UiDataSliceConfig {
-                        offset: 0,
-                        length: 0,
-                    }),
-                    commitment: Some(handler.commitment),
-                    min_context_slot: None,
-                },
-                ..RpcProgramAccountsConfig::default()
-            },
-        )
-        .await?;
-
-    Ok(tip_distribution_accounts
-        .into_iter()
-        .map(|(pubkey, _)| pubkey)
-        .collect())
 }

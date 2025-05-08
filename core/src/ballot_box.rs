@@ -690,7 +690,7 @@ impl fmt::Display for BallotBox {
 mod tests {
     use solana_program::msg;
 
-    use crate::{epoch_snapshot, utils::assert_ncn_program_error};
+    use crate::utils::assert_ncn_program_error;
 
     use super::*;
 

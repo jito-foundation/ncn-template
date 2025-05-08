@@ -61,10 +61,8 @@ The simulation test is a comprehensive test case that simulates a complete NCN (
 Before running the simulation test, ensure you have:
 
 1. Set up the test ledger using `./scripts/setup-test-ledger.sh`
-1. Built the NCN program using `cargo build-sbf`
-1. Set the correct Solana version (1.18.26 recommended)
-
-This setup:
+1. Built the NCN program using `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
+1. Set the correct Solana version (2.2.6 recommended) and cargo version (1.81 or above)
 
 ## Test Flow
 
@@ -269,7 +267,7 @@ ncn_program_client
 This step initializes the core configuration for the NCN program with critical parameters:
 
 - **NCN Admin**: The authority that can modify configuration settings
-- **Epochs Before Stall**: How many epochs before a non-completed voting cycle is considered stalled (default: 3)
+- **Epochs Before Stall**: How many epochs before a non-completed consensus cycle is considered stalled (default: 3)
 - **Epochs After Consensus Before Close**: How long to wait after consensus before closing epoch data (default: 10)
 - **Valid Slots After Consensus**: How many slots votes are still accepted after consensus is reached (default: 10000)
 
@@ -336,7 +334,7 @@ This step registers each Supported Token (ST) mint with the NCN program and assi
 - The weights determine the voting power multiplier for delegations in that token
 - Only the NCN admin has the authority to register tokens, ensuring trust in the system
 - Registration involves updating the vault registry with each token's data
-- The NCN admin can update the weights of the tokens at any time, which will affect the voting power of the delegations in the next voting cycle
+- The NCN admin can update the weights of the tokens at any time, which will affect the voting power of the delegations in the next consensus cycle
 
 The weight assignment is fundamental to the design, allowing different tokens to have varying influence on the voting process based on their economic significance or other criteria determined by the NCN administrators.
 
@@ -391,10 +389,10 @@ The Epoch Snapshot and Voting Preparation phase is where the system captures the
 fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
 ```
 
-The epoch state serves as the control center for the current voting cycle:
+The epoch state serves as the control center for the current consensus cycle:
 
 - It creates an `EpochState` account tied to the specific NCN and epoch
-- This account tracks the progress through each stage of the voting cycle
+- This account tracks the progress through each stage of the consensus cycle
 - It maintains flags for each phase (weight setting, snapshot taking, voting, closing)
 - The epoch state provides protection against out-of-sequence operations
 - It stores metadata like the current epoch, slot information, and participant counts
@@ -428,14 +426,14 @@ The weight table mechanism handles the token weights for the current epoch:
 
 2. **Weight Setting**:
    - Copies the current weights from the vault registry to the weight table
-   - "Freezes" these weights for the duration of the voting cycle
+   - "Freezes" these weights for the duration of the consensus cycle
    - Updates the epoch state to mark weight setting as complete
    - Creates an immutable record of token weights that will be used for voting
 
 This two-step process is critical for the integrity of the system as it:
 
 - Creates a permanent record of weights at the time voting begins
-- Prevents weight changes during a voting cycle from affecting ongoing votes
+- Prevents weight changes during a consensus cycle from affecting ongoing votes
 - Allows transparent verification of the weights used for a particular vote
 - Enables historical auditing of how weights changed over time
 
@@ -1716,7 +1714,7 @@ This function initializes an epoch state for the current epoch by:
 1. Advancing time by 1000 slots to ensure we're in a new epoch
 2. Getting the current epoch from the clock
 3. Calling `do_intialize_epoch_state()` to create an epoch state account
-4. The epoch state tracks the progress of the voting cycle for this epoch
+4. The epoch state tracks the progress of the consensus cycle for this epoch
 
 ##### `do_intialize_epoch_state()`
 
@@ -1754,7 +1752,7 @@ This function:
 2. Finds the NcnConfig PDA address
 3. Builds an instruction to initialize an epoch state account
 4. Processes the transaction with the payer as the signer
-5. The epoch state tracks which stage of the voting cycle we're in
+5. The epoch state tracks which stage of the consensus cycle we're in
 
 #### `add_weights_for_test_ncn()`
 
@@ -1785,7 +1783,7 @@ This function sets up token weights for the current epoch by:
 1. Getting the current epoch from the clock
 2. Calling `do_full_initialize_weight_table()` to create a weight table
 3. Calling `do_set_epoch_weights()` to copy weights from the vault registry to the weight table
-4. This process creates a snapshot of token weights for the current voting cycle
+4. This process creates a snapshot of token weights for the current consensus cycle
 
 ##### `do_set_epoch_weights()`
 
@@ -1830,7 +1828,7 @@ This function:
 1. Finds all necessary PDA addresses (epoch state, config, vault registry, weight table)
 2. Builds an instruction to set epoch weights by copying from the vault registry to the weight table
 3. Processes the transaction with the payer as the signer
-4. This creates a snapshot of token weights that will be used for this voting cycle
+4. This creates a snapshot of token weights that will be used for this consensus cycle
 
 #### `add_epoch_snapshot_to_test_ncn()`
 

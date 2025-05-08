@@ -11,10 +11,11 @@ test-ledger
 program_errors.json
 test_errors.output
 tests.output
-integration_tests/tests/fixtures/jito_tip_router_program.so
+integration_tests/tests/fixtures/ncn_program.so
 notes.md
 
-integration_tests/tests/fixtures/jito_tip_router_program-keypair.json
+integration_tests/tests/fixtures/ncn_program-keypair.json
+
 lcov.info
 
 credentials/

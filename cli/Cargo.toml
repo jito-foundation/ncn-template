@@ -1,6 +1,6 @@
 [package]
 name = "ncn-program-cli"
-description = "Jito MEV Tip Distribution NCN CLI"
+description = "NCN program template CLI"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }

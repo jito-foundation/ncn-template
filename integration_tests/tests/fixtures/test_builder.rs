@@ -307,6 +307,8 @@ impl TestBuilder {
                     .await?;
             }
 
+            // This mints VRTs to make sure that the vault dose have enough funds for the
+            // delegations
             let depositor_keypair = self.context.payer.insecure_clone();
             let depositor = depositor_keypair.pubkey();
             vault_program_client

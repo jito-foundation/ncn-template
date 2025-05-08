@@ -1,4 +1,4 @@
-use jito_bytemuck::{AccountDeserialize, Discriminator};
+use jito_bytemuck::AccountDeserialize;
 use jito_jsm_core::loader::load_signer;
 use jito_restaking_core::ncn::Ncn;
 use ncn_program_core::{

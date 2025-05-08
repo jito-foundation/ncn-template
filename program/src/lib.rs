@@ -56,7 +56,7 @@ declare_id!(env!("NCN_PROGRAM_ID"));
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
     // Required fields
-    name: "Jito's MEV Tip Distribution NCN Program",
+    name: "NCN Program Template",
     project_url: "https://jito.network/",
     contacts: "email:team@jito.network",
     policy: "https://github.com/jito-foundation/ncn-program",

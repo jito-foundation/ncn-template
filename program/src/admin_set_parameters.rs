@@ -2,7 +2,7 @@ use jito_bytemuck::{types::PodU64, AccountDeserialize};
 use jito_jsm_core::loader::load_signer;
 use jito_restaking_core::ncn::Ncn;
 use ncn_program_core::{
-    config::{Config, ConfigAdminRole},
+    config::Config,
     constants::{
         MAX_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE, MAX_EPOCHS_BEFORE_STALL,
         MAX_VALID_SLOTS_AFTER_CONSENSUS, MIN_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE,

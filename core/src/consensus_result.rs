@@ -232,7 +232,7 @@ mod tests {
         let ncn = Pubkey::new_unique();
         let epoch = 123;
 
-        let (pda, bump, seeds) = ConsensusResult::find_program_address(&program_id, &ncn, epoch);
+        let (_, _, seeds) = ConsensusResult::find_program_address(&program_id, &ncn, epoch);
 
         assert_eq!(seeds.len(), 3);
         assert_eq!(seeds[0], b"consensus-result".to_vec());

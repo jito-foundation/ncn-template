@@ -1,15 +1,15 @@
-# Tip Router CLI
+# NCN Program CLI
 
 ## Official Accounts
 
 | Account                    | Address                                      |
 | -------------------------- | -------------------------------------------- |
-| Test Tip Router Program ID | RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb |
-| Test NCN                   | rYQFkFYXuDqJPoH2FvFtZTC8oC3CntgRjtNatx6q1z1  |
+| Test NCN Program ID        |                                                     |
+| Test NCN                   |                                              |
 
 ## Setup CLIs
 
-Install the Tip Router CLI
+Install the NCN Program CLI
 
 ```bash
 cargo build --release

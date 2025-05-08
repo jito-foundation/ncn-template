@@ -1,4 +1,4 @@
-# Jito MEV Tip Distribution NCN
+# NCN Program Template
 
 ## Testing Setup
 

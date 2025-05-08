@@ -1,4 +1,4 @@
-use jito_bytemuck::{AccountDeserialize, Discriminator};
+use jito_bytemuck::AccountDeserialize;
 use jito_restaking_core::ncn::Ncn;
 use ncn_program_core::{
     epoch_state::EpochState, error::NCNProgramError, vault_registry::VaultRegistry,

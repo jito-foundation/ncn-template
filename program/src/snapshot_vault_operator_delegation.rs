@@ -1,5 +1,4 @@
-use jito_bytemuck::{AccountDeserialize, Discriminator};
-use jito_jsm_core::loader;
+use jito_bytemuck::AccountDeserialize;
 use jito_restaking_core::{
     config::Config, ncn::Ncn, ncn_vault_ticket::NcnVaultTicket, operator::Operator,
 };

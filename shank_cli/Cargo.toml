@@ -1,6 +1,6 @@
 [package]
 name = "ncn-program-shank-cli"
-description = "Jito MEV Tip Distribution Shank CLI"
+description = "NCN program template shank cli"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }
