@@ -14,7 +14,7 @@ pub struct EpochAccountStatus {
     pub epoch_state: u8,
     pub weight_table: u8,
     pub epoch_snapshot: u8,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     pub operator_snapshot: [u8; 256],
     pub ballot_box: u8,
 }

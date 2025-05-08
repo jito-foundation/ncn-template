@@ -28,9 +28,9 @@ pub struct BallotBox {
     pub operators_voted: u64,
     pub unique_ballots: u64,
     pub winning_ballot: Ballot,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     pub operator_votes: [OperatorVote; 256],
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     pub ballot_tallies: [BallotTally; 256],
 }
 

@@ -30,7 +30,7 @@ pub struct EpochState {
     pub account_status: EpochAccountStatus,
     pub set_weight_progress: Progress,
     pub epoch_snapshot_progress: Progress,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     pub operator_snapshot_progress: [Progress; 256],
     pub voting_progress: Progress,
     pub is_closing: bool,
