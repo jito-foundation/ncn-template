@@ -29,11 +29,10 @@
       7. [Architecture and Security Considerations](#57-architecture-and-security-considerations)
    1. [Voting Process](#6-voting-process)
       1. [Setting the Expected Outcome](#61-setting-the-expected-outcome)
-      2. [Testing Zero-Delegation Operator Restrictions](#62-testing-zero-delegation-operator-restrictions)
-      3. [Distributing Votes Across Different Options](#63-distributing-votes-across-different-options)
-      4. [Establishing Consensus Through Majority Voting](#64-establishing-consensus-through-majority-voting)
-      5. [Vote Processing Architecture](#65-vote-processing-architecture)
-      6. [Security Considerations in the Voting Process](#66-security-considerations-in-the-voting-process)
+      2. [Casting Votes from Different Operators](#62-casting-votes-from-different-operators)
+      3. [Establishing Consensus Through Majority Voting](#63-establishing-consensus-through-majority-voting)
+      4. [Vote Processing Architecture](#64-vote-processing-architecture)
+      5. [Security Considerations in the Voting Process](#65-security-considerations-in-the-voting-process)
    1. [Verification](#7-verification)
       1. [Ballot Box Verification](#71-ballot-box-verification)
       2. [Consensus Result Account Verification](#72-consensus-result-account-verification)
@@ -559,64 +558,17 @@ let winning_weather_status = WeatherStatus::Sunny as u8;
 
 For testing purposes, the system defines an expected outcome. In a production environment, this would be determined organically through actual operator votes. The weather status enum (`Sunny`, `Cloudy`, `Rainy`) serves as a simplified proxy for any on-chain decision that requires consensus.
 
-#### 6.2 Testing Zero-Delegation Operator Restrictions
+#### 6.2 Casting Votes from Different Operators
 
 ```rust
 // 5. Cast votes from operators
 {
     let epoch = fixture.clock().await.epoch;
 
-    let zero_delegation_operator = test_ncn.operators.last().unwrap(); // Operator with no delegations
     let first_operator = &test_ncn.operators[0];
     let second_operator = &test_ncn.operators[1];
     let third_operator = &test_ncn.operators[2];
 
-    // Attempt vote from zero_delegation_operator (should fail)
-    {
-        // Verify the operator has no delegations
-        let operator_snapshot = ncn_program_client
-            .get_operator_snapshot(
-                zero_delegation_operator.operator_pubkey,
-                ncn_pubkey,
-                epoch,
-            )
-            .await?;
-
-        // Confirm it has zero stake weight
-        assert_eq!(
-            operator_snapshot.stake_weights().stake_weight(), 0,
-            "Zero-delegation operator should have zero stake weight"
-        );
-
-        let weather_status = WeatherStatus::Rainy as u8;
-
-        // We expect this to fail due to zero stake
-        let result = ncn_program_client
-            .do_cast_vote(
-                ncn_pubkey,
-                zero_delegation_operator.operator_pubkey,
-                &zero_delegation_operator.operator_admin,
-                weather_status,
-                epoch,
-            )
-            .await;
-
-        // Verify the correct error is returned
-        assert_ncn_program_error(result, NCNProgramError::CannotVoteWithZeroStake);
-    }
-```
-
-This critical security test verifies that:
-
-1. The operator without delegations has a recorded stake weight of zero in its operator snapshot
-2. When this zero-stake operator attempts to vote, the transaction fails with a specific error
-3. The system correctly enforces the rule that only operators with actual stake can influence consensus
-
-This security mechanism prevents Sybil attacks where an attacker might create many operators without stake to try to influence voting outcomes. The stake-weighted voting system ensures that voting power is proportional to economic commitment.
-
-#### 6.3 Distributing Votes Across Different Options
-
-```rust
     // First operator votes for Cloudy
     ncn_program_client
         .do_cast_vote(
@@ -647,6 +599,7 @@ This security mechanism prevents Sybil attacks where an attacker might create ma
             epoch,
         )
         .await?;
+}
 ```
 
 This section demonstrates the system's ability to handle diverse voting preferences:
@@ -664,7 +617,7 @@ Under the hood, each vote triggers several key operations:
 - It updates the tally for the chosen option
 - It checks whether the new vote has pushed any option past the consensus threshold
 
-#### 6.4 Establishing Consensus Through Majority Voting
+#### 6.3 Establishing Consensus Through Majority Voting
 
 ```rust
     // All remaining operators vote for Sunny to form a majority
@@ -682,7 +635,7 @@ Under the hood, each vote triggers several key operations:
 }
 ```
 
-To establish a clear consensus, the remaining operators (excluding the zero-delegation operator) all vote for the "Sunny" option. This creates a supermajority that surpasses the required threshold for consensus.
+To establish a clear consensus, the remaining operators (excluding the first three that already voted) all vote for the "Sunny" option. This creates a supermajority that surpasses the required threshold for consensus.
 
 The consensus mechanism works as follows:
 
@@ -692,7 +645,7 @@ The consensus mechanism works as follows:
 4. Consensus requires a supermajority to ensure that decisions have strong support across the network
 5. Once consensus is reached, a record is created that persists even after the voting epoch ends
 
-#### 6.5 Vote Processing Architecture
+#### 6.4 Vote Processing Architecture
 
 When an operator casts a vote, the system performs several critical operations to ensure security and proper consensus calculation:
 
@@ -729,7 +682,7 @@ When an operator casts a vote, the system performs several critical operations t
 
 This multi-layered architecture ensures votes are processed securely, tallied correctly, and that consensus is determined accurately based on stake-weighted participation.
 
-#### 6.6 Security Considerations in the Voting Process
+#### 6.5 Security Considerations in the Voting Process
 
 The voting process incorporates several key security features:
 
@@ -956,11 +909,16 @@ fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 }
 ```
 
-This cleanup:
+This cleanup process:
 
-1. Records the current epoch
-2. Closes all epoch-related accounts
-3. Verifies that the consensus result account persists (as it contains the final result)
+1. Records the current epoch for later verification
+2. Closes all epoch-related accounts (weight table, snapshots, ballot box, etc.)
+3. Verifies that the consensus result account persists even after cleanup
+4. Confirms that the consensus result account maintains its critical data:
+   - Consensus reached status
+   - Correct epoch association
+
+This demonstrates an important design feature of the system: temporary accounts used during the voting process are cleaned up to reclaim rent, while the final consensus outcome is preserved as a permanent on-chain record. This efficient cleanup mechanism allows the system to scale without accumulating unnecessary accounts over time.
 
 ## Detailed Function Explanations
 
@@ -1382,63 +1340,37 @@ This function:
 
 ## Expected Outcomes
 
-1. Operators with delegations should successfully cast votes
-2. Operators with zero delegations should not be able to vote (returns `CannotVoteWithZeroStake` error)
-3. The system should correctly reach consensus with "Sunny" as the winning status
+The simulation test expects the following outcomes:
+
+1. All operators with delegations should successfully cast votes
+2. The system should correctly reach consensus with "Sunny" as the winning status
+3. The consensus result should match between the ballot box and consensus result account:
+   - Same weather status (Sunny)
+   - Same vote weight
 4. All accounts should be properly created and cleaned up
-5. The consensus result account should persist after cleaning up other accounts
+5. The consensus result account should persist after cleaning up other accounts, with:
+   - Consensus reached flag still set
+   - Correct epoch association
+
+These expected outcomes validate the core functionality of the NCN voting system, demonstrating its ability to collect votes, reach consensus, and permanently record the result while efficiently managing on-chain resources.
 
 ## Error Cases
 
-The test verifies proper handling of:
+While the current simulation test doesn't explicitly test error cases, the NCN system is designed to handle various error conditions:
 
-1. **Zero delegation operators**: Operators with zero delegations cannot vote
+1. **Invalid vote attempts**: The system verifies operator and admin signatures before allowing votes
 2. **Multiple token types**: The system correctly handles tokens with different weights
 3. **Various delegation amounts**: From minimal (1 lamport) to very large (10k tokens)
 4. **Split votes**: The system correctly identifies the winning vote with majority support
 5. **Account management**: Proper creation and cleanup of all necessary accounts
 
-## Fuzz Testing
+In a comprehensive test suite, additional error cases should be tested, such as:
 
-The simulation tests also include fuzz testing with randomized configurations:
-
-```rust
-struct MintConfig {
-    keypair: Keypair,
-    weight: u128,       // Weight for voting power calculation
-    vault_count: usize, // Number of vaults to create for this mint
-}
-
-struct SimConfig {
-    operator_count: usize,  // Number of operators to create
-    mints: Vec<MintConfig>, // Token mint configurations
-    delegations: Vec<u64>,  // Array of delegation amounts for vaults
-    operator_fee_bps: u16,  // Operator fee in basis points (100 = 1%)
-}
-
-async fn run_simulation(config: SimConfig) -> TestResult<()> {
-    // Implementation that runs the simulation with the provided configuration
-}
-
-async fn test_basic_simulation() -> TestResult<()> {
-    // Basic simulation with standard parameters
-}
-
-async fn test_high_operator_count_simulation() -> TestResult<()> {
-    // Simulation with a high number of operators
-}
-
-async fn test_fuzz_simulation() -> TestResult<()> {
-    // Randomized simulation with varying parameters
-}
-```
-
-These fuzz tests are designed to:
-
-1. Test various combinations of operators, vaults, and token types
-2. Verify the system's resilience with different configurations
-3. Ensure consensus can be reached across a range of scenarios
-4. Identify any edge cases or unexpected behaviors
+1. **Zero delegation operators**: Operators with zero delegations attempting to vote
+2. **Double voting**: Operators trying to vote more than once in the same epoch
+3. **Invalid weather status**: Operators providing an invalid or out-of-range option
+4. **Out-of-sequence operations**: Attempting to perform operations out of order
+5. **Unauthorized admin actions**: Non-admins attempting to perform privileged operations
 
 ### NCN Program Configuration Functions
 
