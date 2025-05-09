@@ -5,6 +5,7 @@ mod tests {
         ballot_box::{Ballot, WeatherStatus},
         constants::DEFAULT_CONSENSUS_REACHED_SLOT,
     };
+    use solana_sdk::{clock::DEFAULT_SLOTS_PER_EPOCH, msg};
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
@@ -49,7 +50,7 @@ mod tests {
         let config = ncn_program_client.get_ncn_config(ncn).await?;
 
         fixture
-            .warp_slot_incremental(config.valid_slots_after_consensus())
+            .warp_slot_incremental(config.epochs_before_stall() * DEFAULT_SLOTS_PER_EPOCH)
             .await?;
 
         ncn_program_client
