@@ -133,6 +133,7 @@ impl Discriminator for VaultRegistry {
 }
 
 impl VaultRegistry {
+    const VAULT_REGISTRY_SEED: &'static [u8] = b"vault_registry";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, bump: u8) -> Self {
@@ -154,7 +155,7 @@ impl VaultRegistry {
 
     pub fn seeds(ncn: &Pubkey) -> Vec<Vec<u8>> {
         Vec::from_iter(
-            [b"vault_registry".to_vec(), ncn.to_bytes().to_vec()]
+            [Self::VAULT_REGISTRY_SEED.to_vec(), ncn.to_bytes().to_vec()]
                 .iter()
                 .cloned(),
         )

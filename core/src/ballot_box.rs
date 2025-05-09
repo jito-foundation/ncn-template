@@ -301,6 +301,7 @@ impl Discriminator for BallotBox {
 }
 
 impl BallotBox {
+    const BALLOT_BOX_SEED: &'static [u8] = b"ballot_box";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, epoch: u64, bump: u8, current_slot: u64) -> Self {
@@ -335,7 +336,7 @@ impl BallotBox {
     pub fn seeds(ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"ballot_box".to_vec(),
+                Self::BALLOT_BOX_SEED.to_vec(),
                 ncn.to_bytes().to_vec(),
                 epoch.to_le_bytes().to_vec(),
             ]

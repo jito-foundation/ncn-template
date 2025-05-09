@@ -40,6 +40,7 @@ impl Discriminator for WeightTable {
 }
 
 impl WeightTable {
+    const WEIGHT_TABLE_SEED: &'static [u8] = b"weight_table";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, epoch: u64, slot_created: u64, vault_count: u64, bump: u8) -> Self {
@@ -57,7 +58,7 @@ impl WeightTable {
     pub fn seeds(ncn: &Pubkey, ncn_epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"weight_table".to_vec(),
+                Self::WEIGHT_TABLE_SEED.to_vec(),
                 ncn.to_bytes().to_vec(),
                 ncn_epoch.to_le_bytes().to_vec(),
             ]

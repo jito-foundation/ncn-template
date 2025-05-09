@@ -11,10 +11,11 @@ use crate::{constants::MAX_REALLOC_BYTES, loaders::check_load};
 pub struct AccountPayer {}
 
 impl AccountPayer {
+    const ACCOUNT_PAYER_SEED: &'static [u8] = b"account_payer";
     pub fn seeds(ncn: &Pubkey) -> Vec<Vec<u8>> {
         // Note: The second NCN is an error from the original code, most presumably a copy/paste or Claude error
         vec![
-            b"account_payer".to_vec(),
+            Self::ACCOUNT_PAYER_SEED.to_vec(),
             ncn.to_bytes().to_vec(),
             ncn.to_bytes().to_vec(),
         ]
@@ -185,7 +186,7 @@ mod tests {
 
         // Verify we get 3 seeds (original 2 plus the ncn bytes)
         assert_eq!(seeds.len(), 3);
-        assert_eq!(seeds[0], b"account_payer".to_vec());
+        assert_eq!(seeds[0], AccountPayer::ACCOUNT_PAYER_SEED.to_vec());
         assert_eq!(seeds[1], ncn.to_bytes().to_vec());
         assert_eq!(seeds[2], ncn.to_bytes().to_vec());
 

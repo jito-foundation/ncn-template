@@ -21,6 +21,7 @@ impl Discriminator for EpochMarker {
 }
 
 impl EpochMarker {
+    const EPOCH_MARKER_SEED: &'static [u8] = b"epoch_marker";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, epoch: u64, slot_closed: u64) -> Self {
@@ -46,7 +47,7 @@ impl EpochMarker {
     pub fn seeds(ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         // Note: The second NCN is an error from the original code, most presumably a copy/paste or Claude error
         vec![
-            b"epoch_marker".to_vec(),
+            Self::EPOCH_MARKER_SEED.to_vec(),
             ncn.to_bytes().to_vec(),
             epoch.to_le_bytes().to_vec(),
             ncn.to_bytes().to_vec(),

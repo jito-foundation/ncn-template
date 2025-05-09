@@ -47,6 +47,7 @@ impl Discriminator for EpochSnapshot {
 }
 
 impl EpochSnapshot {
+    const EPOCH_SNAPSHOT_SEED: &'static [u8] = b"epoch_snapshot";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(
@@ -74,7 +75,7 @@ impl EpochSnapshot {
     pub fn seeds(ncn: &Pubkey, ncn_epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"epoch_snapshot".to_vec(),
+                Self::EPOCH_SNAPSHOT_SEED.to_vec(),
                 ncn.to_bytes().to_vec(),
                 ncn_epoch.to_le_bytes().to_vec(),
             ]
@@ -216,6 +217,7 @@ impl Discriminator for OperatorSnapshot {
 }
 
 impl OperatorSnapshot {
+    const OPERATOR_SNAPSHOT_SEED: &'static [u8] = b"operator_snapshot";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     #[allow(clippy::too_many_arguments)]
@@ -302,7 +304,7 @@ impl OperatorSnapshot {
     pub fn seeds(operator: &Pubkey, ncn: &Pubkey, ncn_epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"operator_snapshot".to_vec(),
+                Self::OPERATOR_SNAPSHOT_SEED.to_vec(),
                 operator.to_bytes().to_vec(),
                 ncn.to_bytes().to_vec(),
                 ncn_epoch.to_le_bytes().to_vec(),

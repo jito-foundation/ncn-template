@@ -38,6 +38,7 @@ impl Discriminator for Config {
 }
 
 impl Config {
+    const CONFIG_SEED: &'static [u8] = b"config";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     #[allow(clippy::too_many_arguments)]
@@ -62,7 +63,7 @@ impl Config {
     }
 
     pub fn seeds(ncn: &Pubkey) -> Vec<Vec<u8>> {
-        vec![b"config".to_vec(), ncn.to_bytes().to_vec()]
+        vec![Self::CONFIG_SEED.to_vec(), ncn.to_bytes().to_vec()]
     }
 
     pub fn find_program_address(program_id: &Pubkey, ncn: &Pubkey) -> (Pubkey, u8, Vec<Vec<u8>>) {

@@ -253,6 +253,7 @@ impl Discriminator for EpochState {
 }
 
 impl EpochState {
+    const EPOCH_STATE_SEED: &'static [u8] = b"epoch_state";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, epoch: u64, bump: u8, slot_created: u64) -> Self {
@@ -286,7 +287,7 @@ impl EpochState {
     pub fn seeds(ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"epoch_state".to_vec(),
+                Self::EPOCH_STATE_SEED.to_vec(),
                 ncn.to_bytes().to_vec(),
                 epoch.to_le_bytes().to_vec(),
             ]

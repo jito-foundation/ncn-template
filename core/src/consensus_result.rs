@@ -44,6 +44,7 @@ impl Discriminator for ConsensusResult {
 }
 
 impl ConsensusResult {
+    const CONSENSUS_RESULT_SEED: &'static [u8] = b"consensus-result";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
     pub fn new(ncn: &Pubkey, epoch: u64, bump: u8) -> Self {
@@ -65,7 +66,7 @@ impl ConsensusResult {
     pub fn seeds(ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
-                b"consensus-result".to_vec(),
+                Self::CONSENSUS_RESULT_SEED.to_vec(),
                 ncn.to_bytes().to_vec(),
                 epoch.to_le_bytes().to_vec(),
             ]
@@ -235,7 +236,7 @@ mod tests {
         let (_, _, seeds) = ConsensusResult::find_program_address(&program_id, &ncn, epoch);
 
         assert_eq!(seeds.len(), 3);
-        assert_eq!(seeds[0], b"consensus-result".to_vec());
+        assert_eq!(seeds[0], ConsensusResult::CONSENSUS_RESULT_SEED.to_vec());
         assert_eq!(seeds[1], ncn.to_bytes().to_vec());
         assert_eq!(seeds[2], epoch.to_le_bytes().to_vec());
     }
