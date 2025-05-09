@@ -1,6 +1,4 @@
-use solana_program::{
-    clock::DEFAULT_SLOTS_PER_EPOCH, entrypoint::MAX_PERMITTED_DATA_INCREASE, pubkey, pubkey::Pubkey,
-};
+use solana_program::{clock::DEFAULT_SLOTS_PER_EPOCH, entrypoint::MAX_PERMITTED_DATA_INCREASE};
 use spl_math::precise_number::PreciseNumber;
 
 use crate::error::NCNProgramError;
@@ -30,11 +28,4 @@ pub fn precise_consensus() -> Result<PreciseNumber, NCNProgramError> {
 pub const DEFAULT_CONSENSUS_REACHED_SLOT: u64 = u64::MAX;
 pub const MAX_REALLOC_BYTES: u64 = MAX_PERMITTED_DATA_INCREASE as u64;
 
-pub const WEIGHT_PRECISION: u128 = 1_000_000_000;
 pub const WEIGHT: u128 = 100;
-
-pub const JITOSOL_MINT: Pubkey = pubkey!("J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn");
-pub const JITOSOL_POOL_ADDRESS: Pubkey = pubkey!("Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Awbb");
-pub const JITOSOL_POOL_MANAGER: Pubkey = pubkey!("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF");
-pub const JITOSOL_POOL_FEE: Pubkey = pubkey!("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF");
-pub const JITOSOL_RESERVE_STAKE: Pubkey = pubkey!("BgKUXdS29YcHCFrPm5M8oLHiTzZaMDjsebggjoaQ6KFL");

@@ -2,10 +2,7 @@
 mod fuzz_tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-    use ncn_program_core::{
-        ballot_box::WeatherStatus,
-        constants::{WEIGHT, WEIGHT_PRECISION},
-    };
+    use ncn_program_core::{ballot_box::WeatherStatus, constants::WEIGHT};
     use solana_sdk::{
         native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
     };
@@ -235,7 +232,7 @@ mod fuzz_tests {
                 },
                 MintConfig {
                     keypair: Keypair::new(),
-                    weight: WEIGHT_PRECISION, // Minimum weight precision
+                    weight: WEIGHT,
                     vault_count: 1,
                 },
             ],
@@ -303,7 +300,7 @@ mod fuzz_tests {
                 operator_count: 20,
                 mints: vec![MintConfig {
                     keypair: Keypair::new(),
-                    weight: 2 * WEIGHT_PRECISION, // Double precision weight
+                    weight: 2 * WEIGHT, // Double weight
                     vault_count: 3,
                 }],
                 delegations: vec![
@@ -329,7 +326,7 @@ mod fuzz_tests {
                     },
                     MintConfig {
                         keypair: Keypair::new(),
-                        weight: WEIGHT_PRECISION / 2, // Half precision weight
+                        weight: WEIGHT / 2, // Half weight
                         vault_count: 1,
                     },
                 ],
