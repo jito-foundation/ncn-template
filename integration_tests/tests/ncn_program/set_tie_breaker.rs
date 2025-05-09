@@ -46,8 +46,11 @@ mod tests {
         );
         assert!(!ballot_box.is_consensus_reached());
 
-        // Wait a bunch of epochs for voting window to expire (TODO use the exact length)
-        fixture.warp_slot_incremental(1000000).await?;
+        let config = ncn_program_client.get_ncn_config(ncn).await?;
+
+        fixture
+            .warp_slot_incremental(config.valid_slots_after_consensus())
+            .await?;
 
         ncn_program_client
             .do_admin_set_tie_breaker(ncn, weather_status, epoch)

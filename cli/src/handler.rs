@@ -253,13 +253,9 @@ impl CliHandler {
             ProgramCommand::CreateBallotBox {} => create_ballot_box(self, self.epoch).await,
             ProgramCommand::OperatorCastVote {
                 operator,
-                meta_merkle_root,
+                weather_status,
             } => {
-                todo!(
-                    "Create and implement admin cast vote: {} {}",
-                    operator,
-                    meta_merkle_root
-                );
+                todo!("Create and implement  cast vote: {}", operator,);
                 // let operator = Pubkey::from_str(&operator).expect("error parsing operator");
                 // let merkle_root = hex::decode(meta_merkle_root).expect("error parsing merkle root");
                 // let mut root = [0u8; 32];
@@ -557,29 +553,6 @@ impl CliHandler {
 
                 Ok(())
             }
-            // ProgramCommand::GetAllOptedInValidators {} => {
-            //     let results = get_all_opted_in_validators(self).await?;
-            //
-            //     fn validators_to_csv_string(validators: &Vec<OptedInValidatorInfo>) -> String {
-            //         let mut csv = String::from("identity,stake,active,vote\n");
-            //
-            //         for validator in validators {
-            //             csv.push_str(&format!(
-            //                 "{},{},{},{}\n",
-            //                 validator.identity, validator.stake, validator.active, validator.vote,
-            //             ));
-            //         }
-            //
-            //         csv
-            //     }
-            //
-            //     info!(
-            //         "Validator Info: \n\n{}\n\n",
-            //         validators_to_csv_string(&results)
-            //     );
-            //
-            //     Ok(())
-            // }
             ProgramCommand::FullUpdateVaults { vault } => {
                 let mut vaults_to_update = vec![];
 

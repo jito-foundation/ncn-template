@@ -25,12 +25,12 @@ pub struct Config {
     pub valid_slots_after_consensus: PodU64,
     /// Number of epochs before voting is considered stalled
     pub epochs_before_stall: PodU64,
-    /// Bump seed for the PDA
-    pub bump: u8,
-    ///TODO move when we deploy real program Number of epochs until rent can be reclaimed
+    /// Number of epochs after consensus reached where voting is still valid
     pub epochs_after_consensus_before_close: PodU64,
     /// Only epochs after this epoch are valid for voting
     pub starting_valid_epoch: PodU64,
+    /// Bump seed for the PDA
+    pub bump: u8,
 }
 
 impl Discriminator for Config {
@@ -145,9 +145,9 @@ mod tests {
             + size_of::<Pubkey>() // tie_breaker_admin 
             + size_of::<PodU64>() // valid_slots_after_consensus
             + size_of::<PodU64>() // epochs_before_stall
-            + 1 // bump
-            + size_of::<PodU64>() //TODO move up before deploy epochs_after_consensus_before_close
-            + size_of::<PodU64>(); //TODO starting_valid_epoch
+            + size_of::<PodU64>() // epochs_after_consensus_before_close
+            + size_of::<PodU64>() // starting_valid_epoch
+            + 1; // bump
 
         assert_eq!(size_of::<Config>(), expected_total);
         assert_eq!(size_of::<Config>() + 8, Config::SIZE);

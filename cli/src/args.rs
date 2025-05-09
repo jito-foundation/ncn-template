@@ -196,7 +196,7 @@ pub enum ProgramCommand {
         #[arg(long, help = "Operator address")]
         operator: String,
         #[arg(long, help = "Meta merkle root")]
-        meta_merkle_root: String,
+        weather_status: u8,
     },
 
     /// Getters
