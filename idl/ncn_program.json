@@ -1113,10 +1113,6 @@
             }
           },
           {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
             "name": "epochsAfterConsensusBeforeClose",
             "type": {
               "defined": "PodU64"
@@ -1127,6 +1123,10 @@
             "type": {
               "defined": "PodU64"
             }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -1144,32 +1144,6 @@
             "name": "epoch",
             "type": {
               "defined": "PodU64"
-            }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "padding",
-            "type": {
-              "array": [
-                "u8",
-                7
-              ]
-            }
-          },
-          {
-            "name": "weatherStatus",
-            "type": "u8"
-          },
-          {
-            "name": "padding1",
-            "type": {
-              "array": [
-                "u8",
-                7
-              ]
             }
           },
           {
@@ -1191,14 +1165,12 @@
             }
           },
           {
-            "name": "consensusRecorder",
-            "type": "publicKey"
+            "name": "bump",
+            "type": "u8"
           },
           {
-            "name": "consensusReached",
-            "type": {
-              "defined": "PodBool"
-            }
+            "name": "weatherStatus",
+            "type": "u8"
           }
         ]
       }

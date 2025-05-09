@@ -5,7 +5,7 @@ mod tests {
         ballot_box::{Ballot, WeatherStatus},
         constants::DEFAULT_CONSENSUS_REACHED_SLOT,
     };
-    use solana_sdk::{clock::DEFAULT_SLOTS_PER_EPOCH, msg};
+    use solana_sdk::clock::DEFAULT_SLOTS_PER_EPOCH;
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 

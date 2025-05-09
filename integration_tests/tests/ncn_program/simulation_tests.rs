@@ -277,11 +277,10 @@ mod tests {
             );
 
             println!(
-                "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}, Recorder: {}",
+                "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}",
                 consensus_result.weather_status(),
                 consensus_result.vote_weight(),
                 consensus_result.total_vote_weight(),
-                consensus_result.consensus_recorder()
             );
         }
 

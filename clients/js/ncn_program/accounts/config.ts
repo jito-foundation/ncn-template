@@ -39,9 +39,9 @@ export type Config = {
   tieBreakerAdmin: Address;
   validSlotsAfterConsensus: bigint;
   epochsBeforeStall: bigint;
-  bump: number;
   epochsAfterConsensusBeforeClose: bigint;
   startingValidEpoch: bigint;
+  bump: number;
 };
 
 export type ConfigArgs = {
@@ -50,9 +50,9 @@ export type ConfigArgs = {
   tieBreakerAdmin: Address;
   validSlotsAfterConsensus: number | bigint;
   epochsBeforeStall: number | bigint;
-  bump: number;
   epochsAfterConsensusBeforeClose: number | bigint;
   startingValidEpoch: number | bigint;
+  bump: number;
 };
 
 export function getConfigEncoder(): Encoder<ConfigArgs> {
@@ -62,9 +62,9 @@ export function getConfigEncoder(): Encoder<ConfigArgs> {
     ['tieBreakerAdmin', getAddressEncoder()],
     ['validSlotsAfterConsensus', getU64Encoder()],
     ['epochsBeforeStall', getU64Encoder()],
-    ['bump', getU8Encoder()],
     ['epochsAfterConsensusBeforeClose', getU64Encoder()],
     ['startingValidEpoch', getU64Encoder()],
+    ['bump', getU8Encoder()],
   ]);
 }
 
@@ -75,9 +75,9 @@ export function getConfigDecoder(): Decoder<Config> {
     ['tieBreakerAdmin', getAddressDecoder()],
     ['validSlotsAfterConsensus', getU64Decoder()],
     ['epochsBeforeStall', getU64Decoder()],
-    ['bump', getU8Decoder()],
     ['epochsAfterConsensusBeforeClose', getU64Decoder()],
     ['startingValidEpoch', getU64Decoder()],
+    ['bump', getU8Decoder()],
   ]);
 }
 

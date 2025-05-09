@@ -102,7 +102,6 @@ pub fn process_cast_vote(
         return Err(NCNProgramError::InvalidOperatorVoter.into());
     }
 
-    msg!("Getting valid slots after consensus from NCN config");
     let valid_slots_after_consensus = {
         let ncn_config_data = ncn_config.data.borrow();
         let ncn_config = NcnConfig::try_from_slice_unchecked(&ncn_config_data)?;
@@ -113,7 +112,6 @@ pub fn process_cast_vote(
         valid_slots_after_consensus
     );
 
-    msg!("Preparing to modify ballot box");
     let mut ballot_box_data = ballot_box.data.borrow_mut();
     let ballot_box = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
 
@@ -131,7 +129,6 @@ pub fn process_cast_vote(
     };
     msg!("Total stake weight: {}", total_stake_weights.stake_weight());
 
-    msg!("Getting operator stake weights from operator snapshot");
     let operator_stake_weights = {
         let operator_snapshot_data = operator_snapshot.data.borrow();
         let operator_snapshot =
@@ -149,18 +146,11 @@ pub fn process_cast_vote(
         return Err(NCNProgramError::CannotVoteWithZeroStake.into());
     }
 
-    msg!("Getting current slot");
     let slot = Clock::get()?.slot;
     msg!("Current slot: {}", slot);
 
-    msg!(
-        "Creating new ballot with weather status: {}",
-        weather_status
-    );
     let ballot = Ballot::new(weather_status);
 
-    msg!("Casting vote in ballot box for operator: {}", operator.key);
-    msg!("operator vote is {}", weather_status);
     ballot_box.cast_vote(
         operator.key,
         &ballot,
@@ -198,9 +188,7 @@ pub fn process_cast_vote(
             winning_ballot_tally.stake_weights().stake_weight() as u64,
             total_stake_weights.stake_weight() as u64,
             slot,
-            operator.key,
         )?;
-        msg!("Consensus result recorded successfully");
     } else {
         msg!("Consensus not yet reached for epoch: {}", epoch);
     }
@@ -216,7 +204,6 @@ pub fn process_cast_vote(
             slot,
         )?;
     }
-    msg!("Epoch state updated successfully");
 
     msg!(
         "Cast vote completed successfully for operator: {}, epoch: {}, weather status: {}",

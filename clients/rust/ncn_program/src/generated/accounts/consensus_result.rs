@@ -19,19 +19,11 @@ pub struct ConsensusResult {
     )]
     pub ncn: Pubkey,
     pub epoch: u64,
-    pub bump: u8,
-    pub padding: [u8; 7],
-    pub weather_status: u8,
-    pub padding1: [u8; 7],
     pub vote_weight: u64,
     pub total_vote_weight: u64,
     pub consensus_slot: u64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub consensus_recorder: Pubkey,
-    pub consensus_reached: bool,
+    pub bump: u8,
+    pub weather_status: u8,
 }
 
 impl ConsensusResult {

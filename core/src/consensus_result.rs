@@ -2,10 +2,7 @@ use core::fmt;
 use std::mem::size_of;
 
 use bytemuck::{Pod, Zeroable};
-use jito_bytemuck::{
-    types::{PodBool, PodU64},
-    AccountDeserialize, Discriminator,
-};
+use jito_bytemuck::{types::PodU64, AccountDeserialize, Discriminator};
 use shank::ShankAccount;
 use solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 
@@ -19,24 +16,16 @@ pub struct ConsensusResult {
     ncn: Pubkey,
     /// The epoch this consensus result is for
     epoch: PodU64,
-    /// Bump seed for the PDA
-    bump: u8,
-    /// Padding for alignment
-    _padding: [u8; 7],
-    /// The winning weather status that reached consensus
-    weather_status: u8,
-    /// Padding for alignment
-    _padding1: [u8; 7],
     /// The vote weight that supported the winning status
     vote_weight: PodU64,
     /// The total vote weight in the ballot box
     total_vote_weight: PodU64,
     /// The slot at which consensus was reached
     consensus_slot: PodU64,
-    /// The account that recorded the consensus
-    consensus_recorder: Pubkey,
-    /// Whether consensus has been reached
-    consensus_reached: PodBool,
+    /// Bump seed for the PDA
+    bump: u8,
+    /// The winning weather status that reached consensus
+    weather_status: u8,
 }
 
 impl Discriminator for ConsensusResult {
@@ -52,14 +41,10 @@ impl ConsensusResult {
             ncn: *ncn,
             epoch: PodU64::from(epoch),
             bump,
-            _padding: [0; 7],
             weather_status: 0,
-            _padding1: [0; 7],
             vote_weight: PodU64::from(0),
             total_vote_weight: PodU64::from(0),
             consensus_slot: PodU64::from(0),
-            consensus_recorder: Pubkey::default(),
-            consensus_reached: PodBool::from(false),
         }
     }
 
@@ -103,15 +88,6 @@ impl ConsensusResult {
         )
     }
 
-    pub fn load_to_close(
-        program_id: &Pubkey,
-        account_to_close: &AccountInfo,
-        ncn: &Pubkey,
-        epoch: u64,
-    ) -> Result<(), ProgramError> {
-        Self::load(program_id, account_to_close, ncn, epoch, true)
-    }
-
     pub fn epoch(&self) -> u64 {
         self.epoch.into()
     }
@@ -136,12 +112,8 @@ impl ConsensusResult {
         self.total_vote_weight.into()
     }
 
-    pub const fn consensus_recorder(&self) -> &Pubkey {
-        &self.consensus_recorder
-    }
-
     pub fn is_consensus_reached(&self) -> bool {
-        self.consensus_reached.into()
+        self.consensus_slot != PodU64::from(0)
     }
 
     pub fn record_consensus(
@@ -150,7 +122,6 @@ impl ConsensusResult {
         vote_weight: u64,
         total_vote_weight: u64,
         consensus_slot: u64,
-        consensus_recorder: &Pubkey,
     ) -> Result<(), NCNProgramError> {
         if self.is_consensus_reached() {
             self.vote_weight = PodU64::from(vote_weight);
@@ -159,8 +130,6 @@ impl ConsensusResult {
             self.vote_weight = PodU64::from(vote_weight);
             self.total_vote_weight = PodU64::from(total_vote_weight);
             self.consensus_slot = PodU64::from(consensus_slot);
-            self.consensus_recorder = *consensus_recorder;
-            self.consensus_reached = PodBool::from(true);
         }
 
         Ok(())
@@ -174,8 +143,6 @@ impl ConsensusResult {
         self.vote_weight = PodU64::from(0);
         self.total_vote_weight = PodU64::from(0);
         self.consensus_slot = PodU64::from(0);
-        self.consensus_recorder = Pubkey::default();
-        self.consensus_reached = PodBool::from(false);
 
         Ok(())
     }
@@ -185,14 +152,13 @@ impl fmt::Display for ConsensusResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "ConsensusResult {{ ncn: {}, epoch: {}, weather_status: {}, vote_weight: {}, total_vote_weight: {}, consensus_slot: {}, consensus_recorder: {}, consensus_reached: {} }}",
+            "ConsensusResult {{ ncn: {}, epoch: {}, weather_status: {}, vote_weight: {}, total_vote_weight: {}, consensus_slot: {},  consensus_reached: {} }}",
             self.ncn,
             self.epoch(),
             self.weather_status,
             self.vote_weight(),
             self.total_vote_weight(),
             self.consensus_slot(),
-            self.consensus_recorder,
             self.is_consensus_reached(),
         )
     }
@@ -212,11 +178,9 @@ mod tests {
         assert_eq!(consensus_result.vote_weight(), 0);
         assert_eq!(consensus_result.total_vote_weight(), 0);
         assert_eq!(consensus_result.consensus_slot(), 0);
-        assert_eq!(consensus_result.consensus_recorder(), &Pubkey::default());
 
-        let recorder = Pubkey::new_unique();
         consensus_result
-            .record_consensus(2, 1000, 2000, 5000, &recorder)
+            .record_consensus(2, 1000, 2000, 5000)
             .unwrap();
 
         assert!(consensus_result.is_consensus_reached());
@@ -224,7 +188,6 @@ mod tests {
         assert_eq!(consensus_result.vote_weight(), 1000);
         assert_eq!(consensus_result.total_vote_weight(), 2000);
         assert_eq!(consensus_result.consensus_slot(), 5000);
-        assert_eq!(consensus_result.consensus_recorder(), &recorder);
     }
 
     #[test]

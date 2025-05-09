@@ -25,9 +25,9 @@ pub struct Config {
     pub tie_breaker_admin: Pubkey,
     pub valid_slots_after_consensus: u64,
     pub epochs_before_stall: u64,
-    pub bump: u8,
     pub epochs_after_consensus_before_close: u64,
     pub starting_valid_epoch: u64,
+    pub bump: u8,
 }
 
 impl Config {

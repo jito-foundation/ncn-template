@@ -15,10 +15,6 @@ import {
   fetchEncodedAccounts,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
-  getBoolDecoder,
-  getBoolEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -41,30 +37,22 @@ export type ConsensusResult = {
   discriminator: bigint;
   ncn: Address;
   epoch: bigint;
-  bump: number;
-  padding: Array<number>;
-  weatherStatus: number;
-  padding1: Array<number>;
   voteWeight: bigint;
   totalVoteWeight: bigint;
   consensusSlot: bigint;
-  consensusRecorder: Address;
-  consensusReached: number;
+  bump: number;
+  weatherStatus: number;
 };
 
 export type ConsensusResultArgs = {
   discriminator: number | bigint;
   ncn: Address;
   epoch: number | bigint;
-  bump: number;
-  padding: Array<number>;
-  weatherStatus: number;
-  padding1: Array<number>;
   voteWeight: number | bigint;
   totalVoteWeight: number | bigint;
   consensusSlot: number | bigint;
-  consensusRecorder: Address;
-  consensusReached: number;
+  bump: number;
+  weatherStatus: number;
 };
 
 export function getConsensusResultEncoder(): Encoder<ConsensusResultArgs> {
@@ -72,15 +60,11 @@ export function getConsensusResultEncoder(): Encoder<ConsensusResultArgs> {
     ['discriminator', getU64Encoder()],
     ['ncn', getAddressEncoder()],
     ['epoch', getU64Encoder()],
-    ['bump', getU8Encoder()],
-    ['padding', getArrayEncoder(getU8Encoder(), { size: 7 })],
-    ['weatherStatus', getU8Encoder()],
-    ['padding1', getArrayEncoder(getU8Encoder(), { size: 7 })],
     ['voteWeight', getU64Encoder()],
     ['totalVoteWeight', getU64Encoder()],
     ['consensusSlot', getU64Encoder()],
-    ['consensusRecorder', getAddressEncoder()],
-    ['consensusReached', getBoolEncoder()],
+    ['bump', getU8Encoder()],
+    ['weatherStatus', getU8Encoder()],
   ]);
 }
 
@@ -89,15 +73,11 @@ export function getConsensusResultDecoder(): Decoder<ConsensusResult> {
     ['discriminator', getU64Decoder()],
     ['ncn', getAddressDecoder()],
     ['epoch', getU64Decoder()],
-    ['bump', getU8Decoder()],
-    ['padding', getArrayDecoder(getU8Decoder(), { size: 7 })],
-    ['weatherStatus', getU8Decoder()],
-    ['padding1', getArrayDecoder(getU8Decoder(), { size: 7 })],
     ['voteWeight', getU64Decoder()],
     ['totalVoteWeight', getU64Decoder()],
     ['consensusSlot', getU64Decoder()],
-    ['consensusRecorder', getAddressDecoder()],
-    ['consensusReached', getBoolDecoder()],
+    ['bump', getU8Decoder()],
+    ['weatherStatus', getU8Decoder()],
   ]);
 }
 
