@@ -16,44 +16,58 @@ pub fn process_admin_set_tie_breaker(
     weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
+    msg!("Starting admin_set_tie_breaker instruction");
     let [epoch_state, ncn_config, ballot_box, ncn, tie_breaker_admin] = accounts else {
+        msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    msg!("Loading and verifying accounts");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
     BallotBox::load(program_id, ballot_box, ncn.key, epoch, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+
+    msg!("Verifying tie breaker admin signer");
     load_signer(tie_breaker_admin, false)?;
 
+    msg!("Verifying tie breaker admin authority");
     let ncn_config_data = ncn_config.data.borrow();
     let ncn_config = NcnConfig::try_from_slice_unchecked(&ncn_config_data)?;
 
     if ncn_config.tie_breaker_admin.ne(tie_breaker_admin.key) {
-        msg!("Tie breaker admin invalid");
+        msg!("Error: Invalid tie breaker admin");
         return Err(NCNProgramError::TieBreakerAdminInvalid.into());
     }
 
+    msg!("Updating ballot box with tie breaker vote");
     let mut ballot_box_data = ballot_box.data.borrow_mut();
     let ballot_box_account = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
 
     let clock = Clock::get()?;
     let current_epoch = clock.epoch;
+    msg!("Current epoch: {}", current_epoch);
 
+    msg!(
+        "Setting tie breaker ballot with weather status: {}",
+        weather_status
+    );
     ballot_box_account.set_tie_breaker_ballot(
         weather_status,
         current_epoch,
         ncn_config.epochs_before_stall(),
     )?;
 
-    // Update Epoch State
+    msg!("Updating epoch state");
     {
         let slot = clock.slot;
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
-        epoch_state_account
-            .update_set_tie_breaker(ballot_box_account.is_consensus_reached(), slot)?;
+        let consensus_reached = ballot_box_account.is_consensus_reached();
+        msg!("Consensus reached: {}", consensus_reached);
+        epoch_state_account.update_set_tie_breaker(consensus_reached, slot)?;
     }
 
+    msg!("Successfully completed admin_set_tie_breaker instruction");
     Ok(())
 }

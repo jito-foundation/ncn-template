@@ -15,24 +15,32 @@ pub fn process_realloc_weight_table(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
+    msg!(
+        "Starting realloc_weight_table instruction for epoch {}",
+        epoch
+    );
+
     let [epoch_state, ncn_config, weight_table, ncn, vault_registry, account_payer, system_program] =
         accounts
     else {
+        msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    msg!("Loading required accounts...");
     load_system_program(system_program)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
+    msg!("All required accounts loaded successfully");
 
     let (weight_table_pda, weight_table_bump, _) =
         WeightTable::find_program_address(program_id, ncn.key, epoch);
 
     if weight_table_pda != *weight_table.key {
-        msg!("Weight table account is not at the correct PDA");
+        msg!("Error: Weight table account is not at the correct PDA");
         return Err(ProgramError::InvalidAccountData);
     }
 
@@ -44,12 +52,16 @@ pub fn process_realloc_weight_table(
             new_size
         );
         AccountPayer::pay_and_realloc(program_id, ncn.key, account_payer, weight_table, new_size)?;
+        msg!("Weight table reallocation completed successfully");
+    } else {
+        msg!("Weight table size is sufficient, no reallocation needed");
     }
 
     let should_initialize = weight_table.data_len() >= WeightTable::SIZE
         && weight_table.try_borrow_data()?[0] != WeightTable::DISCRIMINATOR;
 
     if should_initialize {
+        msg!("Initializing weight table...");
         let vault_registry_data = vault_registry.data.borrow();
         let vault_registry = VaultRegistry::try_from_slice_unchecked(&vault_registry_data)?;
 
@@ -57,6 +69,12 @@ pub fn process_realloc_weight_table(
         let st_mint_count = vault_registry.st_mint_count();
         let vault_entries = vault_registry.get_vault_entries();
         let mint_entries = vault_registry.get_mint_entries();
+
+        msg!(
+            "Found {} vaults and {} st mints",
+            vault_count,
+            st_mint_count
+        );
 
         let mut weight_table_data = weight_table.try_borrow_mut_data()?;
         weight_table_data[0] = WeightTable::DISCRIMINATOR;
@@ -72,15 +90,21 @@ pub fn process_realloc_weight_table(
             vault_entries,
             mint_entries,
         )?;
+        msg!("Weight table initialized successfully");
 
         // Update Epoch State
         {
+            msg!("Updating epoch state...");
             let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
             let epoch_state_account =
                 EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
             epoch_state_account.update_realloc_weight_table(vault_count, st_mint_count as u64);
+            msg!("Epoch state updated successfully");
         }
+    } else {
+        msg!("Weight table already initialized, skipping initialization");
     }
 
+    msg!("realloc_weight_table instruction completed successfully");
     Ok(())
 }

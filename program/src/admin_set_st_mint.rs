@@ -13,31 +13,40 @@ pub fn process_admin_set_st_mint(
     st_mint: &Pubkey,
     weight: Option<u128>,
 ) -> ProgramResult {
+    msg!("Starting admin_set_st_mint instruction");
     let [config, ncn, vault_registry, admin] = accounts else {
+        msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    msg!("Loading and verifying accounts");
     Config::load(program_id, config, ncn.key, false)?;
     VaultRegistry::load(program_id, vault_registry, ncn.key, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
 
+    msg!("Verifying admin signer");
     load_signer(admin, false)?;
 
     {
+        msg!("Verifying NCN program admin");
         let ncn_data = ncn.data.borrow();
         let ncn_account = Ncn::try_from_slice_unchecked(&ncn_data)?;
 
         if ncn_account.ncn_program_admin.ne(admin.key) {
-            msg!("Admin is not the NCN program admin");
+            msg!("Error: Admin is not the NCN program admin");
             return Err(ProgramError::InvalidAccountData);
         }
     }
 
+    msg!("Updating ST mint in vault registry");
     let mut vault_registry_data = vault_registry.data.borrow_mut();
     let vault_registry_account =
         VaultRegistry::try_from_slice_unchecked_mut(&mut vault_registry_data)?;
 
+    msg!("Setting ST mint to {:?} with weight {:?}", st_mint, weight);
     vault_registry_account.set_st_mint(st_mint, weight)?;
+    msg!("Successfully updated ST mint in vault registry");
 
+    msg!("Successfully completed admin_set_st_mint instruction");
     Ok(())
 }

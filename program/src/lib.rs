@@ -125,6 +125,10 @@ pub fn process_instruction(
             msg!("Instruction: ReallocWeightTable");
             process_realloc_weight_table(program_id, accounts, epoch)
         }
+        NCNProgramInstruction::SetEpochWeights { epoch } => {
+            msg!("Instruction: SetEpochWeights");
+            process_set_epoch_weights(program_id, accounts, epoch)
+        }
         NCNProgramInstruction::InitializeEpochSnapshot { epoch } => {
             msg!("Instruction: InitializeEpochSnapshot");
             process_initialize_epoch_snapshot(program_id, accounts, epoch)
@@ -158,7 +162,7 @@ pub fn process_instruction(
         }
 
         // ---------------------------------------------------- //
-        //                ROUTE AND DISTRIBUTE                  //
+        //                         CLEAN UP                     //
         // ---------------------------------------------------- //
         NCNProgramInstruction::CloseEpochAccount { epoch } => {
             msg!("Instruction: CloseEpochAccount");
@@ -210,11 +214,6 @@ pub fn process_instruction(
         NCNProgramInstruction::AdminSetStMint { st_mint, weight } => {
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
-        }
-
-        NCNProgramInstruction::SetEpochWeights { epoch } => {
-            msg!("Instruction: SetEpochWeights");
-            process_set_epoch_weights(program_id, accounts, epoch)
         }
     }
 }

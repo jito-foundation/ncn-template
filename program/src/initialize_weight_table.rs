@@ -17,44 +17,58 @@ pub fn process_initialize_weight_table(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
+    msg!("Starting initialize_weight_table instruction");
     let [epoch_marker, epoch_state, vault_registry, ncn, weight_table, account_payer, system_program] =
         accounts
     else {
+        msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    msg!("Loading and verifying accounts");
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, false)?;
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
+    msg!("Verifying system accounts");
     load_system_account(weight_table, true)?;
     load_system_program(system_program)?;
 
+    msg!("Getting vault counts");
     let vault_count = {
         let ncn_data = ncn.data.borrow();
         let ncn = Ncn::try_from_slice_unchecked(&ncn_data)?;
-        ncn.vault_count()
+        let count = ncn.vault_count();
+        msg!("NCN vault count: {}", count);
+        count
     };
 
     let vault_registry_count = {
         let vault_registry_data = vault_registry.data.borrow();
         let vault_registry = VaultRegistry::try_from_slice_unchecked(&vault_registry_data)?;
-        vault_registry.vault_count()
+        let count = vault_registry.vault_count();
+        msg!("Vault registry count: {}", count);
+        count
     };
 
     if vault_count != vault_registry_count {
-        msg!("Vault count does not match supported mint count");
+        msg!(
+            "Error: Vault count mismatch - NCN: {}, Registry: {}",
+            vault_count,
+            vault_registry_count
+        );
         return Err(ProgramError::InvalidAccountData);
     }
 
+    msg!("Deriving weight table PDA");
     let (weight_table_pubkey, weight_table_bump, mut weight_table_seeds) =
         WeightTable::find_program_address(program_id, ncn.key, epoch);
     weight_table_seeds.push(vec![weight_table_bump]);
 
     if weight_table_pubkey.ne(weight_table.key) {
-        msg!("Incorrect weight table PDA");
+        msg!("Error: Incorrect weight table PDA");
         return Err(ProgramError::InvalidAccountData);
     }
 
@@ -63,6 +77,10 @@ pub fn process_initialize_weight_table(
         weight_table.key,
         ncn.key,
         epoch
+    );
+    msg!(
+        "Creating weight table account with size: {}",
+        MAX_REALLOC_BYTES
     );
     AccountPayer::pay_and_create_account(
         program_id,
@@ -75,5 +93,6 @@ pub fn process_initialize_weight_table(
         &weight_table_seeds,
     )?;
 
+    msg!("Successfully completed initialize_weight_table instruction");
     Ok(())
 }
