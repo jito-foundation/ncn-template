@@ -36,7 +36,7 @@ mod tests {
             .do_full_initialize_ballot_box(ncn, epoch)
             .await?;
 
-        let weather_status = Ballot::generate_ballot_weather_status();
+        let weather_status = WeatherStatus::default() as u8;
 
         let operator_admin = &test_ncn.operators[0].operator_admin;
 

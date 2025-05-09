@@ -121,13 +121,6 @@ impl Ballot {
     pub fn is_valid(&self) -> bool {
         self.is_valid.into()
     }
-
-    /// Generate a random weather status value
-    pub fn generate_ballot_weather_status() -> u8 {
-        let random_bytes = Pubkey::new_unique().to_bytes();
-        let weather_status = u8::from_le_bytes(random_bytes[0..1].try_into().unwrap());
-        weather_status % (WeatherStatus::Rainy as u8 + 1)
-    }
 }
 
 /// Represents a tally of votes for a specific ballot
@@ -1280,7 +1273,7 @@ mod zero_stake_tests {
         let mut ballot_box = BallotBox::new(&ncn, epoch, 0, current_slot);
 
         // Create ballots and operators
-        let ballot = Ballot::new(Ballot::generate_ballot_weather_status());
+        let ballot = Ballot::new(WeatherStatus::default() as u8);
 
         let zero_stake_operator = Pubkey::new_unique();
         let zero_stake = StakeWeights::new(0);
@@ -1324,7 +1317,7 @@ mod zero_stake_tests {
         let valid_slots_after_consensus = 100;
         let mut ballot_box = BallotBox::new(&ncn, epoch, 0, current_slot);
 
-        let ballot = Ballot::new(Ballot::generate_ballot_weather_status());
+        let ballot = Ballot::new(WeatherStatus::default() as u8);
 
         // Create multiple zero stake operators
         let num_zero_stake = 5;

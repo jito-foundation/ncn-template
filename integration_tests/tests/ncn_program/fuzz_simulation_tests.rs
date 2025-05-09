@@ -3,7 +3,7 @@ mod fuzz_tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
     use ncn_program_core::{
-        ballot_box::Ballot,
+        ballot_box::WeatherStatus,
         constants::{WEIGHT, WEIGHT_PRECISION},
     };
     use solana_sdk::{
@@ -180,8 +180,7 @@ mod fuzz_tests {
         // Cast votes from all operators for the same weather status
         {
             let epoch = fixture.clock().await.epoch;
-            // Generate a random weather status for this test
-            let weather_status = Ballot::generate_ballot_weather_status();
+            let weather_status = WeatherStatus::default() as u8;
 
             // All operators vote for the same status to ensure consensus
             for operator_root in test_ncn.operators.iter() {
