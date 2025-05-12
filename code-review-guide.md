@@ -21,7 +21,7 @@ The NCN Program Template is a Solana program that implements a Network Consensus
 
 The recommended approach for reviewing this codebase is to start with the onchain program code, which is located in the `/programs` and `/core` directories. This approach allows reviewers to understand the core functionality before diving into the integration tests and other components.
 
-### Files to Review in Order of Execution (Based on simulation_tests.rs)
+### Files to Review in Order of Execution (Based on simulation_test.rs)
 
 1. **Core Module Files**:
    - `/core/src/config.rs` - Program configuration
@@ -57,7 +57,7 @@ This order follows the execution flow in the simulation tests, starting with ini
 
 ### Reviewing the Simulation Test
 
-After understanding the core program files, the next step is to review the simulation test itself and its imported files. The simulation test (`integration_tests/tests/ncn_program/simulation_tests.rs`) provides an end-to-end test of the system and demonstrates the complete flow of the program.
+After understanding the core program files, the next step is to review the simulation test itself and its imported files. The simulation test (`integration_tests/tests/ncn_program/simulation_test.rs`) provides an end-to-end test of the system and demonstrates the complete flow of the program.
 
 #### Key Files to Review:
 
@@ -168,7 +168,7 @@ Implements the Solana program instructions:
 4. **Support Tokens (ST)**: Different token mints with configurable weights
 5. **Epoch-based Voting**: Consensus happens in epochs with snapshots taken at the beginning
 
-## Voting Flow (from `simulation_tests.rs`)
+## Voting Flow (from `simulation_test.rs`)
 
 1. **Setup & Initialization**:
    - Initialize NCN, operators, and vaults
