@@ -6,7 +6,7 @@ mod tests {
     #[tokio::test]
     async fn test_all_test_ncn_functions() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
-        fixture.initialize_staking_and_vault_programs().await?;
+        fixture.initialize_restaking_and_vault_programs().await?;
 
         const OPERATOR_COUNT: usize = 1;
         const VAULT_COUNT: usize = 1;

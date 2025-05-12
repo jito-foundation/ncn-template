@@ -14,7 +14,7 @@ mod tests {
         let mut fixture = TestBuilder::new().await;
         // 0.b. Initialize the configuration for the staking and vault programs
         // you will not have to do that on mainnet, the programs will already be configured
-        fixture.initialize_staking_and_vault_programs().await?;
+        fixture.initialize_restaking_and_vault_programs().await?;
 
         let mut ncn_program_client = fixture.ncn_program_client();
         let mut vault_program_client = fixture.vault_client();

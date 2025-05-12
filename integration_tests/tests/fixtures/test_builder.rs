@@ -155,7 +155,7 @@ impl TestBuilder {
         )
     }
 
-    pub async fn initialize_staking_and_vault_programs(&mut self) -> TestResult<()> {
+    pub async fn initialize_restaking_and_vault_programs(&mut self) -> TestResult<()> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
 
@@ -403,7 +403,7 @@ impl TestBuilder {
         vault_count: usize,
         operator_fees_bps: Option<u16>,
     ) -> TestResult<TestNcn> {
-        self.initialize_staking_and_vault_programs().await?;
+        self.initialize_restaking_and_vault_programs().await?;
 
         let mut test_ncn = self.create_test_ncn().await?;
 

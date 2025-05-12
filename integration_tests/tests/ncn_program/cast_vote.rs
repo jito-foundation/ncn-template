@@ -195,7 +195,7 @@ mod tests {
     #[tokio::test]
     async fn test_zero_delegation_operator_cannot_vote() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
-        fixture.initialize_staking_and_vault_programs().await?;
+        fixture.initialize_restaking_and_vault_programs().await?;
 
         let mut ncn_program_client = fixture.ncn_program_client();
         let mut restaking_client = fixture.restaking_program_client();
