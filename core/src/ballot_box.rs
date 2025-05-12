@@ -1,5 +1,5 @@
 // Ballot Box Module
-// 
+//
 // This module implements the core voting and consensus mechanism for the NCN program.
 // It allows operators to cast votes on proposed states (represented as 'weather statuses'),
 // tallies those votes weighted by stake, and determines when consensus has been reached.
@@ -11,7 +11,7 @@
 // - OperatorVote: Records an individual operator's vote
 // - BallotBox: The main structure that manages the entire voting process
 //
-// The consensus mechanism requires a 2/3 majority of stake weight to agree on 
+// The consensus mechanism requires a 2/3 majority of stake weight to agree on
 // a particular ballot before it is considered the winning consensus state.
 // The system includes features for tie-breaking and detecting stalled votes.
 

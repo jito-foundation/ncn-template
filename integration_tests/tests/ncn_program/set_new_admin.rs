@@ -71,7 +71,7 @@ mod tests {
             )
             .await;
 
-        assert_ncn_program_error(result, NCNProgramError::IncorrectNcnAdmin);
+        assert_ncn_program_error(result, NCNProgramError::IncorrectNcnAdmin, None);
         Ok(())
     }
 }

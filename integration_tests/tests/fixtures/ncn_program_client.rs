@@ -38,6 +38,8 @@ use solana_program::{
 use solana_program_test::{BanksClient, ProgramTestBanksClientExt};
 use solana_sdk::{
     commitment_config::CommitmentLevel,
+    compute_budget::ComputeBudgetInstruction,
+    msg,
     signature::{Keypair, Signer},
     system_program,
     transaction::{Transaction, TransactionError},
@@ -917,9 +919,11 @@ impl NCNProgramClient {
             .consensus_result(consensus_result)
             .instruction();
 
+        let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_000_000);
+
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
-            &[ix],
+            &[compute_budget_ix, ix],
             Some(&self.payer.pubkey()),
             &[&self.payer],
             blockhash,
@@ -1047,6 +1051,8 @@ impl NCNProgramClient {
         let consensus_result =
             ConsensusResult::find_program_address(&ncn_program::id(), &ncn, epoch).0;
 
+        let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_000_000);
+
         let ix = CastVoteBuilder::new()
             .epoch_state(epoch_state)
             .config(ncn_config)
@@ -1063,7 +1069,7 @@ impl NCNProgramClient {
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
-            &[ix],
+            &[compute_budget_ix, ix],
             Some(&self.payer.pubkey()),
             &[&self.payer, operator_voter],
             blockhash,
@@ -1299,10 +1305,14 @@ impl NCNProgramClient {
 pub fn assert_ncn_program_error<T>(
     test_error: Result<T, TestError>,
     ncn_program_error: NCNProgramError,
+    instruction_index: Option<u8>,
 ) {
     assert!(test_error.is_err());
     assert_eq!(
         test_error.err().unwrap().to_transaction_error().unwrap(),
-        TransactionError::InstructionError(0, InstructionError::Custom(ncn_program_error as u32))
+        TransactionError::InstructionError(
+            instruction_index.unwrap_or(0),
+            InstructionError::Custom(ncn_program_error as u32)
+        )
     );
 }

@@ -44,7 +44,7 @@ mod tests {
                 &ncn_root,
             )
             .await;
-        assert_ncn_program_error(result, NCNProgramError::InvalidEpochsBeforeStall);
+        assert_ncn_program_error(result, NCNProgramError::InvalidEpochsBeforeStall, None);
 
         // Test invalid epochs_before_stall
         let result = ncn_program_client
@@ -56,7 +56,7 @@ mod tests {
                 &ncn_root,
             )
             .await;
-        assert_ncn_program_error(result, NCNProgramError::InvalidEpochsBeforeClose);
+        assert_ncn_program_error(result, NCNProgramError::InvalidEpochsBeforeClose, None);
 
         // Test invalid valid_slots_after_consensus
         let result = ncn_program_client
@@ -68,7 +68,7 @@ mod tests {
                 &ncn_root,
             )
             .await;
-        assert_ncn_program_error(result, NCNProgramError::InvalidSlotsAfterConsensus);
+        assert_ncn_program_error(result, NCNProgramError::InvalidSlotsAfterConsensus, None);
 
         Ok(())
     }

@@ -54,7 +54,11 @@ mod tests {
                 .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::CannotCloseAccountNotEnoughEpochs);
+            assert_ncn_program_error(
+                result,
+                NCNProgramError::CannotCloseAccountNotEnoughEpochs,
+                None,
+            );
 
             let result = fixture.get_account(&epoch_state).await?;
             assert!(result.is_some());
@@ -99,7 +103,7 @@ mod tests {
                 .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::ConsensusNotReached);
+            assert_ncn_program_error(result, NCNProgramError::ConsensusNotReached, None);
 
             let result = fixture.get_account(&epoch_state).await?;
             assert!(result.is_some());
@@ -145,7 +149,7 @@ mod tests {
                 .do_close_epoch_account(ncn, epoch_to_close, epoch_state)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::CannotCloseEpochStateAccount);
+            assert_ncn_program_error(result, NCNProgramError::CannotCloseEpochStateAccount, None);
 
             let result = fixture.get_account(&epoch_state).await?;
             assert!(result.is_some());
@@ -206,7 +210,11 @@ mod tests {
                 .do_close_epoch_account(ncn, epoch_to_close, weight_table)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::CannotCloseAccountAlreadyClosed);
+            assert_ncn_program_error(
+                result,
+                NCNProgramError::CannotCloseAccountAlreadyClosed,
+                None,
+            );
 
             let result = fixture.get_account(&weight_table).await?;
             assert!(result.is_none());
@@ -263,7 +271,7 @@ mod tests {
                 .do_initialize_weight_table(ncn, epoch_to_close)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown);
+            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown, None);
 
             let result = fixture.get_account(&weight_table).await?;
             assert!(result.is_none());
@@ -290,7 +298,7 @@ mod tests {
                 .do_initialize_epoch_snapshot(ncn, epoch_to_close)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown);
+            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown, None);
 
             let result = fixture.get_account(&epoch_snapshot).await?;
             assert!(result.is_none());
@@ -327,7 +335,7 @@ mod tests {
                 .do_initialize_operator_snapshot(operator, ncn, epoch_to_close)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown);
+            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown, None);
 
             let result = fixture.get_account(&operator_snapshot).await?;
             assert!(result.is_none());
@@ -354,7 +362,7 @@ mod tests {
                 .do_initialize_ballot_box(ncn, epoch_to_close)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown);
+            assert_ncn_program_error(result, NCNProgramError::EpochIsClosingDown, Some(1));
 
             let result = fixture.get_account(&ballot_box).await?;
             assert!(result.is_none());
@@ -381,7 +389,7 @@ mod tests {
                 .do_intialize_epoch_state(ncn, epoch_to_close)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::MarkerExists);
+            assert_ncn_program_error(result, NCNProgramError::MarkerExists, None);
 
             let result = fixture.get_account(&epoch_state).await?;
             assert!(result.is_none());

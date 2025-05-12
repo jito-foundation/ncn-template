@@ -133,7 +133,7 @@ mod tests {
                 .do_snapshot_vault_operator_delegation(vault, operator, ncn, epoch)
                 .await;
 
-            assert_ncn_program_error(result, NCNProgramError::VaultNeedsUpdate);
+            assert_ncn_program_error(result, NCNProgramError::VaultNeedsUpdate, None);
         }
 
         Ok(())

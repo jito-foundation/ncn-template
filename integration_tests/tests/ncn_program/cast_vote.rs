@@ -95,7 +95,7 @@ mod tests {
             .await;
 
         msg!("result: {:?}", result);
-        assert_ncn_program_error(result, NCNProgramError::OperatorAlreadyVoted);
+        assert_ncn_program_error(result, NCNProgramError::OperatorAlreadyVoted, Some(1));
 
         // Verify ballot box state remains unchanged
         let ballot_box = ncn_program_client.get_ballot_box(ncn, epoch).await?;
@@ -137,7 +137,7 @@ mod tests {
             .do_cast_vote(ncn, operator, operator_admin, weather_status, epoch)
             .await;
 
-        assert_ncn_program_error(result, NCNProgramError::BadBallot);
+        assert_ncn_program_error(result, NCNProgramError::BadBallot, Some(1));
 
         Ok(())
     }
@@ -318,7 +318,7 @@ mod tests {
                 .await;
 
             // Verify that voting with zero delegation returns an error
-            assert_ncn_program_error(result, NCNProgramError::CannotVoteWithZeroStake);
+            assert_ncn_program_error(result, NCNProgramError::CannotVoteWithZeroStake, Some(1));
         }
 
         Ok(())

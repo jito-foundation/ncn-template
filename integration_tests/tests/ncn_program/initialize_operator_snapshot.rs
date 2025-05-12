@@ -77,7 +77,7 @@ mod tests {
             .do_initialize_operator_snapshot(operator, ncn, epoch)
             .await;
 
-        assert_ncn_program_error(result, NCNProgramError::OperatorIsNotInSnapshot);
+        assert_ncn_program_error(result, NCNProgramError::OperatorIsNotInSnapshot, None);
 
         Ok(())
     }
