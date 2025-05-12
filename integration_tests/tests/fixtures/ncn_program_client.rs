@@ -46,12 +46,15 @@ use solana_sdk::{
 use super::restaking_client::NcnRoot;
 use crate::fixtures::{TestError, TestResult};
 
+/// A client for interacting with the NCN program in integration tests.
+/// Provides helper methods for initializing accounts, fetching state, and sending transactions.
 pub struct NCNProgramClient {
     banks_client: BanksClient,
     payer: Keypair,
 }
 
 impl NCNProgramClient {
+    /// Creates a new NCN program client.
     pub const fn new(banks_client: BanksClient, payer: Keypair) -> Self {
         Self {
             banks_client,
@@ -59,6 +62,7 @@ impl NCNProgramClient {
         }
     }
 
+    /// Processes a transaction using the BanksClient with processed commitment level.
     pub async fn process_transaction(&mut self, tx: &Transaction) -> TestResult<()> {
         self.banks_client
             .process_transaction_with_preflight_and_commitment(
@@ -69,6 +73,7 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Airdrops SOL to a specified public key.
     pub async fn airdrop(&mut self, to: &Pubkey, sol: f64) -> TestResult<()> {
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         let new_blockhash = self
@@ -90,6 +95,7 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Sets up the NCN program by initializing the config and vault registry.
     pub async fn setup_ncn_program(&mut self, ncn_root: &NcnRoot) -> TestResult<()> {
         self.do_initialize_config(ncn_root.ncn_pubkey, &ncn_root.ncn_admin)
             .await?;
@@ -100,18 +106,21 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Fetches the EpochMarker account for a given NCN and epoch.
     pub async fn get_epoch_marker(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<EpochMarker> {
         let epoch_marker = EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch).0;
         let raw_account = self.banks_client.get_account(epoch_marker).await?.unwrap();
         Ok(*EpochMarker::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
     }
 
+    /// Fetches the NCN Config account for a given NCN pubkey.
     pub async fn get_ncn_config(&mut self, ncn_pubkey: Pubkey) -> TestResult<NcnConfig> {
         let config_pda = NcnConfig::find_program_address(&ncn_program::id(), &ncn_pubkey).0;
         let config = self.banks_client.get_account(config_pda).await?.unwrap();
         Ok(*NcnConfig::try_from_slice_unchecked(config.data.as_slice()).unwrap())
     }
 
+    /// Fetches the VaultRegistry account for a given NCN pubkey.
     pub async fn get_vault_registry(&mut self, ncn_pubkey: Pubkey) -> TestResult<VaultRegistry> {
         let vault_registry_pda =
             VaultRegistry::find_program_address(&ncn_program::id(), &ncn_pubkey).0;
@@ -123,12 +132,14 @@ impl NCNProgramClient {
         Ok(*VaultRegistry::try_from_slice_unchecked(vault_registry.data.as_slice()).unwrap())
     }
 
+    /// Fetches the EpochState account for a given NCN and epoch.
     pub async fn get_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<EpochState> {
         let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
         let raw_account = self.banks_client.get_account(epoch_state).await?.unwrap();
         Ok(*EpochState::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
     }
 
+    /// Fetches the WeightTable account for a given NCN and epoch.
     #[allow(dead_code)]
     pub async fn get_weight_table(
         &mut self,
@@ -144,6 +155,7 @@ impl NCNProgramClient {
         Ok(*account)
     }
 
+    /// Fetches the EpochSnapshot account for a given NCN and epoch.
     pub async fn get_epoch_snapshot(
         &mut self,
         ncn: Pubkey,
@@ -158,6 +170,7 @@ impl NCNProgramClient {
         Ok(*account)
     }
 
+    /// Fetches the OperatorSnapshot account for a given operator, NCN, and epoch.
     #[allow(dead_code)]
     pub async fn get_operator_snapshot(
         &mut self,
@@ -177,12 +190,14 @@ impl NCNProgramClient {
         Ok(*account)
     }
 
+    /// Fetches the BallotBox account for a given NCN and epoch.
     pub async fn get_ballot_box(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<BallotBox> {
         let address = BallotBox::find_program_address(&ncn_program::id(), &ncn, epoch).0;
         let raw_account = self.banks_client.get_account(address).await?.unwrap();
         Ok(*BallotBox::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
     }
 
+    /// Fetches the ConsensusResult account for a given NCN and epoch.
     pub async fn get_consensus_result(
         &mut self,
         ncn: Pubkey,
@@ -195,6 +210,7 @@ impl NCNProgramClient {
         Ok(*ConsensusResult::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap())
     }
 
+    /// Initializes the NCN config account and airdrops funds to the account payer.
     pub async fn do_initialize_config(
         &mut self,
         ncn: Pubkey,
@@ -212,6 +228,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to initialize the NCN config account.
     pub async fn initialize_config(
         &mut self,
         ncn: Pubkey,
@@ -246,6 +263,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sets a new admin for a specific role in the NCN config.
     pub async fn do_set_new_admin(
         &mut self,
         role: ConfigAdminRole,
@@ -259,6 +277,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to set a new admin in the NCN config.
     pub async fn set_new_admin(
         &mut self,
         config_pda: Pubkey,
@@ -284,10 +303,12 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes the epoch state account for a given NCN and epoch.
     pub async fn do_intialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         self.initialize_epoch_state(ncn, epoch).await
     }
 
+    /// Sends a transaction to initialize the epoch state account.
     pub async fn initialize_epoch_state(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         let (epoch_marker, _, _) =
             EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch);
@@ -317,6 +338,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes and fully reallocates the weight table account for a given NCN and epoch.
     pub async fn do_full_initialize_weight_table(
         &mut self,
         ncn: Pubkey,
@@ -329,10 +351,12 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Initializes the weight table account for a given NCN and epoch.
     pub async fn do_initialize_weight_table(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         self.initialize_weight_table(ncn, epoch).await
     }
 
+    /// Sends a transaction to initialize the weight table account.
     pub async fn initialize_weight_table(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         let (epoch_marker, _, _) =
             EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch);
@@ -363,10 +387,12 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sets the epoch weights in the weight table based on the vault registry.
     pub async fn do_set_epoch_weights(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         self.set_epoch_weights(ncn, epoch).await
     }
 
+    /// Sends a transaction to set the epoch weights in the weight table.
     pub async fn set_epoch_weights(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         let weight_table = WeightTable::find_program_address(&ncn_program::id(), &ncn, epoch).0;
         let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
@@ -390,6 +416,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sets the weight for a specific st_mint in the weight table (admin operation).
     pub async fn do_admin_set_weight(
         &mut self,
         ncn: Pubkey,
@@ -400,6 +427,7 @@ impl NCNProgramClient {
         self.admin_set_weight(ncn, epoch, st_mint, weight).await
     }
 
+    /// Sends a transaction to set the weight for a specific st_mint in the weight table (admin operation).
     pub async fn admin_set_weight(
         &mut self,
         ncn: Pubkey,
@@ -430,6 +458,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes and fully reallocates the vault registry account for a given NCN.
     pub async fn do_full_initialize_vault_registry(&mut self, ncn: Pubkey) -> TestResult<()> {
         self.do_initialize_vault_registry(ncn).await?;
         let num_reallocs = (WeightTable::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
@@ -437,6 +466,7 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Initializes the vault registry account for a given NCN.
     pub async fn do_initialize_vault_registry(&mut self, ncn: Pubkey) -> TestResult<()> {
         let ncn_config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
         let vault_registry = VaultRegistry::find_program_address(&ncn_program::id(), &ncn).0;
@@ -445,6 +475,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to initialize the vault registry account.
     pub async fn initialize_vault_registry(
         &mut self,
         ncn_config: &Pubkey,
@@ -471,6 +502,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Reallocates the vault registry account multiple times.
     pub async fn do_realloc_vault_registry(
         &mut self,
         ncn: Pubkey,
@@ -482,6 +514,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends transactions to reallocate the vault registry account.
     pub async fn realloc_vault_registry(
         &mut self,
         ncn: &Pubkey,
@@ -511,6 +544,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Registers a vault with the NCN program.
     pub async fn do_register_vault(
         &mut self,
         ncn: Pubkey,
@@ -525,6 +559,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to register a vault.
     pub async fn register_vault(
         &mut self,
         config: Pubkey,
@@ -551,6 +586,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Registers an st_mint with a specific weight in the vault registry (admin operation).
     pub async fn do_admin_register_st_mint(
         &mut self,
         ncn: Pubkey,
@@ -567,6 +603,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to register an st_mint in the vault registry (admin operation).
     #[allow(clippy::too_many_arguments)]
     pub async fn admin_register_st_mint(
         &mut self,
@@ -600,6 +637,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sets the weight for an existing st_mint in the vault registry (admin operation).
     pub async fn do_admin_set_st_mint(
         &mut self,
         ncn: Pubkey,
@@ -616,6 +654,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to set the weight for an st_mint in the vault registry (admin operation).
     #[allow(clippy::too_many_arguments)]
     pub async fn admin_set_st_mint(
         &mut self,
@@ -649,6 +688,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes the epoch snapshot account for a given NCN and epoch.
     pub async fn do_initialize_epoch_snapshot(
         &mut self,
         ncn: Pubkey,
@@ -657,6 +697,7 @@ impl NCNProgramClient {
         self.initialize_epoch_snapshot(ncn, epoch).await
     }
 
+    /// Sends a transaction to initialize the epoch snapshot account.
     pub async fn initialize_epoch_snapshot(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
         let config_pda = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
         let (epoch_marker, _, _) =
@@ -689,6 +730,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes the operator snapshot account for a given operator, NCN, and epoch.
     pub async fn do_initialize_operator_snapshot(
         &mut self,
         operator: Pubkey,
@@ -699,6 +741,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to initialize the operator snapshot account.
     pub async fn initialize_operator_snapshot(
         &mut self,
         operator: Pubkey,
@@ -745,6 +788,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Snapshots the delegation information from a vault to an operator for a given NCN and epoch.
     pub async fn do_snapshot_vault_operator_delegation(
         &mut self,
         vault: Pubkey,
@@ -756,6 +800,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to snapshot the vault operator delegation.
     pub async fn snapshot_vault_operator_delegation(
         &mut self,
         vault: Pubkey,
@@ -813,6 +858,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Initializes and fully reallocates the ballot box account for a given NCN and epoch.
     pub async fn do_full_initialize_ballot_box(
         &mut self,
         ncn: Pubkey,
@@ -824,6 +870,7 @@ impl NCNProgramClient {
         Ok(())
     }
 
+    /// Initializes the ballot box account for a given NCN and epoch.
     pub async fn do_initialize_ballot_box(
         &mut self,
         ncn: Pubkey,
@@ -842,6 +889,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends a transaction to initialize the ballot box account.
     pub async fn initialize_ballot_box(
         &mut self,
         config: Pubkey,
@@ -879,6 +927,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Reallocates the ballot box account multiple times.
     pub async fn do_realloc_ballot_box(
         &mut self,
         ncn: Pubkey,
@@ -898,6 +947,7 @@ impl NCNProgramClient {
             .await
     }
 
+    /// Sends transactions to reallocate the ballot box account.
     pub async fn realloc_ballot_box(
         &mut self,
         config: Pubkey,
@@ -931,6 +981,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Casts a vote for a given operator in a specific epoch.
     pub async fn do_cast_vote(
         &mut self,
         ncn: Pubkey,
@@ -978,6 +1029,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sends a transaction to cast a vote.
     #[allow(clippy::too_many_arguments)]
     pub async fn cast_vote(
         &mut self,
@@ -1019,6 +1071,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sets the tie-breaker weather status for an epoch (admin operation).
     pub async fn do_admin_set_tie_breaker(
         &mut self,
         ncn: Pubkey,
@@ -1041,6 +1094,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sends a transaction to set the tie-breaker weather status (admin operation).
     pub async fn admin_set_tie_breaker(
         &mut self,
         ncn_config: Pubkey,
@@ -1072,6 +1126,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Reallocates the weight table account multiple times.
     pub async fn do_realloc_weight_table(
         &mut self,
         ncn: Pubkey,
@@ -1093,6 +1148,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sends transactions to reallocate the weight table account.
     pub async fn realloc_weight_table(
         &mut self,
         ncn_config: Pubkey,
@@ -1129,6 +1185,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Closes an epoch-specific account (e.g., BallotBox, EpochSnapshot) after the epoch is finished.
     pub async fn do_close_epoch_account(
         &mut self,
         ncn: Pubkey,
@@ -1156,6 +1213,7 @@ impl NCNProgramClient {
         .await
     }
 
+    /// Sends a transaction to close an epoch-specific account.
     #[allow(clippy::too_many_arguments)]
     pub async fn close_epoch_account(
         &mut self,
@@ -1191,6 +1249,7 @@ impl NCNProgramClient {
         self.process_transaction(&tx).await
     }
 
+    /// Sets various parameters in the NCN config (admin operation).
     pub async fn do_set_parameters(
         &mut self,
         starting_valid_epoch: Option<u64>,
@@ -1234,6 +1293,7 @@ impl NCNProgramClient {
     }
 }
 
+/// Asserts that a TestResult contains a specific NCNProgramError.
 #[inline(always)]
 #[track_caller]
 pub fn assert_ncn_program_error<T>(

@@ -4,6 +4,14 @@ use solana_program::pubkey::Pubkey;
 
 use crate::config::ConfigAdminRole;
 
+/// Represents all instructions supported by the NCN Program
+/// Each instruction specifies the accounts it requires and any parameters
+/// The instruction variants are organized into logical sections:
+/// - Global: Program initialization and configuration
+/// - Snapshot: Creating snapshots of validator and operator state
+/// - Vote: Consensus voting mechanism
+/// - Route and Distribute: Rewards distribution
+/// - Admin: Administrative operations
 #[rustfmt::skip]
 #[derive(Debug, BorshSerialize, BorshDeserialize, ShankInstruction)]
 pub enum NCNProgramInstruction {
@@ -11,7 +19,8 @@ pub enum NCNProgramInstruction {
     // ---------------------------------------------------- //
     //                         GLOBAL                       //
     // ---------------------------------------------------- //
-    /// Initialize the config
+    /// Initialize the config account for the NCN program
+    /// Sets up the basic program parameters
     #[account(0, writable, name = "config")]
     #[account(1, name = "ncn")]
     #[account(2, signer, name = "ncn_admin")]
@@ -19,12 +28,15 @@ pub enum NCNProgramInstruction {
     #[account(4, writable, name = "account_payer")]
     #[account(5, name = "system_program")]
     InitializeConfig {
+        /// Number of epochs before voting is considered stalled
         epochs_before_stall: u64,
+        /// Number of epochs after consensus before accounts can be closed
         epochs_after_consensus_before_close: u64,
+        /// Number of slots after consensus where voting is still valid
         valid_slots_after_consensus: u64,
     },
 
-    /// Initializes the vault registry
+    /// Initializes the vault registry account to track validator vaults
     #[account(0, name = "config")]
     #[account(1, writable, name = "vault_registry")]
     #[account(2, name = "ncn")]
@@ -51,7 +63,8 @@ pub enum NCNProgramInstruction {
     // ---------------------------------------------------- //
     //                       SNAPSHOT                       //
     // ---------------------------------------------------- //
-    /// Initializes the Epoch State
+    /// Initializes the Epoch State account for a specific epoch
+    /// The epoch state tracks the status of an epoch
     #[account(0, name = "epoch_marker")]
     #[account(1, writable, name = "epoch_state")]
     #[account(2, name = "config")]
@@ -59,6 +72,7 @@ pub enum NCNProgramInstruction {
     #[account(4, writable, name = "account_payer")]
     #[account(5, name = "system_program")]
     InitializeEpochState {
+        /// Target epoch for initialization
         epoch: u64,
     },
 
@@ -72,6 +86,7 @@ pub enum NCNProgramInstruction {
     #[account(5, writable, name = "account_payer")]
     #[account(6, name = "system_program")]
     InitializeWeightTable{
+        /// Target epoch for the weight table
         epoch: u64,
     },
 

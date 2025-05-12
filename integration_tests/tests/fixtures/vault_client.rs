@@ -44,6 +44,8 @@ use spl_token::state::Account as SPLTokenAccount;
 
 use crate::fixtures::{TestError, TestResult};
 
+/// Represents the root information for a Vault in tests,
+/// including its pubkey, admin keypair, and the underlying st_mint.
 pub struct VaultRoot {
     pub vault_pubkey: Pubkey,
     pub vault_admin: Keypair,
@@ -70,18 +72,23 @@ impl Debug for VaultRoot {
     }
 }
 
+/// Represents the base pubkey for a VaultStakerWithdrawalTicket in tests.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct VaultStakerWithdrawalTicketRoot {
     pub base: Pubkey,
 }
 
+/// A client for interacting with the Vault program in integration tests.
+/// Provides helper methods for initializing accounts, fetching state, sending transactions,
+/// managing delegations, withdrawals, and interacting with NCNs/slashers.
 pub struct VaultProgramClient {
     banks_client: BanksClient,
     payer: Keypair,
 }
 
 impl VaultProgramClient {
+    /// Creates a new Vault program client.
     pub const fn new(banks_client: BanksClient, payer: Keypair) -> Self {
         Self {
             banks_client,
@@ -89,6 +96,8 @@ impl VaultProgramClient {
         }
     }
 
+    /// Configures a depositor for a given vault.
+    /// Airdrops SOL, creates necessary ATAs (st_mint, vrt_mint), and mints initial st_mint tokens.
     pub async fn configure_depositor(
         &mut self,
         vault_root: &VaultRoot,
@@ -105,16 +114,19 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Fetches the Config account for the Vault program.
     pub async fn get_config(&mut self, account: &Pubkey) -> Result<Config, TestError> {
         let account = self.banks_client.get_account(*account).await?.unwrap();
         Ok(*Config::try_from_slice_unchecked(account.data.as_slice())?)
     }
 
+    /// Fetches the Vault account for a given vault pubkey.
     pub async fn get_vault(&mut self, account: &Pubkey) -> Result<Vault, TestError> {
         let account = self.banks_client.get_account(*account).await?.unwrap();
         Ok(*Vault::try_from_slice_unchecked(account.data.as_slice())?)
     }
 
+    /// Fetches the VaultNcnTicket account for a given vault and NCN.
     #[allow(dead_code)]
     pub async fn get_vault_ncn_ticket(
         &mut self,
@@ -128,6 +140,7 @@ impl VaultProgramClient {
         )?)
     }
 
+    /// Fetches the VaultOperatorDelegation account for a given vault and operator.
     #[allow(dead_code)]
     pub async fn get_vault_operator_delegation(
         &mut self,
@@ -146,6 +159,7 @@ impl VaultProgramClient {
         )?)
     }
 
+    /// Fetches the VaultStakerWithdrawalTicket account for a given vault, staker, and base pubkey.
     #[allow(dead_code)]
     pub async fn get_vault_staker_withdrawal_ticket(
         &mut self,
@@ -166,6 +180,7 @@ impl VaultProgramClient {
         Ok(withdrawal_ticket)
     }
 
+    /// Fetches the VaultNcnSlasherTicket account for a given vault, NCN, and slasher.
     #[allow(dead_code)]
     pub async fn get_vault_ncn_slasher_ticket(
         &mut self,
@@ -186,6 +201,7 @@ impl VaultProgramClient {
         )?)
     }
 
+    /// Fetches the VaultNcnSlasherOperatorTicket account for a given vault, NCN, slasher, operator, and epoch.
     #[allow(dead_code)]
     pub async fn get_vault_ncn_slasher_operator_ticket(
         &mut self,
@@ -210,6 +226,7 @@ impl VaultProgramClient {
         )?)
     }
 
+    /// Fetches the VaultUpdateStateTracker account for a given vault and epoch.
     #[allow(dead_code)]
     pub async fn get_vault_update_state_tracker(
         &mut self,
@@ -225,6 +242,7 @@ impl VaultProgramClient {
         )?)
     }
 
+    /// Checks if a vault update is needed based on the last update slot and epoch length.
     pub async fn get_vault_is_update_needed(
         &mut self,
         vault: &Pubkey,
@@ -239,6 +257,7 @@ impl VaultProgramClient {
         Ok(is_update_needed)
     }
 
+    /// Initializes the Vault program config account.
     pub async fn do_initialize_config(&mut self) -> Result<Keypair, TestError> {
         let config_admin = Keypair::new();
 
@@ -251,6 +270,7 @@ impl VaultProgramClient {
         Ok(config_admin)
     }
 
+    /// Sends a transaction to initialize the Vault program config account.
     pub async fn initialize_config(
         &mut self,
         config: &Pubkey,
@@ -275,6 +295,7 @@ impl VaultProgramClient {
         .await
     }
 
+    /// Sets up a basic Vault configuration and initializes a new Vault instance.
     #[allow(dead_code)]
     pub async fn setup_config_and_vault(
         &mut self,
@@ -297,6 +318,7 @@ impl VaultProgramClient {
         Ok((config_admin, vault_root))
     }
 
+    /// Initializes a new Vault account, including creating the VRT mint and necessary token accounts.
     pub async fn do_initialize_vault(
         &mut self,
         deposit_fee_bps: u16,
@@ -360,6 +382,7 @@ impl VaultProgramClient {
         })
     }
 
+    /// Initializes a VaultNcnTicket account, linking a vault and an NCN.
     pub async fn do_initialize_vault_ncn_ticket(
         &mut self,
         vault_root: &VaultRoot,
@@ -391,6 +414,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Sends a transaction to set the deposit capacity for a vault (admin operation).
     #[allow(dead_code)]
     pub async fn set_capacity(
         &mut self,
@@ -416,6 +440,7 @@ impl VaultProgramClient {
         .await
     }
 
+    /// Warms up a VaultNcnTicket, making the link active.
     pub async fn do_warmup_vault_ncn_ticket(
         &mut self,
         vault_root: &VaultRoot,
@@ -440,6 +465,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Sends a transaction to warm up a VaultNcnTicket.
     pub async fn warmup_vault_ncn_ticket(
         &mut self,
         config: &Pubkey,
@@ -466,6 +492,7 @@ impl VaultProgramClient {
         .await
     }
 
+    /// Initializes a VaultNcnSlasherOperatorTicket for testing slash scenarios.
     #[allow(dead_code)]
     pub async fn setup_vault_ncn_slasher_operator_ticket(
         &mut self,
@@ -513,6 +540,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Initializes a VaultOperatorDelegation account, linking a vault and an operator.
     pub async fn do_initialize_vault_operator_delegation(
         &mut self,
         vault_root: &VaultRoot,
@@ -544,6 +572,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Initializes a VaultNcnSlasherTicket account, linking a vault, NCN, and slasher.
     #[allow(dead_code)]
     pub async fn do_initialize_vault_ncn_slasher_ticket(
         &mut self,
@@ -581,6 +610,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Warms up a VaultNcnSlasherTicket.
     #[allow(dead_code)]
     pub async fn do_warmup_vault_ncn_slasher_ticket(
         &mut self,
@@ -609,6 +639,7 @@ impl VaultProgramClient {
         Ok(())
     }
 
+    /// Sends a transaction to warm up a VaultNcnSlasherTicket.
     pub async fn warmup_vault_ncn_slasher_ticket(
         &mut self,
         config: &Pubkey,

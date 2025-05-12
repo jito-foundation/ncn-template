@@ -1,3 +1,18 @@
+// Consensus Result Module
+//
+// This module implements the ConsensusResult account type, which stores the final outcome 
+// of a voting process for a particular epoch. Once consensus is reached in the BallotBox,
+// the winning result is recorded in this account.
+//
+// The ConsensusResult account serves as a permanent record of:
+// - Which ballot option won the consensus
+// - How much voting weight supported the winning option
+// - The total voting weight of all participants
+// - When (at which slot) consensus was reached
+//
+// This account can be queried by other parts of the protocol or external systems
+// to determine the most recent consensus state.
+
 use core::fmt;
 use std::mem::size_of;
 
@@ -36,6 +51,12 @@ impl ConsensusResult {
     const CONSENSUS_RESULT_SEED: &'static [u8] = b"consensus-result";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
+    /// Creates a new ConsensusResult instance with default values
+    ///
+    /// # Arguments
+    /// * `ncn` - The NCN pubkey this result is associated with
+    /// * `epoch` - The epoch number for this consensus round
+    /// * `bump` - PDA bump seed
     pub fn new(ncn: &Pubkey, epoch: u64, bump: u8) -> Self {
         Self {
             ncn: *ncn,
@@ -71,6 +92,17 @@ impl ConsensusResult {
         (pda, bump, seeds)
     }
 
+    /// Validates that the provided account matches the expected PDA and has the right discriminator
+    ///
+    /// # Arguments
+    /// * `program_id` - The program ID
+    /// * `account` - The account to validate
+    /// * `ncn` - The NCN pubkey
+    /// * `epoch` - The epoch number
+    /// * `expect_writable` - Whether the account should be writable
+    ///
+    /// # Returns
+    /// * `Result<(), ProgramError>` - Ok if valid, Error otherwise
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,
@@ -116,6 +148,16 @@ impl ConsensusResult {
         self.consensus_slot != PodU64::from(0)
     }
 
+    /// Records the consensus result data when consensus is reached
+    ///
+    /// # Arguments
+    /// * `weather_status` - The winning weather status
+    /// * `vote_weight` - The vote weight that supported the winning status
+    /// * `total_vote_weight` - The total vote weight
+    /// * `consensus_slot` - The slot when consensus was reached
+    ///
+    /// # Returns
+    /// * `Result<(), NCNProgramError>` - Ok if successful
     pub fn record_consensus(
         &mut self,
         weather_status: u8,
@@ -135,6 +177,15 @@ impl ConsensusResult {
         Ok(())
     }
 
+    /// Initializes the ConsensusResult account with default values
+    ///
+    /// # Arguments
+    /// * `ncn` - The NCN pubkey
+    /// * `epoch` - The epoch number
+    /// * `bump` - PDA bump seed
+    ///
+    /// # Returns
+    /// * `Result<(), ProgramError>` - Ok if successful
     pub fn initialize(&mut self, ncn: &Pubkey, epoch: u64, bump: u8) -> Result<(), ProgramError> {
         self.ncn = *ncn;
         self.epoch = PodU64::from(epoch);

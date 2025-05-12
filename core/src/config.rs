@@ -41,6 +41,16 @@ impl Config {
     const CONFIG_SEED: &'static [u8] = b"config";
     pub const SIZE: usize = 8 + size_of::<Self>();
 
+    /// Creates a new Config instance with the specified parameters
+    ///
+    /// # Arguments
+    /// * `ncn` - Pubkey of the NCN admin authority
+    /// * `tie_breaker_admin` - Pubkey of the tie breaker admin
+    /// * `starting_valid_epoch` - Epoch from which voting becomes valid
+    /// * `valid_slots_after_consensus` - Number of slots after consensus where voting is still valid
+    /// * `epochs_before_stall` - Number of epochs before system is considered stalled
+    /// * `epochs_after_consensus_before_close` - Number of epochs after consensus before accounts can be closed
+    /// * `bump` - Bump seed for PDA derivation
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         ncn: &Pubkey,
@@ -75,7 +85,7 @@ impl Config {
         (address, bump, seeds)
     }
 
-    /// Loads the NCN [`Config`] account
+    /// Validates and loads the Config account - checks if it's the correct PDA and has the right discriminator
     ///
     /// # Arguments
     /// * `program_id` - The program ID
@@ -84,7 +94,7 @@ impl Config {
     /// * `expect_writable` - Whether the account should be writable
     ///
     /// # Returns
-    /// * `Result<(), ProgramError>` - The result of the operation
+    /// * `Result<(), ProgramError>` - Ok if valid, Error otherwise
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,

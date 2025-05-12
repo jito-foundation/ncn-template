@@ -24,12 +24,16 @@ use crate::fixtures::{
     TestResult,
 };
 
+/// Represents a complete NCN setup for testing purposes,
+/// including the NCN itself, associated operators, and vaults.
 pub struct TestNcn {
     pub ncn_root: NcnRoot,
     pub operators: Vec<OperatorRoot>,
     pub vaults: Vec<VaultRoot>,
 }
 
+/// Represents a single node within the test NCN setup,
+/// detailing its connections and delegation status.
 #[allow(dead_code)]
 pub struct TestNcnNode {
     pub ncn_root: NcnRoot,
@@ -41,6 +45,8 @@ pub struct TestNcnNode {
     pub delegation: u64,
 }
 
+/// Provides a builder pattern for setting up integration test environments.
+/// Manages the ProgramTestContext and offers methods to interact with programs and control the test clock.
 pub struct TestBuilder {
     context: ProgramTestContext,
 }
@@ -52,6 +58,8 @@ impl Debug for TestBuilder {
 }
 
 impl TestBuilder {
+    /// Creates a new TestBuilder, initializing the ProgramTest environment.
+    /// It adds the NCN, Vault, and Restaking programs to the test context.
     pub async fn new() -> Self {
         let run_as_bpf = std::env::vars().any(|(key, _)| key.eq("SBF_OUT_DIR"));
 
@@ -85,6 +93,7 @@ impl TestBuilder {
         }
     }
 
+    /// Fetches an account from the BanksClient.
     pub async fn get_account(
         &mut self,
         address: &Pubkey,
@@ -92,6 +101,7 @@ impl TestBuilder {
         self.context.banks_client.get_account(*address).await
     }
 
+    /// Advances the test clock by a specified number of slots.
     pub async fn warp_slot_incremental(
         &mut self,
         incremental_slots: u64,
@@ -103,6 +113,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Advances the test clock by a specified number of epochs.
     pub async fn warp_epoch_incremental(
         &mut self,
         incremental_epochs: u64,
@@ -119,14 +130,17 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Retrieves the current Clock sysvar.
     pub async fn clock(&mut self) -> Clock {
         self.context.banks_client.get_sysvar().await.unwrap()
     }
 
+    /// Retrieves the current EpochSchedule sysvar.
     pub async fn epoch_schedule(&mut self) -> EpochSchedule {
         self.context.banks_client.get_sysvar().await.unwrap()
     }
 
+    /// Creates an NCNProgramClient instance.
     pub fn ncn_program_client(&self) -> NCNProgramClient {
         NCNProgramClient::new(
             self.context.banks_client.clone(),
@@ -134,6 +148,7 @@ impl TestBuilder {
         )
     }
 
+    /// Creates a RestakingProgramClient instance.
     pub fn restaking_program_client(&self) -> RestakingProgramClient {
         RestakingProgramClient::new(
             self.context.banks_client.clone(),
@@ -141,6 +156,7 @@ impl TestBuilder {
         )
     }
 
+    /// Creates a VaultProgramClient instance (alias for vault_program_client).
     pub fn vault_client(&self) -> VaultProgramClient {
         VaultProgramClient::new(
             self.context.banks_client.clone(),
@@ -148,6 +164,7 @@ impl TestBuilder {
         )
     }
 
+    /// Creates a VaultProgramClient instance.
     pub fn vault_program_client(&self) -> VaultProgramClient {
         VaultProgramClient::new(
             self.context.banks_client.clone(),
@@ -155,6 +172,7 @@ impl TestBuilder {
         )
     }
 
+    /// Initializes the config accounts for both the Restaking and Vault programs.
     pub async fn initialize_restaking_and_vault_programs(&mut self) -> TestResult<()> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
@@ -165,6 +183,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes a new NCN account using the Restaking program client.
     pub async fn initialize_ncn_account(&mut self) -> TestResult<NcnRoot> {
         let mut restaking_program_client = self.restaking_program_client();
 
@@ -175,6 +194,7 @@ impl TestBuilder {
         Ok(ncn_root)
     }
 
+    /// Performs initial setup for an NCN, including initializing Vault and Restaking configs and the NCN account itself.
     pub async fn setup_ncn(&mut self) -> TestResult<NcnRoot> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
@@ -188,6 +208,7 @@ impl TestBuilder {
         Ok(ncn_root)
     }
 
+    /// Creates a basic TestNcn struct with just the NCN root initialized.
     // 1a. Setup Just NCN
     pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
         let ncn_root = self.initialize_ncn_account().await?;
@@ -199,6 +220,8 @@ impl TestBuilder {
         })
     }
 
+    /// Adds a specified number of operators to an existing TestNcn setup.
+    /// Initializes each operator and establishes the NCN-Operator link (initialization and warmup).
     // 2. Setup Operators
     pub async fn add_operators_to_test_ncn(
         &mut self,
@@ -234,6 +257,9 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Adds a specified number of vaults to an existing TestNcn setup.
+    /// Initializes each vault, establishes NCN-Vault and Operator-Vault links (initialization and warmup),
+    /// and mints initial VRTs to the vault depositor.
     // 3. Setup Vaults
     pub async fn add_vaults_to_test_ncn(
         &mut self,
@@ -325,6 +351,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Adds delegations from all vaults to all operators within a TestNcn setup.
     // 4. Setup Delegations
     pub async fn add_delegation_in_test_ncn(
         &mut self,
@@ -349,6 +376,8 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Registers all vaults in the TestNcn with the NCN program's vault registry.
+    /// Updates vault state, registers stMints with default weights, and registers the vault itself.
     // 5. Setup Tracked Mints
     pub async fn add_vault_registry_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -396,6 +425,8 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Creates a fully initialized TestNcn setup.
+    /// Initializes programs, NCN, operators, vaults, delegations, and registers vaults with the NCN.
     // Intermission: setup just NCN
     pub async fn create_initial_test_ncn(
         &mut self,
@@ -422,6 +453,7 @@ impl TestBuilder {
         Ok(test_ncn)
     }
 
+    /// Initializes the EpochState account for the current epoch for the given TestNcn.
     pub async fn add_epoch_state_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
 
@@ -437,6 +469,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the WeightTable for the current epoch and sets weights based on admin input (default weights).
     // 6a. Admin Set weights
     pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -469,6 +502,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the WeightTable for the current epoch and sets weights based on the NCN's vault registry.
     // 6b. Set weights using vault registry
     pub async fn add_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -486,6 +520,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the EpochSnapshot account for the current epoch for the given TestNcn.
     // 7. Create Epoch Snapshot
     pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -500,6 +535,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes OperatorSnapshot accounts for all operators in the TestNcn for the current epoch.
     // 8. Create all operator snapshots
     pub async fn add_operator_snapshots_to_test_ncn(
         &mut self,
@@ -523,6 +559,8 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Takes snapshots of VaultOperatorDelegation for all active operator-vault pairs in the TestNcn for the current epoch.
+    /// Ensures vaults are updated if necessary before snapshotting.
     // 9. Take all VaultOperatorDelegation snapshots
     pub async fn add_vault_operator_delegation_snapshots_to_test_ncn(
         &mut self,
@@ -576,6 +614,8 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Performs all necessary steps to snapshot the state of the TestNcn for the current epoch.
+    /// Initializes epoch state, weight table, epoch snapshot, operator snapshots, and VOD snapshots.
     // Intermission 2 - all snapshots are taken
     pub async fn snapshot_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         self.add_epoch_state_for_test_ncn(test_ncn).await?;
@@ -588,6 +628,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the BallotBox account for the current epoch for the given TestNcn.
     // 10 - Initialize Ballot Box
     pub async fn add_ballot_box_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -603,6 +644,7 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Casts votes (default WeatherStatus) for all active operators in the TestNcn for the current epoch.
     // 11 - Cast all votes for active operators
     pub async fn cast_votes_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
@@ -635,6 +677,8 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Performs the voting process for the TestNcn for the current epoch.
+    /// Initializes the ballot box and casts votes for all active operators.
     // Intermission 3 - come to consensus
     pub async fn vote_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
         self.add_ballot_box_to_test_ncn(test_ncn).await?;
@@ -643,6 +687,9 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
+    /// for a given epoch after the required cooldown period has passed.
+    /// Asserts that the accounts are actually closed (deleted).
     pub async fn close_epoch_accounts_for_test_ncn(
         &mut self,
         test_ncn: &TestNcn,
