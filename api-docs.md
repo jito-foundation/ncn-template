@@ -44,7 +44,7 @@ The program supports the following instructions, organized by category:
 
 #### 1. InitializeConfig
 
-Initializes the program configuration with parameters for the consensus mechanism.
+Initializes the program configuration with parameters for the consensus mechanism. Requires NCN admin signature.
 
 **Parameters**:
 - `epochs_before_stall`: Number of epochs before voting is considered stalled
@@ -52,52 +52,63 @@ Initializes the program configuration with parameters for the consensus mechanis
 - `valid_slots_after_consensus`: Number of slots after consensus where voting is still valid
 
 **Accounts**:
-1. `config` (writable): The config account to initialize
+1. `config` (writable): The config account PDA to initialize `[seeds = [b"config", ncn.key().as_ref()], bump]`
 2. `ncn`: The NCN account this config belongs to
 3. `ncn_admin` (signer): Admin authority for the NCN
-4. `tie_breaker_admin`: Admin account authorized to break voting ties
-5. `account_payer` (writable): Account paying for the initialization
+4. `tie_breaker_admin`: Pubkey of the admin authorized to break voting ties
+5. `account_payer` (writable, signer): Account paying for the initialization and rent
 6. `system_program`: Solana System Program
 
 **Code Snippet**:
 ```rust
-pub fn process_initialize_config(
+// Simplified Rust example showing core logic from process_admin_initialize_config
+pub fn process_admin_initialize_config(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     epochs_before_stall: u64,
     epochs_after_consensus_before_close: u64,
     valid_slots_after_consensus: u64,
 ) -> ProgramResult {
-    // Validate parameters
-    if !(MIN_EPOCHS_BEFORE_STALL..=MAX_EPOCHS_BEFORE_STALL).contains(&epochs_before_stall) {
-        return Err(NCNProgramError::InvalidEpochsBeforeStall.into());
+    // ... account loading and validation ...
+    // ... parameter validation (min/max checks) ...
+    // ... admin signature check ...
+
+    // Find PDA and create account
+    let (config_pda, config_bump, mut config_seeds) =
+        Config::find_program_address(program_id, ncn.key);
+    config_seeds.push(vec![config_bump]);
+
+    if config_pda != *config.key {
+        return Err(ProgramError::InvalidSeeds);
     }
 
-    if !(MIN_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE..=MAX_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE)
-        .contains(&epochs_after_consensus_before_close)
-    {
-        return Err(NCNProgramError::InvalidEpochsBeforeClose.into());
-    }
-
-    if !(MIN_VALID_SLOTS_AFTER_CONSENSUS..=MAX_VALID_SLOTS_AFTER_CONSENSUS)
-        .contains(&valid_slots_after_consensus)
-    {
-        return Err(NCNProgramError::InvalidSlotsAfterConsensus.into());
-    }
-
-    // Create and initialize the config account
-    let epoch = Clock::get()?.epoch;
-    let starting_valid_epoch = epoch;
-
-    config.initialize(
+    AccountPayer::pay_and_create_account(
+        program_id,
         ncn.key,
+        account_payer,
+        config,
+        system_program,
+        program_id,
+        Config::SIZE,
+        &config_seeds,
+    )?;
+
+    // Initialize the config account data
+    let mut config_data = config.try_borrow_mut_data()?;
+    config_data[0] = Config::DISCRIMINATOR; // Set discriminator
+    let config_account = Config::try_from_slice_unchecked_mut(&mut config_data)?;
+
+    let starting_valid_epoch = Clock::get()?.epoch;
+
+    *config_account = Config::new(
+        ncn.key,
+        tie_breaker_admin.key,
         starting_valid_epoch,
+        valid_slots_after_consensus,
         epochs_before_stall,
         epochs_after_consensus_before_close,
-        valid_slots_after_consensus,
-        tie_breaker_admin.key,
         config_bump,
-    )?;
+    );
 
     Ok(())
 }
@@ -962,6 +973,7 @@ tx.add(
 
 #### 11. SnapshotVaultOperatorDelegation
 
+
 Records the delegation between a vault and an operator at a specific epoch.
 
 **Parameters**:
@@ -1089,8 +1101,6 @@ tx.add(
   })
 );
 ```
-
-### Voting System
 
 #### 12. InitializeBallotBox
 
@@ -1278,6 +1288,9 @@ tx.add(
 );
 ```
 
+
+### Voting System
+
 #### 14. CastVote
 
 Allows an operator to cast a vote on weather status.
@@ -1457,95 +1470,50 @@ tx.add(
 
 #### 15. CloseEpochAccount
 
-Closes an epoch-related account after consensus has been reached and sufficient time has passed, reclaiming the rent.
+Closes an epoch-specific account (like `WeightTable`, `EpochSnapshot`, `OperatorSnapshot`, `BallotBox`, or `EpochState` itself) after consensus has been reached and sufficient time has passed (defined by `epochs_after_consensus_before_close` in the `Config`). It reclaims the rent lamports, transferring them to the `account_payer`.
 
 **Parameters**:
-- `epoch`: The target epoch
+- `epoch`: The epoch associated with the account being closed.
 
 **Accounts**:
-1. `epoch_state` (writable): The epoch state account for the target epoch
-2. `config`: NCN configuration account
-3. `ncn`: The NCN account
-4. `consensus_result`: Consensus result account showing consensus status
-5. `account_to_close` (writable): The epoch-related account to close
-6. `rent_destination` (writable): The account that will receive the rent
+1. `epoch_marker` (writable): Marker account used to prevent closing already closed/non-existent epoch structures. Will be created if `EpochState` is the `account_to_close`.
+2. `epoch_state` (writable): The epoch state account for the target epoch. Must exist and indicate consensus was reached long enough ago.
+3. `config`: NCN configuration account (used to check `epochs_after_consensus_before_close`).
+4. `ncn`: The NCN account.
+5. `account_to_close` (writable): The epoch-specific account to close (e.g., `WeightTable`, `EpochSnapshot`, `OperatorSnapshot`, `BallotBox`, `EpochState`). Must be owned by the NCN program and match the specified epoch.
+6. `account_payer` (writable, signer): Account paying for the transaction and receiving the reclaimed rent lamports.
+7. `system_program`: Solana System Program (used for creating `epoch_marker` if needed).
 
 **Code Snippet**:
 ```rust
+// Simplified Rust example showing core logic from process_close_epoch_account
 pub fn process_close_epoch_account(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    let [epoch_state, config, ncn, consensus_result, account_to_close, rent_destination] = accounts
-    else {
-        return Err(ProgramError::NotEnoughAccountKeys);
-    };
+    // ... account loading and validation ...
+    // ... check config for epochs_after_consensus_before_close ...
+    // ... check epoch_state shows consensus reached long enough ago ...
 
-    // Validate accounts
-    EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-    Config::load(program_id, config, ncn.key, false)?;
-    Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    ConsensusResult::load(program_id, consensus_result, ncn.key, epoch, false)?;
+    // Determine if the account_to_close is the epoch_state itself
+    let closing_epoch_state = account_to_close.key.eq(epoch_state.key);
 
-    // Verify consensus has been reached
-    let (current_epoch, epochs_after_consensus_before_close) = {
-        let consensus_result_data = consensus_result.data.borrow();
-        let consensus_result_account =
-            ConsensusResult::try_from_slice_unchecked(&consensus_result_data)?;
-
-        if !consensus_result_account.is_consensus_reached() {
-            return Err(NCNProgramError::ConsensusNotReached.into());
-        }
-
-        let config_data = config.data.borrow();
-        let config_account = Config::try_from_slice_unchecked(&config_data)?;
-
-        (
-            Clock::get()?.epoch,
-            config_account.epochs_after_consensus_before_close(),
-        )
-    };
-
-    // Get consensus epoch and validate sufficient time has passed
-    let epoch_consensus_reached = {
-        let epoch_state_data = epoch_state.data.borrow();
-        let epoch_state_account = EpochState::try_from_slice_unchecked(&epoch_state_data)?;
-
-        if !epoch_state_account.is_consensus_reached() {
-            return Err(NCNProgramError::ConsensusNotReached.into());
-        }
-
-        EpochSchedule::get()?.get_epoch(epoch_state_account.slot_consensus_reached())
-    };
-
-    // Calculate how many epochs have passed since consensus
-    let epochs_since_consensus = current_epoch
-        .checked_sub(epoch_consensus_reached)
-        .ok_or(NCNProgramError::ArithmeticUnderflow)?;
-
-    // Ensure sufficient epochs have passed before closing
-    if epochs_since_consensus < epochs_after_consensus_before_close {
-        return Err(NCNProgramError::NotEnoughEpochsAfterConsensus.into());
-    }
-
-    // Mark epoch as closing
+    // Update epoch state to reflect closing (marks account type as closed)
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
-        epoch_state_account.set_is_closing(true);
+        epoch_state_account.set_is_closing();
+        // ... logic to mark specific account type closed within epoch_state_account ...
     }
 
-    // Transfer lamports to rent destination and close account
-    let account_to_close_lamports = account_to_close.lamports();
-    **account_to_close.try_borrow_mut_lamports()? = 0;
-    **rent_destination.try_borrow_mut_lamports()? = rent_destination
-        .lamports()
-        .checked_add(account_to_close_lamports)
-        .ok_or(NCNProgramError::ArithmeticOverflow)?;
+    // Create epoch_marker if closing the epoch_state account
+    if closing_epoch_state {
+        // ... logic to create and initialize epoch_marker account ...
+    }
 
-    let mut account_to_close_data = account_to_close.try_borrow_mut_data()?;
-    account_to_close_data.fill(0);
+    // Close the target account and transfer lamports
+    AccountPayer::close_account(program_id, account_payer, account_to_close)?;
 
     Ok(())
 }
