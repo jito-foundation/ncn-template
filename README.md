@@ -1,44 +1,40 @@
 # NCN Program Template
 
+## Program Summary
+
+The NCN (Network Consensus Node) Program is a Solana program designed for reaching consensus on weather status in a decentralized network. It manages the collection, voting, and consensus mechanisms across vaults and operators in the ecosystem, leveraging Jito's restaking infrastructure.
+
+Key features:
+- Stake-weighted voting mechanism (66% consensus threshold)
+- Epoch-based consensus cycles
+- Support for multiple stake token mints with configurable weights
+- Weather status system (Sunny, Cloudy, Rainy)
+- Admin controls for configuration and tie-breaking
+
 ## Testing Setup
 
 ### Prerequisites
 
 1. Set up test-ledger: `./scripts/setup-test-ledger.sh`
-
-   - NOTE: This script fails on the edge version of Solana. Currently it's being ran
-     with `1.18.26`. `sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.26/install)"`
-
 2. Build the ncn program: `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
-
-   - NOTE: Given the current state of Cargo.lock, you must use a version of cargo-build-sbf that
-     has a rust toolchain higher than 1.74.0. For now, switch to the edge version to build this.
-     `sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.0/install)"`. Another option would be to
-     manually set the Cargo.lock file version to 3 instead of 4 (<https://github.com/coral-xyz/anchor/issues/3392#issuecomment-2508412018>)
-
 3. Run tests: `SBF_OUT_DIR=integration_tests/tests/fixtures cargo test`
-   - NOTE: If you are still on the edge version of Solana CLI probably best to switch back to
-     `1.18.26`
 
-## Deploy and Upgrade
+## Usage Flow
 
-- build .so file: `cargo-build-sbf`
+1. **Initialize** the program with configuration, vault registry, and core accounts
+2. **Setup Epochs** by creating epoch state and weight tables for each consensus period
+3. **Create Snapshots** of operators and vaults to establish voting weights
+4. **Cast Votes** on weather status with influence based on stake weight
+5. **Achieve Consensus** when votes for a status reach ≥66% of total stake weight
+6. **Record Results** with the winning status, voting statistics, and timing data
+7. **Clean Up** accounts after sufficient time has passed to reclaim rent
 
-- create a new keypair: `solana-keygen new -o target/tmp/buffer.json`
+## Customization
 
-- Deploy: `solana program deploy --use-rpc --buffer target/tmp/buffer.json --with-compute-unit-price 10000 --max-sign-attempts 10000 target/deploy/ncn_program.so`
+While this implementation uses weather status as the consensus target, the framework can be adapted for various applications:
+- Replace weather status with other vote data
+- Modify consensus thresholds
+- Adjust epoch and timing parameters
+- Implement custom reward distribution logic
 
-- (Pre Upgrade) Write to buffer: `solana program write-buffer --use-rpc --buffer target/tmp/buffer.json --with-compute-unit-price 10000 --max-sign-attempts 10000 target/deploy/ncn_program.so`
-
-- Upgrade: `solana program upgrade $(solana address --keypair target/tmp/buffer.json) $(solana address --keypair target/deploy/ncn_program-keypair.json)`
-
-- Close Buffers: `solana program close --buffers`
-
-- Upgrade Program Size: `solana program extend $(solana address --keypair target/deploy/ncn_program_program-keypair.json) 100000`
-
-## Security Audits
-
-| Group   | Date       | Commit                                 |
-| ------- | ---------- | -------------------------------------- |
-| Certora | 2025-01-05 | [ac76352](security_audits/certora.pdf) |
-| Offside | 2024-10-25 | [443368a](security_audits/offside.pdf) |
+For full documentation, see the docs.md file.
