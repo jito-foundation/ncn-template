@@ -15,6 +15,18 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Updates program configuration parameters after initialization.
+///
+/// ### Parameters:
+/// - `starting_valid_epoch`: Optional starting epoch
+/// - `epochs_before_stall`: Optional number of epochs before stall
+/// - `epochs_after_consensus_before_close`: Optional number of epochs after consensus before close
+/// - `valid_slots_after_consensus`: Optional number of valid slots after consensus
+///
+/// ### Accounts:
+/// 1. `[writable]` config: NCN configuration account
+/// 2. `[]` ncn: The NCN account
+/// 3. `[signer]` ncn_admin: Admin authority for the NCN
 pub fn process_admin_set_parameters(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

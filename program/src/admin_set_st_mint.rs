@@ -7,6 +7,17 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Updates an existing staked token mint in the vault registry.
+///
+/// ### Parameters:
+/// - `st_mint`: Public key of the staked token mint
+/// - `weight`: Optional new weight for the token
+///
+/// ### Accounts:
+/// 1. `[]` config: NCN configuration account
+/// 2. `[writable]` vault_registry: The vault registry to update
+/// 3. `[]` ncn: The NCN account
+/// 4. `[signer]` weight_table_admin: Admin authorized to update token weights
 pub fn process_admin_set_st_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

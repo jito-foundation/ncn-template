@@ -9,6 +9,14 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Initializes the vault registry for tracking vaults and supported stake token mints.
+///
+/// ### Accounts:
+/// 1. `[]` config: NCN configuration account
+/// 2. `[writable]` vault_registry: The vault registry account to initialize
+/// 3. `[]` ncn: The NCN account
+/// 4. `[writable, signer]` account_payer: Account paying for the initialization
+/// 5. `[]` system_program: Solana System Program
 pub fn process_initialize_vault_registry(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

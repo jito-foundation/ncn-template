@@ -10,6 +10,18 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
+/// Allows the tie-breaker admin to resolve stalled votes by selecting a winning ballot.
+///
+/// ### Parameters:
+/// - `weather_status`: Status code for the tie-breaking vote (0=Sunny, 1=Cloudy, 2=Rainy)
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 2. `[]` config: NCN configuration account (named `ncn_config` in code)
+/// 3. `[writable]` ballot_box: The ballot box containing votes
+/// 4. `[]` ncn: The NCN account
+/// 5. `[signer]` tie_breaker_admin: Admin account authorized to break ties
 pub fn process_admin_set_tie_breaker(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

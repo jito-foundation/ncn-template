@@ -9,7 +9,16 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
-/// Sets weight in the weight_table using weights from vault_registry
+/// Sets weights for the epoch using the vault registry data, establishing the relative importance of each token type.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 2. `[]` ncn: The NCN account
+/// 3. `[]` vault_registry: The vault registry containing registered vaults and mint weights
+/// 4. `[writable]` weight_table: The weight table to update
 pub fn process_set_epoch_weights(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

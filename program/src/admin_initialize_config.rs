@@ -16,6 +16,20 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
+/// Initializes the program configuration with parameters for the consensus mechanism. Requires NCN admin signature.
+///
+/// ### Parameters:
+/// - `epochs_before_stall`: Number of epochs before voting is considered stalled
+/// - `epochs_after_consensus_before_close`: Number of epochs after consensus before accounts can be closed
+/// - `valid_slots_after_consensus`: Number of slots after consensus where voting is still valid
+///
+/// ### Accounts:
+/// 1. `[writable]` config: The config account PDA to initialize `[seeds = [b"config", ncn.key().as_ref()], bump]`
+/// 2. `[]` ncn: The NCN account this config belongs to
+/// 3. `[signer]` ncn_admin: Admin authority for the NCN
+/// 4. `[]` tie_breaker_admin: Pubkey of the admin authorized to break voting ties
+/// 5. `[writable, signer]` account_payer: Account paying for the initialization and rent
+/// 6. `[]` system_program: Solana System Program
 #[allow(clippy::too_many_arguments)]
 pub fn process_admin_initialize_config(
     program_id: &Pubkey,

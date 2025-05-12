@@ -20,6 +20,19 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
+/// Records the delegation between a vault and an operator at a specific epoch.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 2. `[]` ncn: The NCN account
+/// 3. `[]` vault: The vault account
+/// 4. `[]` operator: The operator account
+/// 5. `[writable]` epoch_snapshot: Epoch snapshot account
+/// 6. `[writable]` operator_snapshot: Operator snapshot account
+/// 7. `[]` vault_operator_delegation: The delegation between vault and operator
 pub fn process_snapshot_vault_operator_delegation(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

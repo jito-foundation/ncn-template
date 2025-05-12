@@ -17,7 +17,21 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-/// Crank Closes all accounts associated with an epoch
+/// Closes an epoch-specific account (like `WeightTable`, `EpochSnapshot`, `OperatorSnapshot`, `BallotBox`, or `EpochState` itself)
+/// after consensus has been reached and sufficient time has passed (defined by `epochs_after_consensus_before_close` in the `Config`).
+/// It reclaims the rent lamports, transferring them to the `account_payer`.
+///
+/// ### Parameters:
+/// - `epoch`: The epoch associated with the account being closed.
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_marker: Marker account used to prevent closing already closed/non-existent epoch structures. Will be created if `EpochState` is the `account_to_close`.
+/// 2. `[writable]` epoch_state: The epoch state account for the target epoch. Must exist and indicate consensus was reached long enough ago.
+/// 3. `[]` config: NCN configuration account (used to check `epochs_after_consensus_before_close`).
+/// 4. `[]` ncn: The NCN account.
+/// 5. `[writable]` account_to_close: The epoch-specific account to close (e.g., `WeightTable`, `EpochSnapshot`, `OperatorSnapshot`, `BallotBox`, `EpochState`). Must be owned by the NCN program and match the specified epoch.
+/// 6. `[writable, signer]` account_payer: Account paying for the transaction and receiving the reclaimed rent lamports. (Referred to as `rent_destination` in client usage).
+/// 7. `[]` system_program: Solana System Program (used for creating `epoch_marker` if needed).
 #[allow(clippy::cognitive_complexity)]
 pub fn process_close_epoch_account(
     program_id: &Pubkey,

@@ -10,6 +10,16 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Sets a new admin for a specific role.
+///
+/// ### Parameters:
+/// - `role`: The admin role to update (currently only TieBreakerAdmin is supported)
+///
+/// ### Accounts:
+/// 1. `[writable]` config: NCN configuration account
+/// 2. `[]` ncn: The NCN account (named `ncn_account` in code)
+/// 3. `[signer]` ncn_admin: Current admin authority for the NCN
+/// 4. `[]` new_admin: The new admin address
 pub fn process_admin_set_new_admin(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

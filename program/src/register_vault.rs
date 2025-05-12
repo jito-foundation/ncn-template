@@ -11,6 +11,14 @@ use solana_program::{
     sysvar::{clock::Clock, Sysvar},
 };
 
+/// Registers a vault in the vault registry to participate in the consensus mechanism.
+///
+/// ### Accounts:
+/// 1. `[]` config: NCN configuration account
+/// 2. `[writable]` vault_registry: The vault registry to update
+/// 3. `[]` ncn: The NCN account
+/// 4. `[]` vault: The vault to register
+/// 5. `[]` ncn_vault_ticket: The connection between NCN and vault from the restaking program
 pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     msg!("Starting register_vault instruction");
 

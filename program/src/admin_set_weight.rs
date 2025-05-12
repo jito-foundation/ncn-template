@@ -9,7 +9,18 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
-/// Updates weight table
+/// Admin instruction to set the weight for a specific staked token mint in a given epoch's WeightTable.
+///
+/// ### Parameters:
+/// - `st_mint`: Pubkey of the staked token mint.
+/// - `weight`: Weight value (u128) for the token.
+/// - `epoch`: Target epoch.
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: Epoch state for the target epoch.
+/// 2. `[]` ncn: The NCN account.
+/// 3. `[writable]` weight_table: The weight table to update.
+/// 4. `[signer]` weight_table_admin: Admin authorized to update weights.
 pub fn process_admin_set_weight(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

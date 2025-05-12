@@ -18,6 +18,22 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
+/// Allows an operator to cast a vote on weather status.
+///
+/// ### Parameters:
+/// - `weather_status`: Status code for the vote (0=Sunny, 1=Cloudy, 2=Rainy)
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 2. `[]` config: NCN configuration account (named `ncn_config` in code)
+/// 3. `[writable]` ballot_box: The ballot box for recording votes
+/// 4. `[]` ncn: The NCN account
+/// 5. `[]` epoch_snapshot: Epoch snapshot containing stake weights
+/// 6. `[]` operator_snapshot: Operator snapshot containing operator stake
+/// 7. `[]` operator: The operator account casting the vote
+/// 8. `[signer]` operator_admin: The account authorized to vote on behalf of the operator (referred to as `operator_voter` in some docs)
+/// 9. `[writable]` consensus_result: Account for storing the consensus result
 pub fn process_cast_vote(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

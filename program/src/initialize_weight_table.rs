@@ -10,8 +10,19 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-/// Initializes a Weight Table
-/// Can be backfilled for previous epochs
+/// Initializes the weight table for a specific epoch, which will store the importance weights of different tokens.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization
+/// 2. `[]` epoch_state: The epoch state account for the target epoch
+/// 3. `[]` vault_registry: The vault registry containing registered vaults
+/// 4. `[]` ncn: The NCN account
+/// 5. `[writable]` weight_table: The weight table account to initialize
+/// 6. `[writable, signer]` account_payer: Account paying for initialization
+/// 7. `[]` system_program: Solana System Program
 pub fn process_initialize_weight_table(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

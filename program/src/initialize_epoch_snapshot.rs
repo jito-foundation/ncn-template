@@ -11,7 +11,20 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
-/// Initializes an Epoch Snapshot
+/// Initializes the epoch snapshot for storing delegations between vaults and operators.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization
+/// 2. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 3. `[]` config: NCN configuration account
+/// 4. `[]` ncn: The NCN account
+/// 5. `[]` weight_table: Weight table for the target epoch
+/// 6. `[writable]` epoch_snapshot: The epoch snapshot account to initialize
+/// 7. `[writable, signer]` account_payer: Account paying for initialization
+/// 8. `[]` system_program: Solana System Program
 pub fn process_initialize_epoch_snapshot(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

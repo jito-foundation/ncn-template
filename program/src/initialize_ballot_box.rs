@@ -14,6 +14,19 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Initializes the ballot box for recording and tallying votes on weather status.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization
+/// 2. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 3. `[]` config: NCN configuration account
+/// 4. `[]` ncn: The NCN account
+/// 5. `[writable]` ballot_box: The ballot box account to initialize
+/// 6. `[writable, signer]` account_payer: Account paying for initialization
+/// 7. `[]` system_program: Solana System Program
 pub fn process_initialize_ballot_box(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

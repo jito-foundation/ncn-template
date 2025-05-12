@@ -16,7 +16,21 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
-/// Initializes an Operator Snapshot
+/// Initializes a snapshot for a specific operator, storing their stake weights.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization 
+/// 2. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 3. `[]` config: NCN configuration account
+/// 4. `[]` ncn: The NCN account
+/// 5. `[]` operator: The operator account to snapshot
+/// 6. `[]` ncn_operator_ticket: The connection between NCN and operator
+/// 7. `[writable]` operator_snapshot: Operator snapshot account to initialize
+/// 8. `[writable, signer]` account_payer: Account paying for initialization
+/// 9. `[]` system_program: Solana System Program
 pub fn process_initialize_operator_snapshot(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

@@ -10,6 +10,18 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
+/// Resizes the weight table account to accommodate more entries.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_state: The epoch state account for the target epoch
+/// 2. `[]` vault_registry: The vault registry containing registered vaults
+/// 3. `[]` ncn: The NCN account
+/// 4. `[writable]` weight_table: The weight table to resize
+/// 5. `[writable, signer]` account_payer: Account paying for reallocation
+/// 6. `[]` system_program: Solana System Program
 pub fn process_realloc_weight_table(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

@@ -10,6 +10,14 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+/// Resizes the vault registry account to accommodate more vaults.
+///
+/// ### Accounts:
+/// 1. `[]` config: NCN configuration account
+/// 2. `[writable]` vault_registry: The vault registry account to resize
+/// 3. `[]` ncn: The NCN account
+/// 4. `[writable, signer]` account_payer: Account paying for the reallocation
+/// 5. `[]` system_program: Solana System Program
 pub fn process_realloc_vault_registry(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

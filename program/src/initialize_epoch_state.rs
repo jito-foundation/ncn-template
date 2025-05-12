@@ -9,6 +9,17 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
+/// Initializes the state for a specific epoch, creating a tracking mechanism for that epoch's lifecycle.
+///
+/// ### Parameters:
+/// - `epoch`: The target epoch
+///
+/// ### Accounts:
+/// 1. `[writable]` epoch_marker: Marker account to prevent duplicate initialization
+/// 2. `[writable]` epoch_state: The epoch state account to initialize
+/// 3. `[]` ncn: The NCN account
+/// 4. `[writable, signer]` account_payer: Account paying for initialization
+/// 5. `[]` system_program: Solana System Program
 pub fn process_initialize_epoch_state(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
