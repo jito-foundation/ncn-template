@@ -6,155 +6,178 @@
 - [NCN Components](#ncn-components)
   - [Vaults](#vaults)
   - [Operators](#operators)
-  - [NCN](#ncn)
+  - [NCN Program](#ncn-program)
 - [Current NCN Example](#current-ncn-example)
   - [Program Overview](#program-overview)
   - [Key Components](#key-components)
   - [Weather Status System](#weather-status-system)
   - [Consensus Mechanism](#consensus-mechanism)
-- [Building and running the Simulation Test](#building-and-running-the-simulation-test)
-  - [Environment Setup](#environment-setup)
-  - [NCN Setup](#ncn-setup)
-  - [Operators and Vaults Setup](#operators-and-vaults-setup)
-  - [NCN Program Configuration](#ncn-program-configuration)
-  - [Voting Process](#voting-process)
-  - [Conclusion](#conclusion)
+- [Onchain Program Code](#onchain-program-code)
+  - [Overview of Onchain Instructions](#overview-of-onchain-instructions)
+- [Building and Running the Simulation Test](#building-and-running-the-simulation-test)
+  - [Prerequisites](#prerequisites)
+  - [1. Create a New File](#1-create-a-new-file)
+  - [2. Environment Setup](#2-environment-setup)
+  - [3. NCN Setup](#3-ncn-setup)
+  - [4. Operators and Vaults Setup](#4-operators-and-vaults-setup)
+  - [5. NCN Program Configuration](#5-ncn-program-configuration)
+  - [6. Epoch Snapshot and Voting Preparation](#6-epoch-snapshot-and-voting-preparation)
+  - [7. Voting Process](#7-voting-process)
+  - [8. Verification](#8-verification)
+  - [9. Cleanup](#9-cleanup)
+- [Core Struct Definitions](#core-struct-definitions)
+  - [Config](#config)
+  - [Ballot](#ballot)
+  - [BallotTally](#ballottally)
+  - [OperatorVote](#operatorvote)
+  - [BallotBox](#ballotbox)
+  - [ConsensusResult](#consensusresult)
+  - [AccountPayer](#accountpayer)
+  - [EpochMarker](#epochmarker)
+  - [EpochSnapshot](#epochsnapshot)
+  - [OperatorSnapshot](#operatorsnapshot)
+  - [VaultOperatorStakeWeight](#vaultoperatorstakeweight)
+  - [StMintEntry](#stmintentry)
+  - [VaultEntry](#vaultentry)
+  - [VaultRegistry](#vaultregistry)
+  - [WeightTable](#weighttable)
+  - [EpochAccountStatus](#epochaccountstatus)
+- [Conclusion](#conclusion)
 
 ## Introduction
 
-The Node Consensus Network (NCN) is a robust blockchain consensus system built on Solana that enables network participants to reach agreement on critical network decisions. This system leverages Jito's restaking infrastructure to create a secure, stake-weighted voting mechanism where operators with delegated tokens can vote on network parameters and states.
+The Node Consensus Network (NCN) is a robust blockchain consensus system built on Solana. It enables network participants to agree on critical network decisions using a secure, stake-weighted voting mechanism. This system utilizes Jito's restaking infrastructure, allowing operators with delegated tokens to vote on network parameters and states.
 
-### Why NCN Matters
+Decentralized networks require reliable mechanisms for participants to reach consensus without central authorities. The NCN addresses this need by:
 
-Decentralized networks require reliable mechanisms for participants to reach consensus without central authorities. The NCN solves this by:
-
-1. Providing a secure voting framework where influence is proportional to stake
-2. Supporting multiple token types with configurable voting weights
-3. Creating verifiable, immutable records of consensus decisions
-4. Establishing a foundation for network governance and parameter setting
+1. Providing a secure voting framework where influence is proportional to the amount of stake held.
+2. Supporting multiple token types with configurable voting weights, allowing flexibility in how voting power is assigned.
+3. Creating verifiable and immutable records of consensus decisions on the blockchain.
+4. Establishing a solid foundation for network governance and parameter setting.
 
 ## NCN Components
 
-To run an NCN you will 1 or more of each of three different components to connect with each others; vaults, operators and operators admin.
+To run an NCN, you need one or more of each of the following three components, which interact with each other: Vaults, Operators, and the NCN Program itself.
 
 ### 1. Vaults
-
 Vaults are accounts that hold tokens and delegate them to operators. They play a crucial role in the NCN by:
 
-1. Holding tokens
-2. Delegating stake to operators
-3. Participating in voting
+1. Holding the tokens used for staking.
+2. Delegating stake (voting power) to chosen operators.
+3. Enabling stake-weighted participation in the network's governance.
 
 ### 2. Operators
+Operators are accounts that receive delegated stake from vaults and actively participate in the voting process. Their key functions are:
 
-Operators are accounts that receive stake from vaults and participate in voting. They play a crucial role in the NCN by:
+1. Receiving stake delegations from one or more vaults.
+2. Casting votes on behalf of the delegated stake during consensus rounds.
+3. Forming the network of active participants who drive the consensus process.
 
-1. Receiving stake from vaults
-2. Participating in voting
-3. Creating a network of participants
+### 3. NCN Program
+The NCN Program is the core on-chain component of the system. It's the smart contract that NCN developers build and deploy. This tutorial focuses on testing this program. Its main responsibilities are:
 
-### 3. NCN
-
-The NCN is the core component of the NCN. it represents the onchain program that the NCN developer will have to build and deploy, and it is the focus of this tutorial. It is responsible for:
-
-1. Holding the configuration
-2. Holding the vault registry
-3. Holding the epoch state
+1. Storing the global configuration parameters for the NCN instance.
+2. Maintaining the registry of participating vaults and supported token types.
+3. Managing the state for each voting epoch (consensus cycle).
 
 ## Current NCN Example
+In this tutorial, we will focus on building a simulation test for a pre-built NCN program. Creating a complete NCN program from scratch is will take too much time, especially considering edge cases and security. Therefore, we provide the NCN program code and concentrate this guide on writing the simulation test.
 
-In this tutorial we will build a simulation test for an NCN program that is already provided, building the whole NCN code in a tutorial would be too much, especially if you want to account for all the edge cases and security vulnerabilities. so we decided to provide the code, and make this tutorial focused on the simulation test instead.
-
-By writing the simulation (which its code already provided as well) you will get to touch and feel the whole NCN cycle, from initializing the vaults and operators using Jitos' restaking and vault programs, to initializing the NCN program configurations, and going through the full voting process.
+By following the simulation test setup (code also provided), you will gain hands-on experience with the entire NCN lifecycle: initializing vaults and operators using Jito's restaking and vault programs, configuring the NCN program, and executing the full voting process.
 
 ### Program Overview
-
-The NCN Program facilitates consensus on weather status through a stake-weighted voting mechanism. It operates in epochs and utilizes a weight-based system to determine the influence of different operators in the consensus process. Consensus is reached when votes representing at least 66% of the total stake weight agree on the same ballot.
+The example NCN Program facilitates consensus on a simple "weather status" using a stake-weighted voting mechanism. It operates in distinct time periods called epochs. The program uses a weight-based system to determine the influence (voting power) of different operators. Consensus is achieved when votes representing at least 66% of the total participating stake weight agree on the same outcome (ballot).
 
 ### Key Components
 
-1. Global Accounts: these accounts will get initialized at the start of the program, and will only get updated if needed any point in the future:
-   1. **Config**: Stores global program configuration including epochs before stall, epochs after consensus before close, and valid slots after consensus
-   1. **Vault Registry**: Manages registered vaults and supported stake token mints
-1. Per consensus cycle accounts: these accounts will get initialized at the start of each consensus cycle (which is per epoch for thsi example), and they usually get closed alttle bit after the consensus cycle is over
-   1. **Weight Table**: Maintains weights for different stake tokens to determine their relative importance
-   1. **Epoch State**: Tracks epoch-specific state including consensus status and account lifecycle
-   1. **Ballot Box**: Handles voting on weather status with stake-weighted tallying
-   1. **Epoch Snapshot**: Captures stake delegations at specific epochs for consistent voting weight
-   1. **Consensus Result**: Stores the final consensus outcome for each epoch
+The program uses several types of accounts:
+
+1.  **Global Accounts**: Initialized once at the start and updated infrequently.
+    *   **[`Config`](#config)**: Stores global settings like epoch timing parameters (`epochs_before_stall`, `epochs_after_consensus_before_close`) and voting validity periods (`valid_slots_after_consensus`).
+    *   **[`VaultRegistry`](#vaultregistry)**: Manages the list of registered vaults and the different types of stake tokens (mints) the NCN supports.
+2.  **Per-Consensus Cycle Accounts**: Initialized at the beginning of each epoch and usually closed shortly after the cycle ends.
+    *   **[`WeightTable`](#weighttable)**: Stores the specific voting weights assigned to different stake tokens for the current epoch.
+    *   **[`EpochState`](#epochaccountstatus)**: Tracks the status and progress of the current epoch's consensus cycle.
+    *   **[`BallotBox`](#ballotbox)**: Handles the collection and stake-weighted tallying of votes for the current epoch's decision (e.g., weather status).
+    *   **[`EpochSnapshot`](#epochsnapshot)**: Captures the state of stake delegations at the beginning of the epoch to ensure consistent voting weights throughout the cycle.
+    *   **[`ConsensusResult`](#consensusresult)**: Stores the final outcome (the winning ballot and associated details) for the completed epoch.
 
 ### Weather Status System
-
 The program uses a simple weather status system as the consensus target:
 
-1. **Sunny (0)**: Clear sunny weather
-2. **Cloudy (1)**: Cloudy weather conditions
-3. **Rainy (2)**: Rainy weather conditions
+1. **Sunny (0)**: Represents clear, sunny weather.
+2. **Cloudy (1)**: Represents cloudy weather conditions.
+3. **Rainy (2)**: Represents rainy weather conditions.
 
-Operators vote on these status values, and the program tallies votes based on stake weight to determine the consensus result.
+Operators vote on these status values. The program tallies the votes, weighting each vote by the operator's associated stake weight, to determine the final consensus result.
 
 ### Consensus Mechanism
-
 The consensus process follows these steps:
 
-1. Operators cast votes with a specific weather status
-2. Each vote's influence is weighted by the operator's stake weight
-3. Votes are tallied in the ballot box
-4. Consensus is reached when a weather status receives ≥66% of the total stake weight
-5. The consensus result is recorded with details about the winning status, vote weight, and timing
+1. Operators cast votes, choosing a specific weather status (Sunny, Cloudy, or Rainy).
+2. Each vote's influence is determined by the operator's total stake weight, calculated from delegations received.
+3. Votes are collected and tallied within the `BallotBox` account for the current epoch.
+4. Consensus is reached when one weather status receives votes representing ≥66% of the total stake weight participating in that epoch.
+5. The final consensus result (winning status, total weight supporting it, etc.) is recorded in the `ConsensusResult` account.
 
 ## Onchain program code
 
-The onchain program is written with vanilla rust, and it is made of a number of instructions that could be called to perform the different actions required to run the NCN. You can find all the instrctions code inside `/program` folder, and `/core` folder contains the core logic that is shared between the instructions.
+The onchain program is written in Rust (without using the Anchor framework) and consists of several instructions that can be called to perform various actions within the NCN. The instruction logic resides in the `/program` directory, while shared core logic is located in the `/core` directory.
 
 ### Overview of the onchain instructions
 
-1. Admin Instructions: these instructions are used to initialize the program, register tokens, and configure the program
-   1. `admin_initialize_config`: initializes the program configuration
-   1. `admin_register_st_mint`: registers a new supported token (ST) mint with the program
-   1. `admin_set_new_admin`: sets a new admin for the program
-   1. `admin_set_parameters`: sets the parameters for the program
-   1. `admin_set_st_mint`: sets a new supported token (ST) mint with the program
-   1. `admin_set_tie_breaker`: sets the tie breaker for the program
-   1. `admin_set_weight`: sets the weight for a supported token (ST) mint
-1. Keeper Instructions: these instructions are used to keep the program in check, they are premissenles so anyone can call them
-   simulation-test-detailed-guide.md
-   1. `initialize_epoch_state`: initializes the epoch state
-   1. `initialize_vault_registry`: initializes the vault registry
-   1. `realloc_vault_registry`: reallocates the vault registry
-   1. `initialize_weight_table`: initializes the weight table
-   1. `realloc_weight_table`: reallocates the weight table
-   1. `initialize_epoch_snapshot`: initializes the epoch snapshot
-   1. `initialize_operator_snapshot`: initializes the operator snapshot
-   1. `set_epoch_weights`: sets the weights for the epoch
-   1. `snapshot_vault_operator_delegation`: snapshots the vault operator delegation
-   1. `initialize_ballot_box`: initializes the ballot box
-   1. `realloc_ballot_box`: reallocates the ballot box
-   1. `register_vault`: registers a new vault
-   1. `close_epoch_account`: closes the epoch account
-1. Operator Instruction: There is only one instruction that each operator will have to call each consensus cycle, yes you guesed it, `cast_vote` instruction
+The instructions are broadly categorized:
 
-For more details you can always check the code, or check the API docs [here](put a link here)
+1.  **Admin Instructions**: These require administrator privileges and are used for initial setup and configuration.
+    *   `admin_initialize_config`: Initializes the main `Config` account.
+    *   `admin_register_st_mint`: Registers a new type of stake token (ST) the NCN will support.
+    *   `admin_set_new_admin`: Transfers administrative control to a new keypair.
+    *   `admin_set_parameters`: Updates parameters within the `Config` account.
+    *   `admin_set_st_mint`: Updates details for an existing supported token mint (Deprecated/Redundant? Check `admin_register_st_mint` and `admin_set_weight`).
+    *   `admin_set_tie_breaker`: Configures the tie-breaking mechanism or authority.
+    *   `admin_set_weight`: Sets or updates the voting weight for a specific supported token mint.
+2.  **Keeper Instructions**: These are permissionless instructions, meaning anyone can call them to advance the state of the NCN, typically moving between epoch phases. They ensure the NCN progresses correctly.
+    *   `initialize_epoch_state`: Creates the `EpochState` account for a new epoch.
+    *   `initialize_vault_registry`: Creates the initial `VaultRegistry` account.
+    *   `realloc_vault_registry`: Increases the size of the `VaultRegistry` account if needed.
+    *   `initialize_weight_table`: Creates the `WeightTable` account for an epoch.
+    *   `realloc_weight_table`: Increases the size of the `WeightTable` account.
+    *   `initialize_epoch_snapshot`: Creates the main `EpochSnapshot` account.
+    *   `initialize_operator_snapshot`: Creates an `OperatorSnapshot` account for a specific operator within an epoch.
+    *   `set_epoch_weights`: Populates the `WeightTable` with weights from the `VaultRegistry`.
+    *   `snapshot_vault_operator_delegation`: Records the weighted stake from a specific vault delegation into the relevant `OperatorSnapshot`.
+    *   `initialize_ballot_box`: Creates the `BallotBox` account for voting in an epoch.
+    *   `realloc_ballot_box`: Increases the size of the `BallotBox` account.
+    *   `register_vault`: Registers a vault (that has already been approved via Jito handshake) with the NCN program's `VaultRegistry`.
+    *   `close_epoch_account`: Closes temporary epoch-specific accounts (like `EpochState`, `BallotBox`, etc.) after they are no longer needed, reclaiming rent.
+3.  **Operator Instruction**: This is the primary action taken by participants during a consensus cycle.
+    *   `cast_vote`: Allows an operator (using their admin key) to submit their vote for the current epoch.
+
+For more details, you can always check the source code or the API documentation [here](put a link here). (TODO: Add link to API docs if available)
 
 ## Building and running the Simulation Test
 
-The simulation test is a comprehensive test case that simulates a complete NCN (Node Consensus Network) system with multiple operators, vaults, and token types. It tests the entire flow from setup to voting and consensus reaching. The system uses Jito's restaking infrastructure and custom voting logic to coordinate network participants.
+The simulation test is a comprehensive scenario designed to mimic a complete NCN system. It involves multiple operators, vaults, and different types of tokens. The test covers the entire workflow, from the initial setup of participants and the NCN program itself, through the voting process, and finally to reaching and verifying consensus. It heavily utilizes Jito's restaking and vault infrastructure alongside the custom NCN voting logic.
 
 ## Prerequisites
 
-Before running the simulation test, ensure you have:
+Before running the simulation test, ensure you have completed the following setup steps:
 
-1. Set up the test ledger using `./scripts/setup-test-ledger.sh`
-1. Built the NCN program using `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
-1. Set the correct Solana version (2.2.6 recommended) and cargo version (1.81 or above)
+1.  Set up the local Solana test ledger by running the script: `./scripts/setup-test-ledger.sh`
+2.  Build the NCN onchain program using Cargo: `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
+3.  Ensure you have the correct versions installed:
+    *   Solana CLI: 2.2.6 (recommended)
+    *   Rust/Cargo: 1.81 or newer
 
 ## Building the Simulation Test
 
+Let's build the simulation test step by step.
+
 ### 1. Create a new file
 
-you can start on a blank file, and copy paste the code provided below to run the test, if you decide to do so, create a new file inside `integration_tests/tests` folder, and name it `simulation_test_new.rs` and add this code to it:
+You can start with a blank file. Create a new file named `simulation_test_new.rs` inside the `integration_tests/tests` folder. Paste the following boilerplate code into it:
 
-```rs
+```rust
 #[cfg(test)]
 mod tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
@@ -164,28 +187,28 @@ mod tests {
 
     #[tokio::test]
     async fn simulation_test_new() -> TestResult<()> {
-      // YOUR CODE WILL GO HERE
+        // YOUR TEST CODE WILL GO HERE
         Ok(())
     }
 }
-
 ```
 
-Now you will have to import it inside the `integration_tests/tests/mod.rs` file, so it can be run as a test, you can do it by adding this to the file:
+Next, you need to make this new test discoverable. Open the `integration_tests/tests/mod.rs` file and add this line to declare the new module:
 
-```rs
+```rust
+// integration_tests/tests/mod.rs
 mod simulation_test_new;
 ```
 
-now to run the test, you can use the following command:
+Now, you can run just this specific test using the following command:
 
 ```bash
 SBF_OUT_DIR=integration_tests/tests/fixtures cargo test -p ncn-program-integration-tests --test tests simulation_test_new
 ```
 
-the command above will run only the new test, you can run all the test if you want by removing the part after -p
+This command targets the `ncn-program-integration-tests` package and runs only the `simulation_test_new` test function. If you want to run all tests in the suite, simply remove the test name filter (`simulation_test_new`) from the command.
 
-which it will pass for sure because there is nothing there yet, here is the expected output:
+Currently, the test will pass because it doesn't contain any logic yet. You should see output similar to this:
 
 ```bash
 running 1 test
@@ -196,206 +219,193 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; fin
 
 ### 2. Environment Setup
 
-The first thing to do is to create the test builder, which we will call `fixture`.
+The first step within our test function is to set up the testing environment using the `TestBuilder`. We'll store this in a variable called `fixture`.
 
 ```rust
-let mut fixture = TestBuilder::new().await;
+        // Inside the simulation_test_new function
+        let mut fixture = TestBuilder::new().await;
 ```
 
-After that we will initialize the restaking and vault programs, notice that we are doing this here becuase we are testing locally, in the case of testing on mainnet or devnet, you will not have to run this funtion
+Since we are running this test locally against a test ledger, we need to initialize the Jito Restaking and Vault programs on the ledger. In a real network environment (devnet, mainnet), these programs would already be deployed.
 
 ```rust
-fixture.initialize_restaking_and_vault_programs().await?;
+        fixture.initialize_restaking_and_vault_programs().await?;
 ```
 
-finally let's prepare some variables that we will use later in the test
+Finally, let's prepare some client objects and configuration variables we'll use throughout the test.
 
 ```rust
-let mut ncn_program_client = fixture.ncn_program_client();
-let mut vault_program_client = fixture.vault_client();
-let mut restaking_client = fixture.restaking_program_client();
+        let ncn_program_client = fixture.ncn_program_client();
+        let vault_program_client = fixture.vault_client();
+        let restaking_client = fixture.restaking_program_client();
 
-// 1. Preparing the test variables
-const OPERATOR_COUNT: usize = 13; // Number of operators to create for testing
-let mints = vec![
-    (Keypair::new(), WEIGHT),     // TKN1 with base weight
-    (Keypair::new(), WEIGHT * 2), // TKN2 with double weight
-    (Keypair::new(), WEIGHT * 3), // TKN3 with triple weight
-    (Keypair::new(), WEIGHT * 4), // TKN4 with quadruple weight
-];
-let delegations = [
-    1,                  // minimum delegation amount
-    10_000_000_000,     // 10 tokens
-    100_000_000_000,    // 100 tokens
-    1_000_000_000_000,  // 1k tokens
-    10_000_000_000_000, // 10k tokens
-];
+        // Define test parameters
+        const OPERATOR_COUNT: usize = 13; // Number of operators to simulate
+        let mints = vec![
+            (Keypair::new(), WEIGHT),     // TKN1: Base weight (e.g., 1)
+            (Keypair::new(), WEIGHT * 2), // TKN2: Double weight
+            (Keypair::new(), WEIGHT * 3), // TKN3: Triple weight
+            (Keypair::new(), WEIGHT * 4), // TKN4: Quadruple weight
+        ];
+        let delegations = [
+            1,                  // Minimum delegation amount (e.g., 1 lamport)
+            10_000_000_000,     // 10 tokens (assuming 9 decimals)
+            100_000_000_000,    // 100 tokens
+            1_000_000_000_000,  // 1,000 tokens
+            10_000_000_000_000, // 10,000 tokens
+        ];
 ```
 
-This code:
-
-1. store the client that we will interact with.
-2. defines the number of operators to create for testing.
-3. defines the mints and their weights.
-4. defines the delegation amounts.
+This code does the following:
+1.  Gets client handles for interacting with the NCN, Vault, and Restaking programs.
+2.  Defines `OPERATOR_COUNT` to specify how many operators we'll create.
+3.  Sets up `mints`: a list of keypairs representing different SPL token mints and their corresponding voting weights. We use different weights to test the stake-weighting mechanism. `WEIGHT` is likely a constant representing the base unit of weight.
+4.  Defines `delegations`: an array of different token amounts (in lamports, assuming 9 decimals for typical SPL tokens) that vaults will delegate to operators.
 
 ### 3. NCN Setup
 
-This step will initialize the NCN account using the restaking program by Jito, `create_test_ncn` will call an instruction in the restaking program to create the NCN account
+Now, let's create the NCN instance itself using the Jito Restaking program. The `create_test_ncn` helper function handles the necessary instruction calls.
 
 ```rust
-let mut test_ncn = fixture.create_test_ncn().await?;
-let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
+        let mut test_ncn = fixture.create_test_ncn().await?;
+        let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 ```
 
 This step:
+*   Calls the Jito Restaking program to create a new Node Consensus Network (NCN) account and its associated administrative structures.
+*   Stores the public key (`ncn_pubkey`) of the newly created NCN, which we'll need to interact with it later.
 
-- Creates a new Node Consensus Network (NCN) using Jito's restaking infrastructure
-- Stores the NCN public key for future operations
-
-At this point, if you run the test, you will see some output from the transactions that are going to run here, try it out.
+If you run the test at this point (`cargo test ... simulation_test_new`), you should see transaction logs in the output, indicating that the NCN creation instructions were executed successfully.
 
 ### 4. Operators and Vaults Setup
 
-The Operators and Vaults setup phase is critical to the simulation as it establishes the network of participants and their relationships. This creates the foundation for the consensus and voting mechanisms being tested.
+This phase is crucial for simulating a realistic network. We will create the operators who vote and the vaults that provide the stake (voting power).
 
 #### 4.1 Operator Creation and NCN Connection
 
+We'll add the specified number of operators (`OPERATOR_COUNT`) to our NCN using another helper function.
+
 ```rust
-fixture
-    .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
-    .await?;
+        fixture
+            .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
+            .await?;
 ```
 
-This step will call a couple of instructions in Jito restaking program to:
+This `add_operators_to_test_ncn` function performs several actions by calling instructions in the Jito Restaking program:
+*   Creates `OPERATOR_COUNT` (13 in our case) separate operator accounts.
+*   Sets an optional operator fee (here, 100 basis points = 1%).
+*   Establishes a secure, bidirectional "handshake" between each newly created operator and the NCN.
 
-- Creates 13 operator accounts using Jito's restaking program
-- Sets each operator's fee to 100 basis points (1%)
-- Establishes a bidirectional handshake between each operator and the NCN
+The handshake process involves multiple steps:
+1.  Creating the operator account itself, managed by its unique admin keypair.
+2.  Initializing the state that tracks the relationship between the NCN and the operator (`do_initialize_ncn_operator_state`).
+3.  Warming up the connection from the NCN's perspective (`do_ncn_warmup_operator`).
+4.  Warming up the connection from the operator's perspective (`do_operator_warmup_ncn`).
 
-The handshake process involves:
-
-1. Creating operator accounts with their respective admin keypairs
-2. Initializing the NCN-operator relationship state using `do_initialize_ncn_operator_state`
-3. Warming up the NCN-to-operator connection using `do_ncn_warmup_operator`
-4. Warming up the operator-to-NCN connection using `do_operator_warmup_ncn`
-
-These bidirectional relationships are essential for the security model, ensuring operators can only participate in voting if they have a valid, active connection to the NCN.
+This handshake is essential for security. It ensures that operators must explicitly connect to the NCN (and vice-versa) and potentially wait through an activation period before they can participate in voting.
 
 #### 4.2 Vault Creation for Different Token Types
 
+Next, we create vaults to hold the different types of tokens we defined earlier. We'll distribute them across the token types.
+
 ```rust
-// 2.c. Initialize vaults for each token type
-{
-    // Create 3 vaults for TKN1
-    fixture
-        .add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone()))
-        .await?;
-    // Create 2 vaults for TKN2
-    fixture
-        .add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone()))
-        .await?;
-    // Create 1 vault for TKN3
-    fixture
-        .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone()))
-        .await?;
-    // Create 1 vault for TKN4
-    fixture
-        .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone()))
-        .await?;
-}
+        // Create vaults associated with different token mints
+        {
+            // Create 3 vaults for TKN1 (base weight)
+            fixture
+                .add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone()))
+                .await?;
+            // Create 2 vaults for TKN2 (double weight)
+            fixture
+                .add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone()))
+                .await?;
+            // Create 1 vault for TKN3 (triple weight)
+            fixture
+                .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone()))
+                .await?;
+            // Create 1 vault for TKN4 (quadruple weight)
+            fixture
+                .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone()))
+                .await?;
+        }
 ```
 
-This step calls a couple of instructions in Jito vault program and Jito restaking program to create a total of 7 vaults distributed across 4 different token types:
+The `add_vaults_to_test_ncn` helper function orchestrates calls to both the Jito Vault and Jito Restaking programs to:
+*   Create a total of 7 vaults (3 + 2 + 1 + 1).
+*   Associate each group of vaults with one of our predefined token mints (`mints[0]`, `mints[1]`, etc.).
+*   Initialize the vault accounts using the Jito Vault program (setting zero fees, which is common for testing).
+*   Mint tokens for the vaults if needed (though here we provide the mints).
+*   Establish bidirectional handshakes between each vault and the NCN using specific Jito Restaking instructions (`do_initialize_ncn_vault_ticket`, `do_warmup_ncn_vault_ticket`).
+*   Establish corresponding handshakes using Jito Vault program instructions (`do_initialize_vault_ncn_ticket`, `do_warmup_vault_ncn_ticket`).
+*   Establish bidirectional handshakes between each new vault and *all* existing operators using Jito Restaking (`do_initialize_operator_vault_ticket`, `do_warmup_operator_vault_ticket`) and Jito Vault (`do_initialize_vault_operator_delegation`) instructions. Note that `do_initialize_vault_operator_delegation` only sets up the *potential* for delegation; no actual tokens are delegated yet.
+*   Advance the simulated clock (`fixture.advance_slots`) after handshakes to ensure the relationships become active, simulating the necessary waiting period.
 
-- 3 vaults for TKN1 (base weight)
-- 2 vaults for TKN2 (double weight)
-- 1 vault for TKN3 (triple weight)
-- 1 vault for TKN4 (quadruple weight)
-
-For each vault, the system:
-
-1. Initializes a vault account via the vault program with zero fees (important for testing)
-2. Creates a vault mint (token) if not provided directly
-3. Establishes a bidirectional handshake between the vault and the NCN:
-   - Initializes an NCN-vault ticket using `do_initialize_ncn_vault_ticket` which will call a specific instruction in Jito restaking program to do that
-   - Warms up the ticket using `do_warmup_ncn_vault_ticket` which will call a specific instruction in Jito restaking program to do that
-   - Creates a vault-NCN ticket using `do_initialize_vault_ncn_ticket` which will call specific instruction in Jito vault program to do that
-   - Warms up the vault-NCN ticket using `do_warmup_vault_ncn_ticket` which will call a specific instruction in Jito vault program to do that
-   - Advances slots to ensure the relationship activates
-4. Establishes a bidirectional handshake between each vault and all the operators:
-   - Initializes an operator-vault ticket using `do_initialize_operator_vault_ticket` which will call a specific instruction in Jito restaking program to do that
-   - Warms up the operator-vault ticket using `do_warmup_operator_vault_ticket` which will call a specific instruction in Jito restaking program to do that
-   - Initializes the vault-operator delegation using `do_initialize_vault_operator_delegation` which will call a specific instruction in Jito vault program to do that.
-     - note that no delegation will happen at this point, this is just establishing the relationship.
-
-The distribution of vaults across different token types enables testing how the system handles voting power with different token weights and concentrations.
+Creating vaults with different token types allows us to test how the NCN handles varying voting power based on token weights.
 
 #### 4.3 Delegation Setup
 
-This is where vaults delegate stakes to operators, again this is going to call a specific instruction in Jito vault program to do that.
+This is where vaults actually delegate their tokens (stake) to operators, granting them voting power. We'll iterate through operators and vaults to create delegations.
 
 ```rust
-// 2.d. Vaults delegate stakes to operators
-{
-    for (index, operator_root) in test_ncn
-        .operators
-        .iter()
-        .take(OPERATOR_COUNT - 1) // All operators except the last one
-        .enumerate()
-    {
-        for vault_root in test_ncn.vaults.iter() {
-            // Cycle through delegation amounts based on operator index
-            let delegation_amount = delegations[index % delegations.len()];
+        // Vaults delegate stake to operators
+        {
+            // Iterate through all operators except the last one
+            for (index, operator_root) in test_ncn
+                .operators
+                .iter()
+                .take(OPERATOR_COUNT - 1)
+                .enumerate()
+            {
+                // Each vault delegates to this operator
+                for vault_root in test_ncn.vaults.iter() {
+                    // Cycle through the predefined delegation amounts
+                    let delegation_amount = delegations[index % delegations.len()];
 
-            if delegation_amount > 0 {
-                vault_program_client
-                    .do_add_delegation(
-                        vault_root,
-                        &operator_root.operator_pubkey,
-                        delegation_amount,
-                    )
-                    .await
-                    .unwrap();
+                    if delegation_amount > 0 {
+                        // Call the Vault program to add the delegation
+                        vault_program_client
+                            .do_add_delegation(
+                                vault_root, // The vault delegating
+                                &operator_root.operator_pubkey, // The operator receiving
+                                delegation_amount, // The amount to delegate
+                            )
+                            .await
+                            .unwrap();
+                    }
+                }
             }
         }
-    }
-}
 ```
 
 The delegation process is where voting power is established. Each vault delegates tokens to operators, which determines:
-
 1. How much voting power each operator has
 2. How token weights multiply that power
 3. The distribution of influence across the network
 
 Key aspects of the delegation setup:
-
-- Every vault delegates to every operator (except the last one for this example)
+*   Every vault delegates to every operator (except the last one for this example)
   - Note that vaults can choose whom to delegate to, they don't have to delegate to all operators
-- Delegation amounts cycle through the `delegations` array to test different scenarios
-- The last operator intentionally receives zero delegation to test the system's handling of operators without stake
-- The delegation is performed directly through the vault program using `do_add_delegation` which will call a specific instruction in the vault program to do that
+*   Delegation amounts cycle through the `delegations` array to test different scenarios
+*   The last operator intentionally receives zero delegation to test the system's handling of operators without stake
+*   The delegation is performed directly through the vault program using `do_add_delegation` which will call a specific instruction in the vault program to do that
 
 #### 4.4 Delegation Architecture and Voting Power Calculation
 
 The delegation architecture follows a multiplication relationship:
 
-- Voting power = Delegation amount × Token weight
-- Each operator accumulates voting power from all vaults that delegate to them
-- For an operator with multiple delegations, the total voting power is the sum of all delegations multiplied by their respective token weights
+*   **Operator Voting Power = Sum of (Delegation Amount × Delegated Token's Weight)**
 
-For example:
+Each operator accumulates voting power from all the different delegations they receive. The total voting power for an operator is the sum of the weighted values of each delegation.
 
-- If Vault1 (TKN1, weight=W) delegates 100 tokens to OperatorA, the voting power is 100×W
-- If Vault2 (TKN2, weight=2W) delegates 50 tokens to OperatorA, the additional voting power is 50×2W
-- OperatorA's total voting power would be (100×W) + (50×2W) = 200W
+**Example:**
+*   Vault A (holding TKN1, weight W) delegates 100 tokens to Operator X. Power contribution: 100 * W.
+*   Vault B (holding TKN2, weight 2W) delegates 50 tokens to Operator X. Power contribution: 50 * 2W = 100 * W.
+*   Operator X's total voting power would be (100 * W) + (50 * 2W) = 200 * W.
 
 This distributed delegation model enables testing complex scenarios where:
-
-- Operators have different levels of influence
-- Tokens with higher weights have proportionally more impact
-- The distribution of delegations affects consensus outcomes
+*   Operators have vastly different amounts of influence.
+*   Tokens with higher weights contribute disproportionately more voting power.
+*   The distribution of delegations affects consensus outcomes.
 
 The deliberate omission of delegation to the last operator creates a control case to verify that operators with zero stake cannot influence the voting process, which is a critical security feature.
 
@@ -409,22 +419,22 @@ The NCN Program Configuration phase establishes the on-chain infrastructure nece
 
 #### 5.1 Program Configuration Initialization
 
+First, we initialize the main configuration account for our NCN instance.
+
 ```rust
-// 3.a. Initialize the config for the ncn-program
-ncn_program_client
-    .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
-    .await?;
+        // Initialize the main Config account for the NCN program
+        ncn_program_client
+            .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
+            .await?;
 ```
 
 This step initializes the core configuration for the NCN program with critical parameters:
-
-- **NCN Admin**: The authority that can modify configuration settings
-- **Epochs Before Stall**: How many epochs before a non-completed consensus cycle is considered stalled (default: 3)
-- **Epochs After Consensus Before Close**: How long to wait after consensus before closing epoch data (default: 10)
-- **Valid Slots After Consensus**: How many slots votes are still accepted after consensus is reached (default: 10000)
+*   **NCN Admin**: The authority that can modify configuration settings
+*   **Epochs Before Stall**: How many epochs before a non-completed consensus cycle is considered stalled (default: 3)
+*   **Epochs After Consensus Before Close**: How long to wait after consensus before closing epoch data (default: 10)
+*   **Valid Slots After Consensus**: How many slots votes are still accepted after consensus is reached (default: 10000)
 
 Under the hood, this creates a `NcnConfig` account that stores these parameters and serves as the authoritative configuration for this NCN instance.
-check out the config struct [here](#config)
 
 #### 5.2 Vault Registry Initialization
 
@@ -433,18 +443,17 @@ The vault registery account is a big one, so it is not possible to initiate it i
 the realoc will take care of assigning the default values to the vault registry account once the desirable size is reached, and in our example, we will do that by calling one function `do_full_initialize_vault_registry`, if you want to learn more about this, you can check the API docs, or the source code
 
 ```rust
-// 3.b Initialize the vault_registry - creates accounts to track vaults
-ncn_program_client
-    .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
-    .await?;
+        // Initialize the VaultRegistry account (handles potential reallocations)
+        ncn_program_client
+            .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
+            .await?;
 ```
 
 The vault registry is a critical data structure that:
-
-- Tracks all supported vault accounts
-- Maintains the list of supported token mints (token types)
-- Records the weight assigned to each token type
-- Serves as the source of truth for vault and token configurations
+*   Tracks all supported vault accounts
+*   Maintains the list of supported token mints (token types)
+*   Records the weight assigned to each token type
+*   Serves as the source of truth for vault and token configurations
 
 Note that this is only initilizeing the vault registry, the vaults and the supported tokens will be registered in the next steps.
 
@@ -480,22 +489,20 @@ The time advancement is necessary because Jito's restaking infrastructure uses a
 Now it is time to register the supported tokens with the NCN program and assign weights to each mint for voting power calculations.
 
 ```rust
-// 3.c. Register all the ST (Support Token) mints in the ncn program
-// This assigns weights to each mint for voting power calculations
-for (mint, weight) in mints.iter() {
-    ncn_program_client
-        .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
-        .await?;
-}
+        // Register each Supported Token (ST) mint and its weight in the NCN's VaultRegistry
+        for (mint, weight) in mints.iter() {
+            ncn_program_client
+                .do_admin_register_st_mint(ncn_pubkey, mint.pubkey(), *weight)
+                .await?;
+        }
 ```
 
 This step registers each Supported Token (ST) mint with the NCN program and assigns the appropriate weight:
-
-- Each token mint (TKN1, TKN2, etc.) is registered with its corresponding weight
-- The weights determine the voting power multiplier for delegations in that token
-- Only the NCN admin has the authority to register tokens, ensuring trust in the system
-- Registration involves updating the vault registry with each token's data
-- The NCN admin can update the weights of the tokens at any time, which will affect the voting power of the delegations in the next consensus cycle
+*   Each token mint (TKN1, TKN2, etc.) is registered with its corresponding weight
+*   The weights determine the voting power multiplier for delegations in that token
+*   Only the NCN admin has the authority to register tokens, ensuring trust in the system
+*   Registration involves updating the vault registry with each token's data
+*   The NCN admin can update the weights of the tokens at any time, which will affect the voting power of the delegations in the next consensus cycle
 
 The weight assignment is fundamental to the design, allowing different tokens to have varying influence on the voting process based on their economic significance or other criteria determined by the NCN administrators.
 
@@ -506,27 +513,26 @@ Good to know that in real life examples, NCNs will probably want to have to set 
 Registering a vault is a premissionless operation, the reason is the admin has already gave premission to the vault to be part of the NCN in the vault registerition step earlier, so this step is just to register the vault in the NCN program.
 
 ```rust
-// 3.d Register all the vaults in the ncn program
-for vault in test_ncn.vaults.iter() {
-    let vault = vault.vault_pubkey;
-    let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
-        &jito_restaking_program::id(),
-        &ncn_pubkey,
-        &vault,
-    );
+        // Register all the vaults in the ncn program
+        for vault in test_ncn.vaults.iter() {
+            let vault = vault.vault_pubkey;
+            let (ncn_vault_ticket, _, _) = NcnVaultTicket::find_program_address(
+                &jito_restaking_program::id(),
+                &ncn_pubkey,
+                &vault,
+            );
 
-    ncn_program_client
-        .do_register_vault(ncn_pubkey, vault, ncn_vault_ticket)
-        .await?;
-}
+            ncn_program_client
+                .do_register_vault(ncn_pubkey, vault, ncn_vault_ticket)
+                .await?;
+        }
 ```
 
 The final configuration step registers each vault with the NCN program:
-
-1. For each vault created earlier, the system finds its NCN vault ticket PDA (Program Derived Address)
-2. The vault is registered in the NCN program's vault registry
-3. This creates the association between the vault and its supported token type
-4. The registration enables the NCN program to track vault delegations for voting power calculation
+1.  For each vault created earlier, the system finds its NCN vault ticket PDA (Program Derived Address)
+2.  The vault is registered in the NCN program's vault registry
+3.  This creates the association between the vault and its supported token type
+4.  The registration enables the NCN program to track vault delegations for voting power calculation
 
 This registration process establishes the complete set of vaults that can contribute to the voting system, creating a closed ecosystem of verified participants.
 
@@ -534,10 +540,10 @@ This registration process establishes the complete set of vaults that can contri
 
 The NCN program configuration establishes a multi-layered security model:
 
-1. **Authentication Layer**: Only the NCN admin can initialize configuration and register tokens
-2. **Relationship Layer**: Only vaults and operators with established, active handshakes can participate
-3. **Time Security Layer**: Enforced waiting periods prevent quick creation and use of malicious actors
-4. **Registry Layer**: All participants must be registered and tracked in on-chain registries
+1.  **Authentication Layer**: Only the NCN admin can initialize configuration and register tokens
+2.  **Relationship Layer**: Only vaults and operators with established, active handshakes can participate
+3.  **Time Security Layer**: Enforced waiting periods prevent quick creation and use of malicious actors
+4.  **Registry Layer**: All participants must be registered and tracked in on-chain registries
 
 This layered approach ensures the integrity of the voting system by validating the identity and relationships of all participants before they can influence the consensus process.
 
@@ -552,17 +558,16 @@ The upcoming part a keeper task (except for the voting part), which means that i
 #### 6.1 Epoch State Initialization
 
 ```rust
-// 4.a. Initialize the epoch state for the current epoch
-fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
+        // Initialize the epoch state for the current epoch
+        fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
 ```
 
 This step initializes the **Epoch State** for the current consensus cycle:
-
-- It creates an `EpochState` account tied to the specific NCN and epoch.
-- This account tracks the progress through each stage of the consensus cycle.
-- It maintains flags for each phase (weight setting, snapshot taking, voting, closing).
-- The epoch state provides protection against out-of-sequence operations.
-- It stores metadata like the current epoch, slot information, and participant counts.
+*   It creates an `EpochState` account tied to the specific NCN and epoch.
+*   This account tracks the progress through each stage of the consensus cycle.
+*   It maintains flags for each phase (weight setting, snapshot taking, voting, closing).
+*   The epoch state provides protection against out-of-sequence operations.
+*   It stores metadata like the current epoch, slot information, and participant counts.
 
 Once initialized, the `EpochState` account becomes the authoritative record of where the system is in the voting process, preventing operations from happening out of order or in duplicate.
 
@@ -571,21 +576,20 @@ you can take a look at the epoch state struct [here](#epochaccountstatus)
 #### 6.2 Weight Table Initialization and Population
 
 ```rust
-// 4.b. Initialize the weight table to track voting weights
-let clock = fixture.clock().await;
-let epoch = clock.epoch;
-ncn_program_client
-    .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
-    .await?;
+        // Initialize the weight table to track voting weights
+        let clock = fixture.clock().await;
+        let epoch = clock.epoch;
+        ncn_program_client
+            .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
 
-// 4.c. Take a snapshot of weights for each token mint
-ncn_program_client
-    .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
-    .await?;
+        // Take a snapshot of weights for each token mint
+        ncn_program_client
+            .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
 ```
 
 The weight table mechanism handles the token weights for the current epoch in two stages:
-
 1.  **Weight Table Initialization**:
     - Creates a [`WeightTable`](#weighttable) account for the specific epoch using `do_full_initialize_weight_table`. This may involve multiple calls internally to allocate sufficient space.
     - Allocates space based on the number of supported tokens registered in the [`VaultRegistry`](#vaultregistry).
@@ -600,58 +604,54 @@ The weight table mechanism handles the token weights for the current epoch in tw
     - Creates an immutable record of token weights that will be used for voting.
 
 This two-step process is critical for the integrity of the system as it:
-
-- Creates a permanent record of weights at the time voting begins.
-- Prevents weight changes during a consensus cycle from affecting ongoing votes.
-- Allows transparent verification of the weights used for a particular vote.
-- Enables historical auditing of how weights changed over time.
+*   Creates a permanent record of weights at the time voting begins.
+*   Prevents weight changes during a consensus cycle from affecting ongoing votes.
+*   Allows transparent verification of the weights used for a particular vote.
+*   Enables historical auditing of how weights changed over time.
 
 #### 6.3 Epoch Snapshot Creation
 
 ```rust
-// 4.d. Take the epoch snapshot
-fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
+        // Take the epoch snapshot
+        fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
 ```
 
 The epoch snapshot captures the aggregate state of the entire system:
-
-- Creates an [`EpochSnapshot`](#epochsnapshot) account for the NCN and epoch.
-- Records the total number of operators and vaults expected to participate.
-- Captures the total potential stake weight across all participants (initialized to zero).
-- Stores important metadata such as the snapshot creation slot.
-- Serves as the reference point for total voting power calculations, acting as the denominator for consensus thresholds.
+*   Creates an [`EpochSnapshot`](#epochsnapshot) account for the NCN and epoch.
+*   Records the total number of operators and vaults expected to participate.
+*   Captures the total potential stake weight across all participants (initialized to zero).
+*   Stores important metadata like the snapshot creation slot.
+*   Serves as the reference point for total voting power calculations, acting as the denominator for consensus thresholds.
 
 #### 6.4 Operator Snapshots
 
 ```rust
-// 4.e. Take snapshots for all operators
-fixture
-    .add_operator_snapshots_to_test_ncn(&test_ncn)
-    .await?;
+        // Take snapshots for all operators
+        fixture
+            .add_operator_snapshots_to_test_ncn(&test_ncn)
+            .await?;
 ```
 
 This step creates an individual snapshot for each operator in the system:
-
-- For each operator, it creates an [`OperatorSnapshot`](#operatorsnapshot) account linked to the operator, NCN, and epoch.
-- Records the operator's total delegated stake weight at this moment (initialized to zero).
-- Captures the expected number of vault delegations for the operator.
-- Verifies the operator has active handshakes with the NCN.
-- Validates the operator's eligibility to participate in voting.
+*   For each operator, it creates an [`OperatorSnapshot`](#operatorsnapshot) account linked to the operator, NCN, and epoch.
+*   Records the operator's total delegated stake weight at this moment (initialized to zero).
+*   Captures the expected number of vault delegations for the operator.
+*   Verifies the operator has active handshakes with the NCN.
+*   Validates the operator's eligibility to participate in voting.
 
 These snapshots establish each operator's baseline for the current epoch. The actual voting power will be populated in the next step based on individual delegations. This ensures that later delegation changes cannot alter voting weight once the snapshot phase is complete.
 
 #### 6.5 Vault-Operator Delegation Snapshots
 
 ```rust
-// 4.f. Record all vault-to-operator delegations
-fixture
-    .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
-    .await?;
+        // Record all vault-to-operator delegations
+        fixture
+            .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
+            .await?;
 ```
 
 This crucial step iterates through each active vault-to-operator delegation and records its contribution to the operator's voting power:
-
-- For each valid delegation found in the Jito Vault program:
+*   For each valid delegation found in the Jito Vault program:
     - Retrieves the corresponding token weight from the epoch's [`WeightTable`](#weighttable).
     - Calculates the weighted stake for that delegation (delegation amount * token weight).
     - Updates the relevant [`OperatorSnapshot`](#operatorsnapshot) by adding the calculated stake weight.
@@ -660,39 +660,35 @@ This crucial step iterates through each active vault-to-operator delegation and 
     - Creates a [`VaultOperatorDelegationSnapshot`](#vaultoperatordelegationsnapshot) account for detailed auditing.
 
 These granular snapshots serve multiple purposes:
-
-- They populate the [`OperatorSnapshot`](#operatorsnapshot) accounts with the actual stake weights used for voting.
-- They update the [`EpochSnapshot`](#epochsnapshot) with the total voting power present in the system for this epoch.
-- They provide detailed audit trails of exactly where each operator's voting power originates.
-- They enable verification of correct weight calculation for each delegation.
-- They prevent retroactive manipulation of the voting power distribution.
+*   They populate the [`OperatorSnapshot`](#operatorsnapshot) accounts with the actual stake weights used for voting.
+*   They update the [`EpochSnapshot`](#epochsnapshot) with the total voting power present in the system for this epoch.
+*   They provide detailed audit trails of exactly where each operator's voting power originates.
+*   They enable verification of correct weight calculation for each delegation.
+*   They prevent retroactive manipulation of the voting power distribution.
 
 #### 6.6 Ballot Box Initialization
 
 ```rust
-// 4.g. Initialize the ballot box for collecting votes
-fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
+        // Initialize the ballot box for collecting votes
+        fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 ```
 
 The final preparation step creates the ballot box:
-
-- Initializes a [`BallotBox`](#ballotbox) account linked to the NCN and epoch using `do_full_initialize_ballot_box`. Similar to the weight table, this may require multiple allocation calls internally.
-- Creates arrays to track operator votes ([`OperatorVote`](#operatorvote)) and ballot tallies ([`BallotTally`](#ballottally)).
-- Sets up the data structures for recording and counting votes.
-- Prepares the consensus tracking mechanism.
-- Links the ballot box to the [`EpochState`](#epochaccountstatus) for progress tracking.
+*   Initializes a [`BallotBox`](#ballotbox) account linked to the NCN and epoch using `do_full_initialize_ballot_box`. Similar to the weight table, this may require multiple allocation calls internally.
+*   Creates arrays to track operator votes ([`OperatorVote`](#operatorvote)) and ballot tallies ([`BallotTally`](#ballottally)).
+*   Sets up the data structures for recording and counting votes.
+*   Prepares the consensus tracking mechanism.
+*   Links the ballot box to the [`EpochState`](#epochaccountstatus) for progress tracking.
 
 The [`BallotBox`](#ballotbox) becomes the central repository where all votes are recorded and tallied during the voting process. It is designed to efficiently track:
-
-- Which operators have voted and what they voted for.
-- The cumulative stake weight behind each voting option (ballot).
-- The current winning ballot (if any).
-- Whether consensus has been reached.
+*   Which operators have voted and what they voted for.
+*   The cumulative stake weight behind each voting option (ballot).
+*   The current winning ballot (if any).
+*   Whether consensus has been reached.
 
 #### 6.7 Architecture and Security Considerations
 
 The snapshot system implements several key architectural principles:
-
 1.  **Point-in-Time Consistency**: All snapshots capture the system state relative to the start of the epoch, creating a consistent view based on frozen weights and delegations present at that time.
 2.  **Immutability**: Once taken and populated, snapshots cannot be modified, ensuring the integrity of the voting weights used.
 3.  **Layered Verification**: The system enables verification at multiple levels:
@@ -717,8 +713,8 @@ The Voting Process is the core functionality of the NCN system, where operators 
 #### 7.1 Setting the Expected Outcome
 
 ```rust
-// Define the expected winning weather status
-let winning_weather_status = WeatherStatus::Sunny as u8;
+        // Define the expected winning weather status
+        let winning_weather_status = WeatherStatus::Sunny as u8;
 ```
 
 For testing purposes, the system defines an expected outcome (`WeatherStatus::Sunny`). In a production environment, the winning outcome would be determined organically through actual operator votes based on real-world data or criteria. The weather status enum (`Sunny`, `Cloudy`, `Rainy`) serves as a simplified proxy for any on-chain decision that requires consensus.
@@ -726,45 +722,45 @@ For testing purposes, the system defines an expected outcome (`WeatherStatus::Su
 #### 7.2 Casting Votes from Different Operators
 
 ```rust
-// 5. Cast votes from operators
-{
-    let epoch = fixture.clock().await.epoch;
+        // Cast votes from operators
+        {
+            let epoch = fixture.clock().await.epoch;
 
-    let first_operator = &test_ncn.operators[0];
-    let second_operator = &test_ncn.operators[1];
-    let third_operator = &test_ncn.operators[2];
+            let first_operator = &test_ncn.operators[0];
+            let second_operator = &test_ncn.operators[1];
+            let third_operator = &test_ncn.operators[2];
 
-    // First operator votes for Cloudy
-    ncn_program_client
-        .do_cast_vote(
-            ncn_pubkey,
-            first_operator.operator_pubkey,
-            &first_operator.operator_admin,
-            WeatherStatus::Cloudy as u8,
-            epoch,
-        )
-        .await?;
+            // First operator votes for Cloudy
+            ncn_program_client
+                .do_cast_vote(
+                    ncn_pubkey,
+                    first_operator.operator_pubkey,
+                    &first_operator.operator_admin,
+                    WeatherStatus::Cloudy as u8,
+                    epoch,
+                )
+                .await?;
 
-    // Second and third operators vote for Sunny (expected winner)
-    ncn_program_client
-        .do_cast_vote(
-            ncn_pubkey,
-            second_operator.operator_pubkey,
-            &second_operator.operator_admin,
-            winning_weather_status,
-            epoch,
-        )
-        .await?;
-    ncn_program_client
-        .do_cast_vote(
-            ncn_pubkey,
-            third_operator.operator_pubkey,
-            &third_operator.operator_admin,
-            winning_weather_status,
-            epoch,
-        )
-        .await?;
-}
+            // Second and third operators vote for Sunny (expected winner)
+            ncn_program_client
+                .do_cast_vote(
+                    ncn_pubkey,
+                    second_operator.operator_pubkey,
+                    &second_operator.operator_admin,
+                    winning_weather_status,
+                    epoch,
+                )
+                .await?;
+            ncn_program_client
+                .do_cast_vote(
+                    ncn_pubkey,
+                    third_operator.operator_pubkey,
+                    &third_operator.operator_admin,
+                    winning_weather_status,
+                    epoch,
+                )
+                .await?;
+        }
 ```
 
 This section demonstrates the system's ability to handle diverse voting preferences using the `do_cast_vote` helper, which calls the `cast_vote` instruction:
@@ -774,74 +770,71 @@ This section demonstrates the system's ability to handle diverse voting preferen
 3.  Each `do_cast_vote` call invokes the NCN program with the operator's choice and admin signature.
 
 Under the hood, each vote triggers several key operations within the `cast_vote` instruction:
-
-- **Verification**:
+*   **Verification**:
     - Verifies the operator admin's signature.
     - Checks that the operator hasn't already voted in this epoch using the [`BallotBox`](#ballotbox).
     - Retrieves the operator's [`OperatorSnapshot`](#operatorsnapshot) to confirm eligibility and get its total stake weight.
     - Ensures the [`EpochState`](#epochaccountstatus) indicates voting is currently allowed.
-- **Recording**:
+*   **Recording**:
     - Records the vote details (operator, slot, stake weight, ballot choice) in the `operator_votes` array within the [`BallotBox`](#ballotbox).
     - Marks the operator as having voted.
-- **Tallying**:
+*   **Tallying**:
     - Finds or creates a [`BallotTally`](#ballottally) for the chosen weather status in the `ballot_tallies` array.
     - Adds the operator's full stake weight (from the snapshot) to this tally.
     - Increments the raw vote count for this tally.
-- **Consensus Check**:
+*   **Consensus Check**:
     - Compares the updated tally's stake weight against the total stake weight recorded in the [`EpochSnapshot`](#epochsnapshot).
     - If the tally now exceeds the consensus threshold (e.g., 66%), it marks consensus as reached in the [`BallotBox`](#ballotbox) and records the current slot.
 
 #### 7.3 Establishing Consensus Through Majority Voting
 
 ```rust
-    // All remaining operators vote for Sunny to form a majority
-    for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT).skip(3) {
-        ncn_program_client
-            .do_cast_vote(
-                ncn_pubkey,
-                operator_root.operator_pubkey,
-                &operator_root.operator_admin,
-                winning_weather_status,
-                epoch,
-            )
-            .await?;
+        // All remaining operators vote for Sunny to form a majority
+        for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT).skip(3) {
+            ncn_program_client
+                .do_cast_vote(
+                    ncn_pubkey,
+                    operator_root.operator_pubkey,
+                    &operator_root.operator_admin,
+                    winning_weather_status,
+                    epoch,
+                )
+                .await?;
+        }
     }
-}
 ```
 
 To establish a clear consensus in the test, the remaining eligible operators (excluding the first three and the one with zero delegation) all vote for the "Sunny" option. This accumulation of stake weight behind "Sunny" surpasses the required threshold.
 
 The consensus mechanism works as follows:
-
-1.  The system maintains a running [`BallotTally`](#ballottally) for each unique option voted on.
-2.  After each vote, it recalculates the total stake weight supporting the voted option.
-3.  It compares this stake weight to the total stake weight available in the [`EpochSnapshot`](#epochsnapshot).
-4.  If an option's stake weight reaches the consensus threshold (e.g., >= 66%), the system:
+*   The system maintains a running [`BallotTally`](#ballottally) for each unique option voted on.
+*   After each vote, it recalculates the total stake weight supporting the voted option.
+*   It compares this stake weight to the total stake weight available in the [`EpochSnapshot`](#epochsnapshot).
+*   If an option's stake weight reaches the consensus threshold (e.g., >= 66%), the system:
     - Marks that `Ballot` as the `winning_ballot` in the [`BallotBox`](#ballotbox).
     - Records the current `slot` in `slot_consensus_reached`.
-    - Updates the [`EpochState`](#epochaccountstatus).
+    - Updates the `EpochState`.
     - Creates a persistent [`ConsensusResult`](#consensusresult) account (discussed in Verification).
-5.  Consensus requires a supermajority to ensure decisions have strong, verifiable support across the network's weighted stake.
+*   Consensus requires a supermajority to ensure decisions have strong, verifiable support across the network's weighted stake.
 
 #### 7.4 Vote Processing Architecture
 
 When an operator casts a vote via the `cast_vote` instruction, the system performs several critical operations:
-
-1.  **Authentication**: Verifies the transaction is signed by the correct `operator_admin` keypair associated with the `operator` account.
-2.  **Authorization & Preconditions**: Confirms that:
+*   **Authentication**: Verifies the transaction is signed by the correct `operator_admin` keypair associated with the `operator` account.
+*   **Authorization & Preconditions**: Confirms that:
     - The operator exists, is registered with the NCN, and has an active [`OperatorSnapshot`](#operatorsnapshot) for the current `epoch`.
     - The operator has not already voted in this epoch (checked via [`BallotBox`](#ballotbox)).
     - The operator has non-zero stake weight in their [`OperatorSnapshot`](#operatorsnapshot).
     - The [`EpochState`](#epochaccountstatus) confirms that the snapshotting phase is complete and voting is open.
-3.  **Vote Recording**:
+*   **Vote Recording**:
     - Locates an empty slot or confirms the operator hasn't voted in the `operator_votes` array within the [`BallotBox`](#ballotbox).
     - Stores the `operator` pubkey, current `slot`, the operator's total `stake_weights` (from [`OperatorSnapshot`](#operatorsnapshot)), and the index corresponding to the chosen ballot within the `ballot_tallies` array.
     - Increments the `operators_voted` counter in the [`BallotBox`](#ballotbox).
-4.  **Ballot Processing & Tallying**:
+*   **Ballot Processing & Tallying**:
     - Searches the `ballot_tallies` array for an existing entry matching the `weather_status`.
-    - If found, adds the operator's `stake_weights` to the `stake_weights` field of the existing [`BallotTally`](#ballottally) and increments the raw `tally` counter.
-    - If not found, initializes a new `BallotTally` entry with the `weather_status`, the operator's `stake_weights`, and a `tally` of 1. Increments `unique_ballots`.
-5.  **Consensus Calculation & Result Creation**:
+    - If found: Adds the operator's `stake_weights` to the `stake_weights` field of the existing [`BallotTally`](#ballottally) and increments the raw `tally` counter.
+    - If not found: Initializes a new `BallotTally` entry with the `weather_status`, the operator's `stake_weights`, and a `tally` of 1. Increments `unique_ballots`.
+*   **Consensus Calculation & Result Creation**:
     - Retrieves the total `stake_weights` from the `EpochSnapshot`.
     - Compares the winning ballot's accumulated `stake_weights` against the total.
     - If the threshold is met *and* consensus hasn't already been marked:
@@ -849,30 +842,25 @@ When an operator casts a vote via the `cast_vote` instruction, the system perfor
         - Records the current `slot` in `slot_consensus_reached`.
         - Updates the `EpochState`.
         - Invokes an instruction (likely via CPI or separate transaction) to create the `ConsensusResult` account, storing the winning status, epoch, weights, and slot.
-6.  **Cross-Validation**: Implicitly ensures the vote aligns with the correct `ncn` and `epoch` through the PDAs used for the involved accounts (`BallotBox`, `OperatorSnapshot`, `EpochState`).
+*   **Cross-Validation**: Implicitly ensures the vote aligns with the correct `ncn` and `epoch` through the PDAs used for the involved accounts (`BallotBox`, `OperatorSnapshot`, `EpochState`).
 
 This multi-layered architecture ensures votes are processed securely, tallied correctly using the snapshotted weights, and that consensus is determined accurately based on stake-weighted participation.
 
 #### 7.5 Security Considerations in the Voting Process
 
 The voting process incorporates several key security features:
-
-1.  **Sybil Attack Prevention**:
-    - Voting power is derived directly from stake weight captured in immutable [`OperatorSnapshot`](#operatorsnapshot) accounts, not operator count.
+*   **Sybil Attack Prevention**:
+    - Voting power is derived directly from snapshotted stake weight, not operator count.
     - Operators with zero snapshotted stake weight cannot vote, preventing attacks based on creating numerous fake operators.
-2.  **Replay Protection**:
+*   **Replay Protection**:
     - The [`BallotBox`](#ballotbox) tracks which operators have voted (`operator_votes` array).
     - Attempts by an operator to vote more than once within the same epoch are rejected.
-3.  **Time-Bound Voting**:
+*   **Time-Bound Voting**:
     - Votes are only accepted if the [`EpochState`](#epochaccountstatus) indicates the voting phase is active for the specified `epoch`.
     - While votes might be accepted slightly after consensus is reached (within `valid_slots_after_consensus`), they won't change the already determined outcome.
-4.  **Authority Verification**:
-    - The `cast_vote` instruction requires a signature from the `operator_admin`, ensuring only the authorized entity can cast a vote for that operator.
-5.  **Tamper-Proof Tallying**:
-    - Votes are tallied based on immutable [`OperatorSnapshot`](#operatorsnapshot) data created *before* voting began.
-    - The system prevents retroactive changes to stake weights from affecting an ongoing or completed vote tally for that epoch.
-6.  **Consistent Threshold**:
-    - The consensus threshold is calculated based on the total stake weight recorded in the [`EpochSnapshot`](#epochsnapshot), providing a fixed target for the epoch.
+*   **Authority**: Requires `operator_admin` signature.
+*   **Tamper-Proof Tallying**: Uses immutable snapshotted data created *before* voting began.
+*   **Consistent Threshold**: Calculated based on the total stake weight recorded in the [`EpochSnapshot`](#epochsnapshot), providing a fixed target for the epoch.
 
 These security measures ensure the voting process remains resilient against various attack vectors and manipulation attempts, maintaining the integrity of the consensus mechanism.
 
@@ -883,20 +871,20 @@ The Verification phase validates that the voting process completed successfully 
 #### 8.1 Ballot Box Verification
 
 ```rust
-// 6. Verify voting results
-let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
-assert!(ballot_box.has_winning_ballot());
-assert!(ballot_box.is_consensus_reached());
-assert_eq!(
-    ballot_box.get_winning_ballot().unwrap().weather_status(),
-    winning_weather_status
-);
+        // Verify the results recorded in the BallotBox
+        {
+            let epoch = fixture.clock().await.epoch;
+            let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
+
+            assert!(ballot_box.has_winning_ballot());
+            assert!(ballot_box.is_consensus_reached());
+            assert_eq!(ballot_box.get_winning_ballot().unwrap().weather_status(), winning_weather_status);
+        }
 ```
 
 The first verification step examines the `BallotBox` account for the completed epoch:
-
-1.  **Winning Ballot Check**:
-    - `has_winning_ballot()` confirms that the `winning_ballot` field within the `BallotBox` structure is marked as valid. This happens only when a ballot option crosses the consensus threshold.
+*   **Winning Ballot Check**:
+    - `has_winning_ballot()` confirms that the `winning_ballot` field within the `BallotBox` structure is marked as valid.
 2.  **Consensus Status Check**:
     - `is_consensus_reached()` checks if the `slot_consensus_reached` field is greater than zero, indicating the consensus condition was met during the voting process.
 3.  **Outcome Verification**:
@@ -907,41 +895,34 @@ Verifying the `BallotBox` ensures the core voting and tallying mechanism functio
 #### 8.2 Consensus Result Account Verification
 
 ```rust
-// 7. Fetch and verify the consensus_result account
-{
-    let epoch = fixture.clock().await.epoch;
-    let consensus_result = ncn_program_client
-        .get_consensus_result(ncn_pubkey, epoch)
-        .await?;
+        // Fetch and verify the consensus_result account
+        {
+            let epoch = fixture.clock().await.epoch;
+            let consensus_result = ncn_program_client
+                .get_consensus_result(ncn_pubkey, epoch)
+                .await?;
 
-    // Verify consensus_result account exists and has correct values
-    assert!(consensus_result.is_consensus_reached());
-    assert_eq!(consensus_result.epoch(), epoch);
-    assert_eq!(consensus_result.weather_status(), winning_weather_status);
+            assert!(consensus_result.is_consensus_reached());
+            assert_eq!(consensus_result.epoch(), epoch);
+            assert_eq!(consensus_result.weather_status(), winning_weather_status);
 
-    // Get ballot box to compare values
-    let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
-    let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
+            let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
+            let winning_ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
 
-    // Verify vote weights match between ballot box and consensus result
-    assert_eq!(
-        consensus_result.vote_weight(),
-        winning_ballot_tally.stake_weights().stake_weight() as u64
-    );
+            assert_eq!(consensus_result.vote_weight(), winning_ballot_tally.stake_weights().stake_weight() as u64);
 
-    println!(
-        "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}, Recorder: {}",
-        consensus_result.weather_status(),
-        consensus_result.vote_weight(),
-        consensus_result.total_vote_weight(),
-        consensus_result.consensus_recorder()
-    );
-}
+            println!(
+                "✅ Consensus Result Verified - Weather Status: {}, Vote Weight: {}, Total Weight: {}, Recorder: {}",
+                consensus_result.weather_status(),
+                consensus_result.vote_weight(),
+                consensus_result.total_vote_weight(),
+                consensus_result.consensus_recorder()
+            );
+        }
 ```
 
 The second verification step examines the `ConsensusResult` account, which serves as the permanent, immutable record of the voting outcome:
-
-1.  **Consensus Result Existence & Fetching**:
+*   **Consensus Result Existence & Fetching**:
     - The test successfully fetches the `ConsensusResult` account using its PDA derived from the NCN pubkey and epoch. Its existence implies consensus was reached and the account was created.
 2.  **Consensus Status Validation**:
     - `is_consensus_reached()` checks an internal flag derived from stored values (like `consensus_slot` > 0), confirming the outcome is officially recognized.
@@ -953,7 +934,7 @@ The second verification step examines the `ConsensusResult` account, which serve
     - Retrieves the `BallotTally` corresponding to the winning ballot from the `BallotBox`.
     - Asserts that the `vote_weight` stored in the `ConsensusResult` exactly matches the `stake_weight` recorded in the winning `BallotTally` within the `BallotBox`. This ensures consistency between the temporary voting record and the permanent result.
 5.  **Detailed Reporting**:
-    - Prints key details from the verified `ConsensusResult` account for confirmation. Note: The `consensus_recorder()` field mentioned in the print statement isn't present in the provided struct definition for `ConsensusResult`; this might be a documentation inconsistency or relate to a field not shown.
+    - Prints key details from the verified `ConsensusResult` account for confirmation.
 
 Verifying the `ConsensusResult` confirms that the outcome was durably stored with the correct details and consistent with the voting process itself.
 
@@ -961,7 +942,7 @@ Verifying the `ConsensusResult` confirms that the outcome was durably stored wit
 
 The verification phase highlights several important architectural features:
 
-1.  **Dual Record Keeping**:
+1.  **Dual Records**:
     - The system temporarily uses the `BallotBox` during the epoch for active voting and tallying.
     - Upon reaching consensus, it creates a separate, permanent `ConsensusResult` account.
     - This redundancy allows for cleanup while preserving the essential outcome.
@@ -969,7 +950,7 @@ The verification phase highlights several important architectural features:
     - The `BallotBox` (process) can eventually be closed to reclaim rent.
     - The `ConsensusResult` (outcome) persists indefinitely as the historical record.
 3.  **Automated Result Creation**:
-    - The `ConsensusResult` account is typically created automatically within the `cast_vote` instruction (or a closely related one) when the consensus threshold is first met. This ensures timely recording without requiring a separate administrative action.
+    - The `ConsensusResult` account is typically created automatically within the `cast_vote` instruction when the consensus threshold is first met. This ensures timely recording without requiring a separate administrative action.
 4.  **Result Immutability**:
     - The `ConsensusResult` account, once created, is designed to be immutable. It stores the outcome based on the state when consensus was reached.
 5.  **Time and Slot Tracking**:
@@ -993,39 +974,36 @@ This rigorous verification ensures the NCN system reliably achieves and records 
 After the core functionality has been tested and verified for a given epoch, the temporary accounts associated with that epoch can be closed to reclaim the SOL locked for rent. The persistent `ConsensusResult` account remains.
 
 ```rust
-// 8. Close epoch accounts but keep consensus result
-let epoch_before_closing_account = fixture.clock().await.epoch;
-fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
+        // Close epoch accounts but keep consensus result
+        let epoch_before_closing_account = fixture.clock().await.epoch;
+        fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
-// Verify that consensus_result account is not closed
-{
-    let consensus_result = ncn_program_client
-        .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
-        .await?;
+        // Verify that consensus_result account is not closed
+        {
+            let consensus_result = ncn_program_client
+                .get_consensus_result(ncn_pubkey, epoch_before_closing_account)
+                .await?;
 
-    // Verify consensus_result account exists and has correct values
-    assert!(consensus_result.is_consensus_reached());
-    assert_eq!(consensus_result.epoch(), epoch_before_closing_account);
-}
+            assert!(consensus_result.is_consensus_reached());
+            assert_eq!(consensus_result.epoch(), epoch_before_closing_account);
+        }
 ```
 
 This cleanup process involves:
-
-1.  **Identifying Epoch**: Recording the current epoch (`epoch_before_closing_account`) just before initiating closure.
-2.  **Closing Accounts**: Calling `fixture.close_epoch_accounts_for_test_ncn`, which likely iterates through epoch-specific accounts (`EpochState`, `WeightTable`, `EpochSnapshot`, all `OperatorSnapshot`s, `BallotBox`, potentially `VaultOperatorDelegationSnapshot`s) and invokes a `close_epoch_account` instruction (or similar) for each. This instruction typically transfers the rent SOL back to a designated recipient (often the original payer or a treasury) and closes the account. An `EpochMarker` account might be created to signify successful cleanup.
-3.  **Verifying Persistence**: After the cleanup function returns, the test attempts to fetch the `ConsensusResult` account for the *same epoch* again.
-4.  **Confirming Data**: It asserts that the fetched `ConsensusResult` still exists and retains its key data (`is_consensus_reached`, `epoch`), confirming it was *not* closed during the cleanup process.
+*   **Identifying Epoch**: Recording the current epoch (`epoch_before_closing_account`) just before initiating closure.
+*   **Closing Accounts**: Calling `fixture.close_epoch_accounts_for_test_ncn`, which likely iterates through epoch-specific accounts and invokes a `close_epoch_account` instruction for each.
+*   **Verifying Persistence**: After the cleanup function returns, the test attempts to fetch the `ConsensusResult` account for the *same* `epoch_before_closing_account`.
+*   **Confirming Data**: It asserts that the fetched `ConsensusResult` still exists and retains its key data (`is_consensus_reached`, `epoch`), confirming it was *not* closed during the cleanup process.
 
 This demonstrates a crucial design feature:
-
-- **Resource Management**: Temporary accounts used only during the voting cycle are cleaned up, preventing indefinite accumulation of rent-paying accounts.
-- **Outcome Preservation**: The final, critical outcome (`ConsensusResult`) is preserved as a permanent on-chain record, suitable for historical lookups or use by other programs.
+*   **Resource Management**: Temporary accounts are removed, preventing indefinite accumulation of rent-paying accounts.
+*   **Outcome Preservation**: The final, critical outcome (`ConsensusResult`) is preserved as a permanent on-chain record, suitable for historical lookups or use by other programs.
 
 This efficient cleanup mechanism allows the NCN system to operate continuously over many epochs without unbounded growth in account storage requirements.
 
 ## Core Struct Definitions
 
-Here are the core data structures defined in the `/core/src` directory, used throughout the NCN program:
+Here are the definitions for the core data structures used by the NCN program, typically found in the `/core/src` directory. Understanding these structures is key to understanding the program's logic.
 
 ### Config
 
@@ -1037,17 +1015,18 @@ file: `config.rs`
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct Config {
-      /// The Restaking program's NCN admin is the signer to create and update this account
+      /// The Pubkey of the associated Jito Restaking NCN account this config belongs to.
       pub ncn: Pubkey,
-      /// The admin to update the tie breaker - who can decide the meta merkle root when consensus is reached
+      /// The admin authorized to update the tie breaker mechanism or parameters.
       pub tie_breaker_admin: Pubkey,
-      /// Number of slots after consensus reached where voting is still valid
+      /// Number of slots after consensus is reached where votes are still accepted
+      /// (though they won't change the outcome).
       pub valid_slots_after_consensus: PodU64,
-      /// Number of epochs before voting is considered stalled
+      /// Number of epochs without reaching consensus before the cycle is considered stalled.
       pub epochs_before_stall: PodU64,
-      /// Number of epochs after consensus reached where voting is still valid
+      /// Number of epochs to wait after consensus is reached before epoch accounts can be closed.
       pub epochs_after_consensus_before_close: PodU64,
-      /// Only epochs after this epoch are valid for voting
+      /// The first epoch number for which voting is considered valid.
       pub starting_valid_epoch: PodU64,
       /// Bump seed for the PDA
       pub bump: u8,
@@ -1099,7 +1078,7 @@ file: `ballot_box.rs`
 
 file: `ballot_box.rs`
 
-- **Purpose**: Records the vote cast by a single operator in a specific epoch.
+- **Purpose**: Records the vote cast by a single operator within a specific epoch's `BallotBox`.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
@@ -1111,23 +1090,23 @@ file: `ballot_box.rs`
       slot_voted: PodU64,
       /// The stake weights of the operator
       stake_weights: StakeWeights,
-      /// The index of the ballot in the ballot_tallies
+      /// The index of the ballot in the ballot_tallies array
       ballot_index: PodU16,
   }
   ```
-- **Explanation**: Stores the `operator` pubkey, the `slot_voted`, their `stake_weights` at that time, and the `ballot_index` they voted for.
+- **Explanation**: Stores the `operator` pubkey, the current `slot`, their `stake_weights`, and the `ballot_index` they voted for.
 
 ### BallotBox
 
 file: `ballot_box.rs`
 
-- **Purpose**: The central account for managing the voting process within a specific epoch. It collects votes, tallies them, and determines consensus.
+- **Purpose**: The central account for managing the voting process within a specific epoch.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct BallotBox {
-      /// The NCN account this ballot box is for
+      /// The Pubkey of the NCN this ballot box is for
       ncn: Pubkey,
       /// The epoch this ballot box is for
       epoch: PodU64,
@@ -1149,19 +1128,19 @@ file: `ballot_box.rs`
       ballot_tallies: [BallotTally; MAX_OPERATORS],
   }
   ```
-- **Explanation**: Holds metadata (`ncn`, `epoch`, timestamps), vote counts (`operators_voted`, `unique_ballots`), the `winning_ballot` (if consensus reached), and arrays for individual `operator_votes` and aggregated `ballot_tallies`.
+- **Explanation**: Holds metadata (`ncn`, `epoch`, timestamps), vote counts, and arrays for individual operator votes and aggregated tallies.
 
 ### ConsensusResult
 
 file: `consensus_result.rs`
 
-- **Purpose**: A persistent account storing the final outcome of a consensus cycle for a specific epoch. It remains even after epoch-specific accounts are closed.
+- **Purpose**: A persistent account storing the final, immutable outcome of a consensus cycle for a specific epoch.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct ConsensusResult {
-      /// The NCN this consensus result is for
+      /// The Pubkey of the NCN this consensus result is for
       ncn: Pubkey,
       /// The epoch this consensus result is for
       epoch: PodU64,
@@ -1177,7 +1156,7 @@ file: `consensus_result.rs`
       weather_status: u8,
   }
   ```
-- **Explanation**: Stores the `ncn`, `epoch`, the winning `weather_status`, the `vote_weight` supporting it, the `total_vote_weight` possible in that epoch, and the `consensus_slot`.
+- **Explanation**: Stores the `ncn`, `epoch`, the winning `weather_status`, and the `consensus_slot`.
 
 ### AccountPayer
 
@@ -1211,21 +1190,21 @@ file: `epoch_marker.rs`
 
 file: `epoch_snapshot.rs`
 
-- **Purpose**: Captures the overall state of the NCN system at the beginning of a specific epoch, including participant counts and total potential stake weight.
+- **Purpose**: Captures the aggregated state of the NCN system at the beginning of a specific epoch snapshot phase.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct EpochSnapshot {
-      /// The NCN this snapshot is for
+      /// The Pubkey of the NCN this snapshot is for
       ncn: Pubkey,
       /// The epoch this snapshot is for
       epoch: PodU64,
       /// Bump seed for the PDA
       bump: u8,
-      /// Slot Epoch snapshot was created
+      /// Slot when this EpochSnapshot account was created
       slot_created: PodU64,
-      /// Slot Epoch snapshot was finalized
+      /// Slot when the snapshotting process (including all operator delegations) was completed
       slot_finalized: PodU64,
       /// Number of operators in the epoch
       operator_count: PodU64,
@@ -1239,13 +1218,13 @@ file: `epoch_snapshot.rs`
       stake_weights: StakeWeights,
   }
   ```
-- **Explanation**: Stores metadata (`ncn`, `epoch`, timestamps), counts (`operator_count`, `vault_count`), progress trackers (`operators_registered`, `valid_operator_vault_delegations`), and the total aggregated `stake_weights` for the epoch.
+- **Explanation**: Stores metadata (`ncn`, `epoch`, timestamps), counts (`operator_count`, `vault_count`), progress trackers, and the total aggregated `stake_weights` for the epoch.
 
 ### OperatorSnapshot
 
 file: `epoch_snapshot.rs`
 
-- **Purpose**: Captures the state of a single operator, including their total delegated stake and its breakdown by vault/token type, at the beginning of a specific epoch.
+- **Purpose**: Captures the state of a single operator for a specific epoch, including their total delegated stake weight and a breakdown of contributions from each vault.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
@@ -1268,13 +1247,13 @@ file: `epoch_snapshot.rs`
       vault_operator_stake_weight: [VaultOperatorStakeWeight; MAX_VAULTS],
   }
   ```
-- **Explanation**: Contains operator/NCN identifiers, timestamps, status (`is_active`), indices, `operator_fee_bps`, delegation counts/progress, the operator's total `stake_weights`, and a detailed breakdown in `vault_operator_stake_weight`.
+- **Explanation**: Contains operator/NCN identifiers, timestamps, status, indices, `operator_fee_bps`, delegation counts/progress, the operator's total `stake_weights`, and a detailed breakdown in `vault_operator_stake_weight`.
 
 ### VaultOperatorStakeWeight
 
 file: `epoch_snapshot.rs`
 
-- **Purpose**: A helper struct within `OperatorSnapshot` to store the calculated stake weight originating from a specific vault's delegation to that operator.
+- **Purpose**: A helper struct within `OperatorSnapshot` to store the calculated stake weight originating from one specific vault's delegation to that operator.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroable, Pod)]
@@ -1333,23 +1312,23 @@ file: `vault_registry.rs`
 
 file: `vault_registry.rs`
 
-- **Purpose**: A global account for the NCN program instance that maintains the list of all supported token mints and all registered vaults participating in the system.
+- **Purpose**: A global account for the NCN program instance that maintains the list of all supported token mints (`StMintEntry`) and all registered vaults (`VaultEntry`).
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct VaultRegistry {
-      /// The NCN the vault registry is associated with
+      /// The Pubkey of the associated NCN account this registry belongs to.
       pub ncn: Pubkey,
-      /// The bump seed for the PDA
+      /// Bump seed for the PDA
       pub bump: u8,
-      /// The list of supported token ( ST ) mints
+      /// Array storing entries for each supported token mint
       pub st_mint_list: [StMintEntry; MAX_ST_MINTS],
-      /// The list of vaults
+      /// Array storing entries for each vault
       pub vault_list: [VaultEntry; MAX_VAULTS],
   }
   ```
-- **Explanation**: Holds the `ncn` identifier, `bump`, and arrays for `st_mint_list` (supported tokens and weights) and `vault_list` (registered vaults).
+- **Explanation**: Holds the `ncn` identifier, `bump`, and arrays for `st_mint_list` and `vault_list`.
 
 ### WeightTable
 
@@ -1361,39 +1340,44 @@ file: `weight_table.rs`
   #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
   #[repr(C)]
   pub struct WeightTable {
-      /// The NCN the account is associated with
+      /// The Pubkey of the associated NCN account this account is for.
       ncn: Pubkey,
-      /// The epoch the account is associated with
+      /// The epoch this account is for.
       epoch: PodU64,
-      /// Slot weight table was created
+      /// Slot when this WeightTable account was created.
       slot_created: PodU64,
       /// Number of vaults in tracked mints at the time of creation
       vault_count: PodU64,
       /// Bump seed for the PDA
       bump: u8,
-      /// A snapshot of the Vault Registry
+      /// A snapshot copy of the relevant vault entries from the VaultRegistry
       vault_registry: [VaultEntry; MAX_VAULTS],
       /// The weight table
       table: [WeightEntry; MAX_ST_MINTS],
   }
   ```
-- **Explanation**: Contains metadata (`ncn`, `epoch`, `slot_created`, `vault_count`), a snapshot of the `vault_registry` at creation, and the main `table` holding `WeightEntry` structs with the frozen weights for the epoch.
+- **Explanation**: Contains metadata (`ncn`, `epoch`, `slot_created`, `vault_count`), a snapshot of the `vault_registry`, and the main `table` holding `WeightEntry` structs with the frozen weights for the epoch.
 
 ### EpochAccountStatus
 
 file: `epoch_state.rs`
 
-- **Purpose**: A helper struct within `EpochState` used to track the lifecycle status (e.g., DNE, Created, Closed) of various accounts associated with a specific epoch.
+- **Purpose**: A helper struct within `EpochState` used to track the lifecycle status of various temporary accounts associated with a specific epoch.
 - **Definition**:
   ```rust
   #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
   #[repr(C)]
   pub struct EpochAccountStatus {
+      /// Status of the main EpochState account itself.
       epoch_state: u8,
+      /// Status of the WeightTable account for this epoch.
       weight_table: u8,
+      /// Status of the main EpochSnapshot account for this epoch.
       epoch_snapshot: u8,
+      /// Status array for each individual OperatorSnapshot account.
       operator_snapshot: [u8; MAX_OPERATORS],
+      /// Status of the BallotBox account for this epoch.
       ballot_box: u8,
   }
   ```
-- **Explanation**: Uses `u8` fields to represent the status (`
+- **Explanation**: Uses `u8` fields to represent the status of various temporary accounts associated with a specific epoch.
