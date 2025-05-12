@@ -547,6 +547,8 @@ The configuration phase completes the preparation of the system's infrastructure
 
 The Epoch Snapshot and Voting Preparation phase is where the system captures the current state of all participants and prepares the infrastructure for voting. This is an essential component of the architecture as it ensures voting is based on a consistent, verifiable snapshot of the network state at a specific moment in time.
 
+The upcoming part a keeper task (except for the voting part), which means that it is premissionless and can be done by anyone.
+
 #### 6.1 Epoch State Initialization
 
 ```rust
@@ -554,15 +556,17 @@ The Epoch Snapshot and Voting Preparation phase is where the system captures the
 fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
 ```
 
-The epoch state serves as the control center for the current consensus cycle:
+This step initializes the **Epoch State** for the current consensus cycle:
 
-- It creates an `EpochState` account tied to the specific NCN and epoch
-- This account tracks the progress through each stage of the consensus cycle
-- It maintains flags for each phase (weight setting, snapshot taking, voting, closing)
-- The epoch state provides protection against out-of-sequence operations
-- It stores metadata like the current epoch, slot information, and participant counts
+- It creates an `EpochState` account tied to the specific NCN and epoch.
+- This account tracks the progress through each stage of the consensus cycle.
+- It maintains flags for each phase (weight setting, snapshot taking, voting, closing).
+- The epoch state provides protection against out-of-sequence operations.
+- It stores metadata like the current epoch, slot information, and participant counts.
 
-Once initialized, the epoch state becomes the authoritative record of where the system is in the voting process, preventing operations from happening out of order or in duplicate.
+Once initialized, the `EpochState` account becomes the authoritative record of where the system is in the voting process, preventing operations from happening out of order or in duplicate.
+
+you can take a look at the epoch state struct [here](#epochaccountstatus)
 
 #### 6.2 Weight Table Initialization and Population
 
@@ -580,27 +584,27 @@ ncn_program_client
     .await?;
 ```
 
-The weight table mechanism handles the token weights for the current epoch:
+The weight table mechanism handles the token weights for the current epoch in two stages:
 
-1. **Weight Table Initialization**:
+1.  **Weight Table Initialization**:
+    - Creates a [`WeightTable`](#weighttable) account for the specific epoch using `do_full_initialize_weight_table`. This may involve multiple calls internally to allocate sufficient space.
+    - Allocates space based on the number of supported tokens registered in the [`VaultRegistry`](#vaultregistry).
+    - Links the table to the NCN and current epoch.
+    - Initializes the table structure with empty entries.
 
-   - Creates a `WeightTable` account for the specific epoch
-   - Allocates space based on the number of supported tokens
-   - Links the table to the NCN and current epoch
-   - Initializes the table structure with empty entries
-
-2. **Weight Setting**:
-   - Copies the current weights from the vault registry to the weight table
-   - "Freezes" these weights for the duration of the consensus cycle
-   - Updates the epoch state to mark weight setting as complete
-   - Creates an immutable record of token weights that will be used for voting
+2.  **Weight Setting**:
+    - Populates the [`WeightTable`](#weighttable) by calling `do_set_epoch_weights`
+    - Copies the current weights from the [`VaultRegistry`](#vaultregistry) to the epoch-specific `WeightTable`.
+    - "Freezes" these weights for the duration of the consensus cycle.
+    - Updates the [`EpochState`](#epochaccountstatus) to mark weight setting as complete.
+    - Creates an immutable record of token weights that will be used for voting.
 
 This two-step process is critical for the integrity of the system as it:
 
-- Creates a permanent record of weights at the time voting begins
-- Prevents weight changes during a consensus cycle from affecting ongoing votes
-- Allows transparent verification of the weights used for a particular vote
-- Enables historical auditing of how weights changed over time
+- Creates a permanent record of weights at the time voting begins.
+- Prevents weight changes during a consensus cycle from affecting ongoing votes.
+- Allows transparent verification of the weights used for a particular vote.
+- Enables historical auditing of how weights changed over time.
 
 #### 6.3 Epoch Snapshot Creation
 
@@ -611,13 +615,11 @@ fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
 
 The epoch snapshot captures the aggregate state of the entire system:
 
-- Creates an `EpochSnapshot` account for the NCN and epoch
-- Records the total number of operators and vaults
-- Captures the total stake weight across all participants
-- Stores important metadata such as the snapshot creation slot
-- Serves as the reference point for total voting power calculations
-
-This global snapshot provides the denominator for consensus calculations - the total possible voting power in the system - which is essential for determining when consensus (e.g., 66% of total stake) has been reached.
+- Creates an [`EpochSnapshot`](#epochsnapshot) account for the NCN and epoch.
+- Records the total number of operators and vaults expected to participate.
+- Captures the total potential stake weight across all participants (initialized to zero).
+- Stores important metadata such as the snapshot creation slot.
+- Serves as the reference point for total voting power calculations, acting as the denominator for consensus thresholds.
 
 #### 6.4 Operator Snapshots
 
@@ -628,15 +630,15 @@ fixture
     .await?;
 ```
 
-For each operator in the system:
+This step creates an individual snapshot for each operator in the system:
 
-- Creates an `OperatorSnapshot` account linked to the operator, NCN, and epoch
-- Records the operator's total delegated stake at this moment
-- Captures the stake weight breakdown across different token types
-- Verifies the operator has active handshakes with the NCN
-- Validates the operator's eligibility to participate in voting
+- For each operator, it creates an [`OperatorSnapshot`](#operatorsnapshot) account linked to the operator, NCN, and epoch.
+- Records the operator's total delegated stake weight at this moment (initialized to zero).
+- Captures the expected number of vault delegations for the operator.
+- Verifies the operator has active handshakes with the NCN.
+- Validates the operator's eligibility to participate in voting.
 
-These snapshots establish each operator's voting power for the current epoch, ensuring that later delegations or withdrawals cannot alter the voting weight once the snapshot is taken. This prevents manipulation of the voting process through last-minute stake changes.
+These snapshots establish each operator's baseline for the current epoch. The actual voting power will be populated in the next step based on individual delegations. This ensures that later delegation changes cannot alter voting weight once the snapshot phase is complete.
 
 #### 6.5 Vault-Operator Delegation Snapshots
 
@@ -647,20 +649,23 @@ fixture
     .await?;
 ```
 
-For each active vault-to-operator delegation:
+This crucial step iterates through each active vault-to-operator delegation and records its contribution to the operator's voting power:
 
-- Creates a `VaultOperatorDelegationSnapshot` account
-- Records the exact delegation amount at the current moment
-- Links the snapshot to the specific vault, operator, NCN, and epoch
-- Multiplies the delegation by the corresponding token weight
-- Adds this weighted delegation to the operator's total stake weight
+- For each valid delegation found in the Jito Vault program:
+    - Retrieves the corresponding token weight from the epoch's [`WeightTable`](#weighttable).
+    - Calculates the weighted stake for that delegation (delegation amount * token weight).
+    - Updates the relevant [`OperatorSnapshot`](#operatorsnapshot) by adding the calculated stake weight.
+    - Stores detailed information about the weighted delegation within the [`OperatorSnapshot`](#operatorsnapshot)'s `vault_operator_stake_weight` array.
+    - Increments the total stake weight in the global [`EpochSnapshot`](#epochsnapshot).
+    - Creates a [`VaultOperatorDelegationSnapshot`](#vaultoperatordelegationsnapshot) account for detailed auditing.
 
 These granular snapshots serve multiple purposes:
 
-- They provide detailed audit trails of exactly where each operator's voting power comes from
-- They enable verification of correct weight calculation for each delegation
-- They prevent retroactive manipulation of the voting power distribution
-- They allow historical analysis of delegation patterns and their impact on voting
+- They populate the [`OperatorSnapshot`](#operatorsnapshot) accounts with the actual stake weights used for voting.
+- They update the [`EpochSnapshot`](#epochsnapshot) with the total voting power present in the system for this epoch.
+- They provide detailed audit trails of exactly where each operator's voting power originates.
+- They enable verification of correct weight calculation for each delegation.
+- They prevent retroactive manipulation of the voting power distribution.
 
 #### 6.6 Ballot Box Initialization
 
@@ -671,43 +676,37 @@ fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
 
 The final preparation step creates the ballot box:
 
-- Initializes a `BallotBox` account linked to the NCN and epoch
-- Creates arrays to track operator votes and ballot tallies
-- Sets up the data structures for recording and counting votes
-- Prepares the consensus tracking mechanism
-- Links the ballot box to the epoch state for progress tracking
+- Initializes a [`BallotBox`](#ballotbox) account linked to the NCN and epoch using `do_full_initialize_ballot_box`. Similar to the weight table, this may require multiple allocation calls internally.
+- Creates arrays to track operator votes ([`OperatorVote`](#operatorvote)) and ballot tallies ([`BallotTally`](#ballottally)).
+- Sets up the data structures for recording and counting votes.
+- Prepares the consensus tracking mechanism.
+- Links the ballot box to the [`EpochState`](#epochaccountstatus) for progress tracking.
 
-The ballot box becomes the central repository where all votes are recorded and tallied during the voting process. It is designed to efficiently track:
+The [`BallotBox`](#ballotbox) becomes the central repository where all votes are recorded and tallied during the voting process. It is designed to efficiently track:
 
-- Which operators have voted and what they voted for
-- The cumulative stake weight behind each voting option
-- The current winning ballot (if any)
-- Whether consensus has been reached
+- Which operators have voted and what they voted for.
+- The cumulative stake weight behind each voting option (ballot).
+- The current winning ballot (if any).
+- Whether consensus has been reached.
 
 #### 6.7 Architecture and Security Considerations
 
 The snapshot system implements several key architectural principles:
 
-1. **Point-in-Time Consistency**: All snapshots capture the system state at approximately the same moment, creating a consistent view.
-
-2. **Immutability**: Once taken, snapshots cannot be modified, ensuring the integrity of the voting process.
-
-3. **Layered Verification**: The system enables verification at multiple levels:
-
-   - Aggregate level (epoch snapshot)
-   - Participant level (operator snapshots)
-   - Relationship level (delegation snapshots)
-
-4. **Defense Against Time-Based Attacks**: By freezing the state before voting begins, the system prevents:
-
-   - Late stake additions to influence outcomes
-   - Strategic withdrawals after seeing early votes
-   - Any form of "stake voting power front-running"
-
-5. **Separation of State and Process**:
-   - The state (snapshots) is captured separately from the process (voting)
-   - This clear separation simplifies reasoning about the system
-   - It enables more effective testing and verification
+1.  **Point-in-Time Consistency**: All snapshots capture the system state relative to the start of the epoch, creating a consistent view based on frozen weights and delegations present at that time.
+2.  **Immutability**: Once taken and populated, snapshots cannot be modified, ensuring the integrity of the voting weights used.
+3.  **Layered Verification**: The system enables verification at multiple levels:
+    - Aggregate level (`EpochSnapshot`)
+    - Participant level (`OperatorSnapshot`)
+    - Relationship level (individual weighted delegations within `OperatorSnapshot`, optionally `VaultOperatorDelegationSnapshot`)
+4.  **Defense Against Time-Based Attacks**: By freezing the state (weights and relevant delegations) before voting begins, the system prevents:
+    - Late stake additions influencing outcomes within the *current* epoch.
+    - Strategic withdrawals affecting voting power *after* the snapshot.
+    - Any form of "stake voting power front-running" within the epoch.
+5.  **Separation of State and Process**:
+    - The state (snapshots, weights) is captured separately from the process (voting).
+    - This clear separation simplifies reasoning about the system.
+    - It enables more effective testing and verification.
 
 The comprehensive snapshot approach ensures that voting occurs on a well-defined, verifiable view of the network's state, establishing a solid foundation for the actual voting process to follow.
 
@@ -722,9 +721,9 @@ The Voting Process is the core functionality of the NCN system, where operators 
 let winning_weather_status = WeatherStatus::Sunny as u8;
 ```
 
-For testing purposes, the system defines an expected outcome. In a production environment, this would be determined organically through actual operator votes. The weather status enum (`Sunny`, `Cloudy`, `Rainy`) serves as a simplified proxy for any on-chain decision that requires consensus.
+For testing purposes, the system defines an expected outcome (`WeatherStatus::Sunny`). In a production environment, the winning outcome would be determined organically through actual operator votes based on real-world data or criteria. The weather status enum (`Sunny`, `Cloudy`, `Rainy`) serves as a simplified proxy for any on-chain decision that requires consensus.
 
-#### 6.2 Casting Votes from Different Operators
+#### 7.2 Casting Votes from Different Operators
 
 ```rust
 // 5. Cast votes from operators
@@ -768,26 +767,35 @@ For testing purposes, the system defines an expected outcome. In a production en
 }
 ```
 
-This section demonstrates the system's ability to handle diverse voting preferences:
+This section demonstrates the system's ability to handle diverse voting preferences using the `do_cast_vote` helper, which calls the `cast_vote` instruction:
 
-1. The first operator votes for "Cloudy" (representing a minority view)
-2. The second and third operators vote for "Sunny" (the presumed majority view)
-3. Each `do_cast_vote` call invokes the NCN program with the operator's choice
+1.  The first operator votes for "Cloudy" (representing a minority view).
+2.  The second and third operators vote for "Sunny" (the presumed majority view).
+3.  Each `do_cast_vote` call invokes the NCN program with the operator's choice and admin signature.
 
-Under the hood, each vote triggers several key operations:
+Under the hood, each vote triggers several key operations within the `cast_vote` instruction:
 
-- The system verifies the operator admin's authority to vote on behalf of the operator
-- It checks that the operator hasn't already voted in this epoch
-- It retrieves the operator's snapshot to determine its voting power
-- It records the vote in the ballot box, attributing the appropriate stake weight
-- It updates the tally for the chosen option
-- It checks whether the new vote has pushed any option past the consensus threshold
+- **Verification**:
+    - Verifies the operator admin's signature.
+    - Checks that the operator hasn't already voted in this epoch using the [`BallotBox`](#ballotbox).
+    - Retrieves the operator's [`OperatorSnapshot`](#operatorsnapshot) to confirm eligibility and get its total stake weight.
+    - Ensures the [`EpochState`](#epochaccountstatus) indicates voting is currently allowed.
+- **Recording**:
+    - Records the vote details (operator, slot, stake weight, ballot choice) in the `operator_votes` array within the [`BallotBox`](#ballotbox).
+    - Marks the operator as having voted.
+- **Tallying**:
+    - Finds or creates a [`BallotTally`](#ballottally) for the chosen weather status in the `ballot_tallies` array.
+    - Adds the operator's full stake weight (from the snapshot) to this tally.
+    - Increments the raw vote count for this tally.
+- **Consensus Check**:
+    - Compares the updated tally's stake weight against the total stake weight recorded in the [`EpochSnapshot`](#epochsnapshot).
+    - If the tally now exceeds the consensus threshold (e.g., 66%), it marks consensus as reached in the [`BallotBox`](#ballotbox) and records the current slot.
 
 #### 7.3 Establishing Consensus Through Majority Voting
 
 ```rust
     // All remaining operators vote for Sunny to form a majority
-    for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT - 1).skip(3) {
+    for operator_root in test_ncn.operators.iter().take(OPERATOR_COUNT).skip(3) {
         ncn_program_client
             .do_cast_vote(
                 ncn_pubkey,
@@ -801,93 +809,78 @@ Under the hood, each vote triggers several key operations:
 }
 ```
 
-To establish a clear consensus, the remaining operators (excluding the first three that already voted) all vote for the "Sunny" option. This creates a supermajority that surpasses the required threshold for consensus.
+To establish a clear consensus in the test, the remaining eligible operators (excluding the first three and the one with zero delegation) all vote for the "Sunny" option. This accumulation of stake weight behind "Sunny" surpasses the required threshold.
 
 The consensus mechanism works as follows:
 
-1. The system maintains a running tally of stake weight for each voting option
-2. After each vote, it calculates whether any option has reached the consensus threshold (typically 66% of total stake)
-3. If an option reaches consensus, the system marks the slot when consensus was achieved
-4. Consensus requires a supermajority to ensure that decisions have strong support across the network
-5. Once consensus is reached, a record is created that persists even after the voting epoch ends
+1.  The system maintains a running [`BallotTally`](#ballottally) for each unique option voted on.
+2.  After each vote, it recalculates the total stake weight supporting the voted option.
+3.  It compares this stake weight to the total stake weight available in the [`EpochSnapshot`](#epochsnapshot).
+4.  If an option's stake weight reaches the consensus threshold (e.g., >= 66%), the system:
+    - Marks that `Ballot` as the `winning_ballot` in the [`BallotBox`](#ballotbox).
+    - Records the current `slot` in `slot_consensus_reached`.
+    - Updates the [`EpochState`](#epochaccountstatus).
+    - Creates a persistent [`ConsensusResult`](#consensusresult) account (discussed in Verification).
+5.  Consensus requires a supermajority to ensure decisions have strong, verifiable support across the network's weighted stake.
 
 #### 7.4 Vote Processing Architecture
 
-When an operator casts a vote, the system performs several critical operations to ensure security and proper consensus calculation:
+When an operator casts a vote via the `cast_vote` instruction, the system performs several critical operations:
 
-1. **Authentication**: Verifies that the transaction is signed by the operator's admin key
-2. **Authorization**: Confirms that:
+1.  **Authentication**: Verifies the transaction is signed by the correct `operator_admin` keypair associated with the `operator` account.
+2.  **Authorization & Preconditions**: Confirms that:
+    - The operator exists, is registered with the NCN, and has an active [`OperatorSnapshot`](#operatorsnapshot) for the current `epoch`.
+    - The operator has not already voted in this epoch (checked via [`BallotBox`](#ballotbox)).
+    - The operator has non-zero stake weight in their [`OperatorSnapshot`](#operatorsnapshot).
+    - The [`EpochState`](#epochaccountstatus) confirms that the snapshotting phase is complete and voting is open.
+3.  **Vote Recording**:
+    - Locates an empty slot or confirms the operator hasn't voted in the `operator_votes` array within the [`BallotBox`](#ballotbox).
+    - Stores the `operator` pubkey, current `slot`, the operator's total `stake_weights` (from [`OperatorSnapshot`](#operatorsnapshot)), and the index corresponding to the chosen ballot within the `ballot_tallies` array.
+    - Increments the `operators_voted` counter in the [`BallotBox`](#ballotbox).
+4.  **Ballot Processing & Tallying**:
+    - Searches the `ballot_tallies` array for an existing entry matching the `weather_status`.
+    - If found, adds the operator's `stake_weights` to the `stake_weights` field of the existing [`BallotTally`](#ballottally) and increments the raw `tally` counter.
+    - If not found, initializes a new `BallotTally` entry with the `weather_status`, the operator's `stake_weights`, and a `tally` of 1. Increments `unique_ballots`.
+5.  **Consensus Calculation & Result Creation**:
+    - Retrieves the total `stake_weights` from the `EpochSnapshot`.
+    - Compares the winning ballot's accumulated `stake_weights` against the total.
+    - If the threshold is met *and* consensus hasn't already been marked:
+        - Sets the `winning_ballot` field in the `BallotBox`.
+        - Records the current `slot` in `slot_consensus_reached`.
+        - Updates the `EpochState`.
+        - Invokes an instruction (likely via CPI or separate transaction) to create the `ConsensusResult` account, storing the winning status, epoch, weights, and slot.
+6.  **Cross-Validation**: Implicitly ensures the vote aligns with the correct `ncn` and `epoch` through the PDAs used for the involved accounts (`BallotBox`, `OperatorSnapshot`, `EpochState`).
 
-   - The operator exists and has an active relationship with the NCN
-   - The operator has not already voted in this epoch
-   - The operator has non-zero stake weight
-
-3. **Vote Recording**:
-
-   - Creates an `OperatorVote` record in the ballot box
-   - Stores the operator's public key, slot when voted, stake weight, and ballot choice
-   - Marks the operator as having voted for this epoch
-
-4. **Ballot Processing**:
-
-   - Updates or creates a `BallotTally` for the chosen option
-   - Adds the operator's stake weight to the tally
-   - Increments the vote count for this option
-
-5. **Consensus Calculation**:
-
-   - Compares the winning ballot's stake weight against the total possible stake
-   - If the winning ballot exceeds the threshold (e.g., 66%), marks consensus as reached
-   - Records the slot when consensus was reached
-   - Creates a `ConsensusResult` account to permanently record the outcome
-
-6. **Cross-Validation**:
-   - Ensures the vote is being cast within the correct epoch
-   - Verifies the operator's snapshot exists and contains valid data
-   - Checks that the epoch state allows voting at this stage
-
-This multi-layered architecture ensures votes are processed securely, tallied correctly, and that consensus is determined accurately based on stake-weighted participation.
+This multi-layered architecture ensures votes are processed securely, tallied correctly using the snapshotted weights, and that consensus is determined accurately based on stake-weighted participation.
 
 #### 7.5 Security Considerations in the Voting Process
 
 The voting process incorporates several key security features:
 
-1. **Sybil Attack Prevention**:
-
-   - Voting power is based on stake weight, not operator count
-   - Zero-stake operators cannot participate, preventing fake operator attacks
-
-2. **Replay Protection**:
-
-   - Each operator can only vote once per epoch
-   - The system tracks which operators have already voted
-
-3. **Time-Bound Voting**:
-
-   - Votes are only accepted within the appropriate epoch
-   - After consensus is reached, there's a limited window for additional votes
-
-4. **Authority Verification**:
-
-   - Only the designated operator admin can cast votes for an operator
-   - Signature verification ensures proper authorization
-
-5. **Tamper-Proof Tallying**:
-
-   - Votes are tallied based on immutable snapshot data
-   - The system prevents retroactive changes to stake weights
-
-6. **Dynamic Threshold Adaptation**:
-   - Consensus threshold is calculated based on the total recorded stake
-   - This adapts automatically as the network grows or contracts
+1.  **Sybil Attack Prevention**:
+    - Voting power is derived directly from stake weight captured in immutable [`OperatorSnapshot`](#operatorsnapshot) accounts, not operator count.
+    - Operators with zero snapshotted stake weight cannot vote, preventing attacks based on creating numerous fake operators.
+2.  **Replay Protection**:
+    - The [`BallotBox`](#ballotbox) tracks which operators have voted (`operator_votes` array).
+    - Attempts by an operator to vote more than once within the same epoch are rejected.
+3.  **Time-Bound Voting**:
+    - Votes are only accepted if the [`EpochState`](#epochaccountstatus) indicates the voting phase is active for the specified `epoch`.
+    - While votes might be accepted slightly after consensus is reached (within `valid_slots_after_consensus`), they won't change the already determined outcome.
+4.  **Authority Verification**:
+    - The `cast_vote` instruction requires a signature from the `operator_admin`, ensuring only the authorized entity can cast a vote for that operator.
+5.  **Tamper-Proof Tallying**:
+    - Votes are tallied based on immutable [`OperatorSnapshot`](#operatorsnapshot) data created *before* voting began.
+    - The system prevents retroactive changes to stake weights from affecting an ongoing or completed vote tally for that epoch.
+6.  **Consistent Threshold**:
+    - The consensus threshold is calculated based on the total stake weight recorded in the [`EpochSnapshot`](#epochsnapshot), providing a fixed target for the epoch.
 
 These security measures ensure the voting process remains resilient against various attack vectors and manipulation attempts, maintaining the integrity of the consensus mechanism.
 
-### 7. Verification
+### 8. Verification
 
-The Verification phase validates that the voting process completed successfully and that the expected consensus was achieved. This critical step confirms the integrity of the entire system by examining the on-chain data structures and verifying they contain the expected results.
+The Verification phase validates that the voting process completed successfully and that the expected consensus was achieved. This critical step confirms the integrity of the entire system by examining the on-chain data structures ([`BallotBox`](#ballotbox) and [`ConsensusResult`](#consensusresult)) and verifying they contain the expected results.
 
-#### 7.1 Ballot Box Verification
+#### 8.1 Ballot Box Verification
 
 ```rust
 // 6. Verify voting results
@@ -900,28 +893,18 @@ assert_eq!(
 );
 ```
 
-The first verification step examines the ballot box account:
+The first verification step examines the `BallotBox` account for the completed epoch:
 
-1. **Winning Ballot Check**:
+1.  **Winning Ballot Check**:
+    - `has_winning_ballot()` confirms that the `winning_ballot` field within the `BallotBox` structure is marked as valid. This happens only when a ballot option crosses the consensus threshold.
+2.  **Consensus Status Check**:
+    - `is_consensus_reached()` checks if the `slot_consensus_reached` field is greater than zero, indicating the consensus condition was met during the voting process.
+3.  **Outcome Verification**:
+    - The test retrieves the `winning_ballot` struct and asserts that its `weather_status` field matches the `winning_weather_status` defined earlier (`WeatherStatus::Sunny`). This confirms the correct outcome was identified based on the stake-weighted tally.
 
-   - `has_winning_ballot()` confirms that a valid winning ballot was identified
-   - This means at least one valid weather status received votes
-   - A winning ballot must exceed the required consensus threshold
+Verifying the `BallotBox` ensures the core voting and tallying mechanism functioned correctly during the active epoch.
 
-2. **Consensus Status Check**:
-
-   - `is_consensus_reached()` verifies that the winning ballot achieved the required supermajority
-   - The consensus threshold is typically set at 66% of total stake weight
-   - This confirms that the voting process successfully reached a definitive conclusion
-
-3. **Outcome Verification**:
-   - The test confirms that the winning weather status matches the expected "Sunny" status
-   - This ensures that the voting and tallying logic correctly identified the majority choice
-   - It validates that the stake-weighted voting mechanism worked as designed
-
-The ballot box serves as the primary record of the voting process, capturing all votes cast and the aggregate results. Its verification ensures the core voting mechanism functioned correctly.
-
-#### 7.2 Consensus Result Account Verification
+#### 8.2 Consensus Result Account Verification
 
 ```rust
 // 7. Fetch and verify the consensus_result account
@@ -956,107 +939,58 @@ The ballot box serves as the primary record of the voting process, capturing all
 }
 ```
 
-The second verification step examines the `ConsensusResult` account, which serves as the permanent, persistent record of the voting outcome:
+The second verification step examines the `ConsensusResult` account, which serves as the permanent, immutable record of the voting outcome:
 
-1. **Consensus Result Existence**:
+1.  **Consensus Result Existence & Fetching**:
+    - The test successfully fetches the `ConsensusResult` account using its PDA derived from the NCN pubkey and epoch. Its existence implies consensus was reached and the account was created.
+2.  **Consensus Status Validation**:
+    - `is_consensus_reached()` checks an internal flag derived from stored values (like `consensus_slot` > 0), confirming the outcome is officially recognized.
+3.  **Metadata Verification**:
+    - Asserts that the `epoch` field matches the current epoch.
+    - Asserts that the `weather_status` matches the expected `winning_weather_status`.
+4.  **Cross-Account Consistency Check**:
+    - Fetches the `BallotBox` again.
+    - Retrieves the `BallotTally` corresponding to the winning ballot from the `BallotBox`.
+    - Asserts that the `vote_weight` stored in the `ConsensusResult` exactly matches the `stake_weight` recorded in the winning `BallotTally` within the `BallotBox`. This ensures consistency between the temporary voting record and the permanent result.
+5.  **Detailed Reporting**:
+    - Prints key details from the verified `ConsensusResult` account for confirmation. Note: The `consensus_recorder()` field mentioned in the print statement isn't present in the provided struct definition for `ConsensusResult`; this might be a documentation inconsistency or relate to a field not shown.
 
-   - The test confirms that a `ConsensusResult` account was created for this epoch
-   - This account is created automatically when consensus is reached
-   - It serves as the authoritative record of the voting outcome
+Verifying the `ConsensusResult` confirms that the outcome was durably stored with the correct details and consistent with the voting process itself.
 
-2. **Consensus Status Validation**:
+#### 8.3 Architecture of Verification and Result Persistence
 
-   - `is_consensus_reached()` verifies the consensus flag is properly set
-   - This confirms the outcome is officially recognized by the system
+The verification phase highlights several important architectural features:
 
-3. **Metadata Verification**:
+1.  **Dual Record Keeping**:
+    - The system temporarily uses the `BallotBox` during the epoch for active voting and tallying.
+    - Upon reaching consensus, it creates a separate, permanent `ConsensusResult` account.
+    - This redundancy allows for cleanup while preserving the essential outcome.
+2.  **Separation of Process and Outcome**:
+    - The `BallotBox` (process) can eventually be closed to reclaim rent.
+    - The `ConsensusResult` (outcome) persists indefinitely as the historical record.
+3.  **Automated Result Creation**:
+    - The `ConsensusResult` account is typically created automatically within the `cast_vote` instruction (or a closely related one) when the consensus threshold is first met. This ensures timely recording without requiring a separate administrative action.
+4.  **Result Immutability**:
+    - The `ConsensusResult` account, once created, is designed to be immutable. It stores the outcome based on the state when consensus was reached.
+5.  **Time and Slot Tracking**:
+    - Both `BallotBox` and `ConsensusResult` store key timing information (`slot_consensus_reached`, `epoch`). This metadata is crucial for auditing and understanding the system's behavior over time.
 
-   - The epoch field matches the current epoch, confirming proper account initialization
-   - The weather status matches the expected "Sunny" value, validating outcome recording
+#### 8.4 Verification Techniques and Best Practices
 
-4. **Cross-Account Consistency Check**:
+The verification approach demonstrates several best practices:
 
-   - The test compares values between the ballot box and consensus result
-   - The vote weight in the consensus result must match the stake weight of the winning ballot
-   - This ensures consistency between the voting process and the final recorded outcome
+1.  **Multi-Level Verification**: Testing both the ephemeral process account (`BallotBox`) and the persistent outcome account (`ConsensusResult`) provides comprehensive validation.
+2.  **State Assertions**: Using dedicated helper functions on the deserialized accounts (`has_winning_ballot()`, `is_consensus_reached()`) makes tests more readable and robust against internal representation changes.
+3.  **Equality Assertions**: Using strict equality (`assert_eq!`) for key outcome data (winning status, epoch, weights) ensures exactness.
+4.  **Cross-Structure Validation**: Comparing critical values (like `vote_weight`) between the `BallotBox` and `ConsensusResult` confirms data consistency across different parts of the system.
+5.  **Complete Outcome Validation**: Checking not just the winning choice but also associated metadata (epoch, weights, consensus flags) catches more subtle errors.
+6.  **Clear Reporting**: Outputting verified data (`println!`) provides immediate feedback during test runs.
 
-5. **Detailed Reporting**:
-   - The test outputs detailed information about the consensus result
-   - This includes the winning weather status, vote weights, and consensus recorder
-   - This information helps with debugging and validation
+This rigorous verification ensures the NCN system reliably achieves and records stake-weighted consensus according to its design.
 
-#### 7.3 Architecture of Verification and Result Persistence
+### 9. Cleanup
 
-The verification phase highlights several important architectural features of the NCN system:
-
-1. **Dual Record Keeping**:
-
-   - The system maintains two separate records of the outcome:
-     - The `BallotBox` account contains the complete voting history and tallies
-     - The `ConsensusResult` account provides a persistent record of the outcome
-   - This redundancy ensures the outcome remains accessible even after cleanup
-
-2. **Record Separation**:
-
-   - The voting process (ballot box) is separated from the outcome record (consensus result)
-   - This separation allows the system to clean up voting data while preserving results
-   - It follows the principle of separating process from outcome
-
-3. **Automated Result Creation**:
-
-   - When consensus is reached, the system automatically creates the consensus result
-   - This removes the need for a separate administrative action to record the outcome
-   - It ensures timely and accurate recording of results
-
-4. **Result Immutability**:
-
-   - Once created, the consensus result cannot be modified
-   - This immutability ensures that voting outcomes cannot be tampered with
-   - It provides a trustworthy historical record of all past decisions
-
-5. **Time and Slot Tracking**:
-   - Both records track timing information such as:
-     - The slot when consensus was reached
-     - The epoch when the vote occurred
-     - The total duration of the voting process
-   - This temporal metadata is valuable for system analysis and optimization
-
-#### 7.4 Verification Techniques and Best Practices
-
-The verification approach demonstrates several best practices for validating blockchain-based voting systems:
-
-1. **Multi-Level Verification**:
-
-   - Tests verify both the process (ballot box) and outcome (consensus result)
-   - This catches errors that might occur at different stages of the pipeline
-
-2. **Equality Assertions**:
-
-   - Key values are compared using strict equality assertions
-   - This ensures exact matching rather than approximate validation
-
-3. **Cross-Structure Validation**:
-
-   - Values are compared across different accounts to ensure consistency
-   - This validates that data propagated correctly between system components
-
-4. **Complete Outcome Validation**:
-
-   - Tests check not just the winning choice, but also:
-     - The stake weights behind the decision
-     - The consensus status flags
-     - The epoch and metadata values
-   - This comprehensive approach catches subtle integration issues
-
-5. **Detailed Reporting**:
-   - The test outputs human-readable verification results
-   - This helps with debugging and provides clear validation evidence
-
-The verification phase is critical to ensuring the entire voting pipeline works correctly, from initialization through voting to final consensus recording. By thoroughly validating all aspects of the process, it confirms the system's ability to securely and accurately reach and record consensus decisions.
-
-### 8. Cleanup
-
-After the test completes, the accounts are cleaned up:
+After the core functionality has been tested and verified for a given epoch, the temporary accounts associated with that epoch can be closed to reclaim the SOL locked for rent. The persistent `ConsensusResult` account remains.
 
 ```rust
 // 8. Close epoch accounts but keep consensus result
@@ -1075,16 +1009,19 @@ fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 }
 ```
 
-This cleanup process:
+This cleanup process involves:
 
-1. Records the current epoch for later verification
-2. Closes all epoch-related accounts (weight table, snapshots, ballot box, etc.)
-3. Verifies that the consensus result account persists even after cleanup
-4. Confirms that the consensus result account maintains its critical data:
-   - Consensus reached status
-   - Correct epoch association
+1.  **Identifying Epoch**: Recording the current epoch (`epoch_before_closing_account`) just before initiating closure.
+2.  **Closing Accounts**: Calling `fixture.close_epoch_accounts_for_test_ncn`, which likely iterates through epoch-specific accounts (`EpochState`, `WeightTable`, `EpochSnapshot`, all `OperatorSnapshot`s, `BallotBox`, potentially `VaultOperatorDelegationSnapshot`s) and invokes a `close_epoch_account` instruction (or similar) for each. This instruction typically transfers the rent SOL back to a designated recipient (often the original payer or a treasury) and closes the account. An `EpochMarker` account might be created to signify successful cleanup.
+3.  **Verifying Persistence**: After the cleanup function returns, the test attempts to fetch the `ConsensusResult` account for the *same epoch* again.
+4.  **Confirming Data**: It asserts that the fetched `ConsensusResult` still exists and retains its key data (`is_consensus_reached`, `epoch`), confirming it was *not* closed during the cleanup process.
 
-This demonstrates an important design feature of the system: temporary accounts used during the voting process are cleaned up to reclaim rent, while the final consensus outcome is preserved as a permanent on-chain record. This efficient cleanup mechanism allows the system to scale without accumulating unnecessary accounts over time.
+This demonstrates a crucial design feature:
+
+- **Resource Management**: Temporary accounts used only during the voting cycle are cleaned up, preventing indefinite accumulation of rent-paying accounts.
+- **Outcome Preservation**: The final, critical outcome (`ConsensusResult`) is preserved as a permanent on-chain record, suitable for historical lookups or use by other programs.
+
+This efficient cleanup mechanism allows the NCN system to operate continuously over many epochs without unbounded growth in account storage requirements.
 
 ## Core Struct Definitions
 
@@ -1178,7 +1115,7 @@ file: `ballot_box.rs`
       ballot_index: PodU16,
   }
   ```
-- **Explanation**: Stores the `operator`'s pubkey, the `slot_voted`, their `stake_weights` at that time, and the `ballot_index` they voted for.
+- **Explanation**: Stores the `operator` pubkey, the `slot_voted`, their `stake_weights` at that time, and the `ballot_index` they voted for.
 
 ### BallotBox
 
@@ -1459,102 +1396,4 @@ file: `epoch_state.rs`
       ballot_box: u8,
   }
   ```
-- **Explanation**: Uses `u8` fields to represent the status (`AccountStatus` enum) of the `epoch_state` itself, `weight_table`, `epoch_snapshot`, each `operator_snapshot`, and the `ballot_box`.
-
-### Progress
-
-file: `epoch_state.rs`
-
-- **Purpose**: A generic helper struct within `EpochState` to track the progress of multi-step operations within an epoch.
-- **Definition**:
-  ```rust
-  #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
-  #[repr(C)]
-  pub struct Progress {
-      /// tally
-      tally: PodU64,
-      /// total
-      total: PodU64,
-  }
-  ```
-- **Explanation**: Simply holds a `tally` of completed steps and the `total` steps expected.
-
-### EpochState
-
-file: `epoch_state.rs`
-
-- **Purpose**: Acts as the central state machine and progress tracker for a single consensus epoch.
-- **Definition**:
-  ```rust
-  #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod, AccountDeserialize, ShankAccount)]
-  #[repr(C)]
-  pub struct EpochState {
-      /// The NCN this snapshot is for
-      ncn: Pubkey,
-      /// The epoch this snapshot is for
-      epoch: PodU64,
-      /// The bump seed for the PDA
-      pub bump: u8,
-      /// The time this snapshot was created
-      slot_created: PodU64,
-      /// Was tie breaker set
-      was_tie_breaker_set: PodBool,
-      /// The time consensus was reached
-      slot_consensus_reached: PodU64,
-      /// The number of operators
-      operator_count: PodU64,
-      /// The number of vaults
-      vault_count: PodU64,
-      /// All of the epoch accounts status
-      account_status: EpochAccountStatus,
-      /// Progress on weight set
-      set_weight_progress: Progress,
-      /// Progress on Snapshotting Epoch
-      epoch_snapshot_progress: Progress,
-      /// Progress on Snapshotting Operators
-      operator_snapshot_progress: [Progress; MAX_OPERATORS],
-      /// Progress on voting
-      voting_progress: Progress,
-      /// Is closing
-      is_closing: PodBool,
-  }
-  ```
-- **Explanation**: Contains metadata (`ncn`, `epoch`, timestamps), status flags (`was_tie_breaker_set`, `is_closing`), counts (`operator_count`, `vault_count`), the detailed `account_status` tracker, and various `Progress` trackers for different phases (weight setting, snapshotting, voting).
-
-### WeightEntry
-
-file: `weight_entry.rs`
-
-- **Purpose**: Represents a single entry within the `WeightTable`, storing the snapshotted weight for a specific token mint for that epoch.
-- **Definition**:
-  ```rust
-  #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
-  #[repr(C)]
-  pub struct WeightEntry {
-      /// Info about the ST mint
-      st_mint_entry: StMintEntry,
-      /// The weight of the ST mint
-      weight: PodU128,
-      /// The slot the weight was set
-      slot_set: PodU64,
-      /// The slot the weight was last updated
-      slot_updated: PodU64,
-  }
-  ```
-- **Explanation**: Holds a copy of the `st_mint_entry` from the registry, the frozen `weight` for this epoch, and the `slot_set`/`slot_updated` timestamps.
-
-### StakeWeights
-
-file: `stake_weight.rs`
-
-- **Purpose**: A simple struct used ubiquitously to hold calculated stake weight values. This is the core unit of voting power.
-- **Definition**:
-  ```rust
-  #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
-  #[repr(C)]
-  pub struct StakeWeights {
-      /// The total stake weight - used for voting
-      stake_weight: PodU128,
-  }
-  ```
-- **Explanation**: Primarily holds the `stake_weight` value (u128). Associated functions handle safe incrementing/decrementing.
+- **Explanation**: Uses `u8` fields to represent the status (`
