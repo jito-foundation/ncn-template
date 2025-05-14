@@ -52,6 +52,11 @@ export COMMITMENT="confirmed"
 # Set NCN Program ID (if different from default)
 export NCN_PROGRAM_ID="7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8"
 
+
+# Set Jito Restaking and Vault Program IDs
+export RESTAKING_PROGRAM_ID=RestkWeAVL8fRGgzhfeoqFhsqKRchg6aa1XrcH96z4Q
+export VAULT_PROGRAM_ID=Vau1t6sLNxnzB7ZDsef8TLbPLfyZMYXH8WTNqUdm9g8
+
 # Set keypair path
 export KEYPAIR_PATH="~/.config/solana/id.json"
 

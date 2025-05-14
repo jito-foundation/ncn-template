@@ -16,9 +16,8 @@ Key features:
 
 ### Prerequisites
 
-1. Set up test-ledger: `./scripts/setup-test-ledger.sh`
-2. Build the ncn program: `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
-3. Run tests: `SBF_OUT_DIR=integration_tests/tests/fixtures cargo test`
+1. Build the ncn program: `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
+2. Run tests: `SBF_OUT_DIR=integration_tests/tests/fixtures cargo test`
 
 ## Usage Flow
 
