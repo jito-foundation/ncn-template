@@ -11,27 +11,20 @@ use crate::{
     log::boring_progress_bar,
 };
 use anyhow::{anyhow, Ok, Result};
-use jito_restaking_client::instructions::{
-    InitializeNcnBuilder, InitializeNcnOperatorStateBuilder, InitializeNcnVaultTicketBuilder,
-    InitializeOperatorBuilder, InitializeOperatorVaultTicketBuilder, NcnWarmupOperatorBuilder,
-    OperatorWarmupNcnBuilder, WarmupNcnVaultTicketBuilder, WarmupOperatorVaultTicketBuilder,
-};
 use jito_restaking_core::{
-    config::Config as RestakingConfig, ncn::Ncn, ncn_operator_state::NcnOperatorState,
-    ncn_vault_ticket::NcnVaultTicket, operator::Operator,
-    operator_vault_ticket::OperatorVaultTicket,
+    config::Config as RestakingConfig, ncn_operator_state::NcnOperatorState,
+    ncn_vault_ticket::NcnVaultTicket,
 };
 use jito_vault_client::{
     instructions::{
-        AddDelegationBuilder, CloseVaultUpdateStateTrackerBuilder,
-        CrankVaultUpdateStateTrackerBuilder, InitializeVaultBuilder,
-        InitializeVaultNcnTicketBuilder, InitializeVaultOperatorDelegationBuilder,
-        InitializeVaultUpdateStateTrackerBuilder, MintToBuilder, WarmupVaultNcnTicketBuilder,
+        CloseVaultUpdateStateTrackerBuilder,
+        CrankVaultUpdateStateTrackerBuilder,
+        InitializeVaultUpdateStateTrackerBuilder,
     },
     types::WithdrawalAllocationMethod,
 };
 use jito_vault_core::{
-    config::Config as VaultConfig, vault::Vault, vault_ncn_ticket::VaultNcnTicket,
+    config::Config as VaultConfig, vault_ncn_ticket::VaultNcnTicket,
     vault_operator_delegation::VaultOperatorDelegation,
     vault_update_state_tracker::VaultUpdateStateTracker,
 };
@@ -54,7 +47,7 @@ use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     config::Config as NCNProgramConfig,
-    consensus_result::{self, ConsensusResult},
+    consensus_result::{ConsensusResult},
     constants::MAX_REALLOC_BYTES,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
@@ -68,16 +61,13 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
     native_token::sol_to_lamports,
-    program_pack::Pack,
     pubkey::Pubkey,
-    rent::Rent,
     signature::{Keypair, Signature},
     signer::Signer,
-    system_instruction::{create_account, transfer},
+    system_instruction::transfer,
     system_program,
     transaction::Transaction,
 };
-use spl_associated_token_account::get_associated_token_address;
 use tokio::time::sleep;
 
 // --------------------- ADMIN ------------------------------
