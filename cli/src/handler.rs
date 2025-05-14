@@ -1,5 +1,5 @@
 #![allow(clippy::integer_division)]
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, mem::size_of, str::FromStr};
 
 use crate::{
     args::{Args, ProgramCommand},
@@ -17,8 +17,8 @@ use crate::{
         crank_register_vaults, crank_snapshot, create_and_add_test_operator,
         create_and_add_test_vault, create_ballot_box, create_epoch_snapshot, create_epoch_state,
         create_operator_snapshot, create_test_ncn, create_vault_registry, create_weight_table,
-        full_vault_update, register_vault, set_epoch_weights, snapshot_vault_operator_delegation,
-        update_all_vaults_in_network,
+        full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
+        snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
 };
 use anyhow::{anyhow, Result};
@@ -41,14 +41,14 @@ use solana_sdk::{
 pub struct CliHandler {
     pub rpc_url: String,
     pub commitment: CommitmentConfig,
-    keypair: Option<Keypair>,
+    pub keypair: Option<Keypair>,
     pub restaking_program_id: Pubkey,
     pub vault_program_id: Pubkey,
     pub ncn_program_id: Pubkey,
     pub token_program_id: Pubkey,
-    ncn: Option<Pubkey>,
+    pub ncn: Option<Pubkey>,
     pub epoch: u64,
-    rpc_client: RpcClient,
+    pub rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
 }
@@ -60,10 +60,13 @@ impl CliHandler {
 
         let commitment = CommitmentConfig::from_str(&args.commitment)?;
 
-        let keypair = args
-            .keypair_path
-            .as_ref()
-            .map(|k| read_keypair_file(k).unwrap());
+        let keypair = match &args.keypair_path {
+            Some(path) => Some(
+                read_keypair_file(path)
+                    .map_err(|e| anyhow!("Failed to read keypair file: {}", e))?,
+            ),
+            None => None,
+        };
 
         let restaking_program_id = Pubkey::from_str(&args.restaking_program_id)?;
 
@@ -97,8 +100,8 @@ impl CliHandler {
         };
 
         handler.epoch = {
-            if args.epoch.is_some() {
-                args.epoch.unwrap()
+            if let Some(epoch) = args.epoch {
+                epoch
             } else {
                 let client = handler.rpc_client();
                 let epoch_info = client.get_epoch_info().await?;
@@ -162,6 +165,7 @@ impl CliHandler {
             ProgramCommand::CrankCloseEpochAccounts {} => {
                 crank_close_epoch_accounts(self, self.epoch).await
             }
+            ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
 
             // Admin
             ProgramCommand::AdminCreateConfig {
@@ -170,8 +174,15 @@ impl CliHandler {
                 epochs_after_consensus_before_close,
                 tie_breaker_admin,
             } => {
-                let tie_breaker = tie_breaker_admin
-                    .map(|s| Pubkey::from_str(&s).expect("error parsing tie breaker admin"));
+                let tie_breaker = if let Some(admin_str) = tie_breaker_admin {
+                    Some(
+                        Pubkey::from_str(&admin_str)
+                            .map_err(|e| anyhow!("Error parsing tie breaker admin: {}", e))?,
+                    )
+                } else {
+                    None
+                };
+
                 admin_create_config(
                     self,
                     epochs_before_stall,
@@ -182,11 +193,13 @@ impl CliHandler {
                 .await
             }
             ProgramCommand::AdminRegisterStMint { vault, weight } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                 admin_register_st_mint(self, &vault, weight).await
             }
             ProgramCommand::AdminSetWeight { vault, weight } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                 admin_set_weight(self, &vault, self.epoch, weight).await
             }
             ProgramCommand::AdminSetTieBreaker { weather_status } => {
@@ -220,7 +233,8 @@ impl CliHandler {
                 new_admin,
                 set_tie_breaker_admin,
             } => {
-                let new_admin = Pubkey::from_str(&new_admin).expect("error parsing new admin");
+                let new_admin = Pubkey::from_str(&new_admin)
+                    .map_err(|e| anyhow!("Error parsing new admin: {}", e))?;
                 admin_set_new_admin(self, &new_admin, set_tie_breaker_admin).await
             }
             ProgramCommand::AdminFundAccountPayer { amount_in_sol } => {
@@ -231,7 +245,8 @@ impl CliHandler {
             ProgramCommand::CreateVaultRegistry {} => create_vault_registry(self).await,
 
             ProgramCommand::RegisterVault { vault } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                 register_vault(self, &vault).await
             }
 
@@ -241,12 +256,15 @@ impl CliHandler {
 
             ProgramCommand::CreateEpochSnapshot {} => create_epoch_snapshot(self, self.epoch).await,
             ProgramCommand::CreateOperatorSnapshot { operator } => {
-                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
                 create_operator_snapshot(self, &operator, self.epoch).await
             }
             ProgramCommand::SnapshotVaultOperatorDelegation { vault, operator } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
                 snapshot_vault_operator_delegation(self, &vault, &operator, self.epoch).await
             }
 
@@ -255,12 +273,10 @@ impl CliHandler {
                 operator,
                 weather_status,
             } => {
-                todo!("Create and implement  cast vote: {}", operator,);
-                // let operator = Pubkey::from_str(&operator).expect("error parsing operator");
-                // let merkle_root = hex::decode(meta_merkle_root).expect("error parsing merkle root");
-                // let mut root = [0u8; 32];
-                // root.copy_from_slice(&merkle_root);
-                // admin_cast_vote(self, &operator, root).await
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+
+                operator_cast_vote(self, &operator, self.epoch, weather_status).await
             }
 
             // Getters
@@ -270,26 +286,31 @@ impl CliHandler {
                 Ok(())
             }
             ProgramCommand::GetNcnOperatorState { operator } => {
-                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
                 let ncn_operator_state = get_ncn_operator_state(self, &operator).await?;
                 info!("NCN Operator State: {:?}", ncn_operator_state);
                 Ok(())
             }
             ProgramCommand::GetVaultNcnTicket { vault } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                 let ncn_ticket = get_vault_ncn_ticket(self, &vault).await?;
                 info!("Vault NCN Ticket: {:?}", ncn_ticket);
                 Ok(())
             }
             ProgramCommand::GetNcnVaultTicket { vault } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                 let ncn_ticket = get_ncn_vault_ticket(self, &vault).await?;
                 info!("NCN Vault Ticket: {:?}", ncn_ticket);
                 Ok(())
             }
             ProgramCommand::GetVaultOperatorDelegation { vault, operator } => {
-                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let vault =
+                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
 
                 let vault_operator_delegation =
                     get_vault_operator_delegation(self, &vault, &operator).await?;
@@ -381,7 +402,8 @@ impl CliHandler {
                 Ok(())
             }
             ProgramCommand::GetOperatorSnapshot { operator } => {
-                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
                 let operator_snapshot = get_operator_snapshot(self, &operator, self.epoch).await?;
                 info!("{}", operator_snapshot);
                 Ok(())
@@ -423,6 +445,8 @@ impl CliHandler {
                     if let Ok(operator_snapshot) = operator_snapshot {
                         operator_stakes
                             .push((operator, operator_snapshot.stake_weights().stake_weight()));
+                    } else if let Err(e) = operator_snapshot {
+                        log::warn!("Failed to get operator snapshot for {}: {}", operator, e);
                     }
                 }
 
@@ -465,6 +489,8 @@ impl CliHandler {
                                 .and_modify(|w| *w += stake_weight)
                                 .or_insert(stake_weight);
                         }
+                    } else if let Err(e) = operator_snapshot {
+                        log::warn!("Failed to get operator snapshot for {}: {}", operator, e);
                     }
                 }
 
@@ -508,6 +534,8 @@ impl CliHandler {
                                 .or_default()
                                 .insert(*operator, stake_weight);
                         }
+                    } else if let Err(e) = operator_snapshot {
+                        log::warn!("Failed to get operator snapshot for {}: {}", operator, e);
                     }
                 }
 
@@ -557,7 +585,8 @@ impl CliHandler {
                 let mut vaults_to_update = vec![];
 
                 if let Some(vault) = vault {
-                    let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                    let vault = Pubkey::from_str(&vault)
+                        .map_err(|e| anyhow!("Error parsing vault: {}", e))?;
                     vaults_to_update.push(vault);
                 } else {
                     let vaults = get_all_vaults(self).await?;
@@ -585,8 +614,6 @@ impl CliHandler {
                 deposit_fee_bps,
                 withdrawal_fee_bps,
             } => create_and_add_test_vault(self, deposit_fee_bps, withdrawal_fee_bps).await,
-
-            ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
         }
     }
 }

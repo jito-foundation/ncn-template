@@ -15,7 +15,7 @@ use jito_vault_core::{
     vault_operator_delegation::VaultOperatorDelegation,
     vault_update_state_tracker::VaultUpdateStateTracker,
 };
-use log::info;
+use log::{info, warn};
 use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
@@ -65,6 +65,9 @@ pub async fn get_current_epoch_and_slot(handler: &CliHandler) -> Result<(u64, u6
 }
 
 pub async fn get_guaranteed_epoch_and_slot(handler: &CliHandler) -> (u64, u64) {
+    const MAX_RETRIES: u32 = 10;
+    let mut retries = 0;
+
     loop {
         let current_epoch_and_slot_result = get_current_epoch_and_slot(handler).await;
 
@@ -72,7 +75,16 @@ pub async fn get_guaranteed_epoch_and_slot(handler: &CliHandler) -> (u64, u64) {
             return result;
         }
 
-        info!("Could not fetch current epoch and slot. Retrying...");
+        retries += 1;
+        if retries >= MAX_RETRIES {
+            info!("Max retries reached when fetching epoch and slot. Returning default values.");
+            return (0, 0);
+        }
+
+        info!(
+            "Could not fetch current epoch and slot. Retrying ({}/{})...",
+            retries, MAX_RETRIES
+        );
         sleep(Duration::from_secs(1)).await;
     }
 }
@@ -490,6 +502,11 @@ pub async fn get_all_active_operators_in_ncn(
         let result = get_ncn_operator_state(handler, &operator).await;
 
         if result.is_err() {
+            warn!(
+                "Failed to get operator state for {}: {:?}",
+                operator,
+                result.err()
+            );
             continue;
         }
 
@@ -666,11 +683,17 @@ impl NcnTickets {
         let (ncn_vault_ticket_address, _, _) =
             NcnVaultTicket::find_program_address(&handler.restaking_program_id, ncn, vault);
         let ncn_vault_ticket = get_ncn_vault_ticket(handler, vault).await;
+        if let Err(ref e) = ncn_vault_ticket {
+            log::debug!("Failed to get ncn vault ticket: {}", e);
+        }
         let ncn_vault_ticket = ncn_vault_ticket.ok();
 
         let (vault_ncn_ticket_address, _, _) =
             VaultNcnTicket::find_program_address(&handler.vault_program_id, vault, ncn);
         let vault_ncn_ticket = get_vault_ncn_ticket(handler, vault).await;
+        if let Err(ref e) = vault_ncn_ticket {
+            log::debug!("Failed to get vault ncn ticket: {}", e);
+        }
         let vault_ncn_ticket = vault_ncn_ticket.ok();
 
         let (vault_operator_delegation_address, _, _) =
@@ -681,6 +704,9 @@ impl NcnTickets {
             );
         let vault_operator_delegation =
             get_vault_operator_delegation(handler, vault, operator).await;
+        if let Err(ref e) = vault_operator_delegation {
+            log::debug!("Failed to get vault operator delegation: {}", e);
+        }
         let vault_operator_delegation = vault_operator_delegation.ok();
 
         let (operator_vault_ticket_address, _, _) = OperatorVaultTicket::find_program_address(
@@ -689,11 +715,17 @@ impl NcnTickets {
             vault,
         );
         let operator_vault_ticket = get_operator_vault_ticket(handler, vault, operator).await;
+        if let Err(ref e) = operator_vault_ticket {
+            log::debug!("Failed to get operator vault ticket: {}", e);
+        }
         let operator_vault_ticket = operator_vault_ticket.ok();
 
         let (ncn_operator_state_address, _, _) =
             NcnOperatorState::find_program_address(&handler.restaking_program_id, ncn, operator);
         let ncn_operator_state = get_ncn_operator_state(handler, operator).await;
+        if let Err(ref e) = ncn_operator_state {
+            log::debug!("Failed to get ncn operator state: {}", e);
+        }
         let ncn_operator_state = ncn_operator_state.ok();
 
         Ok(Self {
@@ -743,13 +775,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        let state = self
+        let state = match self
             .ncn_operator_state
             .as_ref()
             .unwrap()
             .ncn_opt_in_state
             .state(self.slot, self.epoch_length)
-            .unwrap() as u8;
+        {
+            Ok(state) => state as u8,
+            Err(_) => return Self::DNE,
+        };
 
         state + Self::STATE_OFFSET
     }
@@ -759,13 +794,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        let state = self
+        let state = match self
             .ncn_operator_state
             .as_ref()
             .unwrap()
             .operator_opt_in_state
             .state(self.slot, self.epoch_length)
-            .unwrap() as u8;
+        {
+            Ok(state) => state as u8,
+            Err(_) => return Self::DNE,
+        };
 
         state + Self::STATE_OFFSET
     }
@@ -775,13 +813,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        let state = self
+        let state = match self
             .ncn_vault_ticket
             .as_ref()
             .unwrap()
             .state
             .state(self.slot, self.epoch_length)
-            .unwrap() as u8;
+        {
+            Ok(state) => state as u8,
+            Err(_) => return Self::DNE,
+        };
 
         state + Self::STATE_OFFSET
     }
@@ -791,13 +832,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        let state = self
+        let state = match self
             .vault_ncn_ticket
             .as_ref()
             .unwrap()
             .state
             .state(self.slot, self.epoch_length)
-            .unwrap() as u8;
+        {
+            Ok(state) => state as u8,
+            Err(_) => return Self::DNE,
+        };
 
         state + Self::STATE_OFFSET
     }
@@ -807,13 +851,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        let state = self
+        let state = match self
             .operator_vault_ticket
             .as_ref()
             .unwrap()
             .state
             .state(self.slot, self.epoch_length)
-            .unwrap() as u8;
+        {
+            Ok(state) => state as u8,
+            Err(_) => return Self::DNE,
+        };
 
         state + Self::STATE_OFFSET
     }
@@ -823,16 +870,16 @@ impl NcnTickets {
             return Self::DNE;
         }
 
-        if self
+        if let Ok(total_security) = self
             .vault_operator_delegation
             .as_ref()
             .unwrap()
             .delegation_state
             .total_security()
-            .unwrap()
-            > 0
         {
-            return Self::STAKE;
+            if total_security > 0 {
+                return Self::STAKE;
+            }
         }
 
         Self::NO_STAKE
@@ -851,7 +898,7 @@ impl fmt::Display for NcnTickets {
                 Self::WARM_UP => "🔥",
                 Self::ACTIVE => "✅",
                 Self::COOLDOWN => "🥶",
-                _ => "",
+                _ => "❓", // Unknown state
             }
         };
 

@@ -54,7 +54,8 @@ use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     config::Config as NCNProgramConfig,
-    constants::{MAX_REALLOC_BYTES, WEIGHT},
+    consensus_result::{self, ConsensusResult},
+    constants::MAX_REALLOC_BYTES,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
@@ -96,6 +97,7 @@ pub async fn admin_create_config(
     let (config, _, _) = NCNProgramConfig::find_program_address(&handler.ncn_program_id, &ncn);
 
     let (account_payer, _, _) = AccountPayer::find_program_address(&handler.ncn_program_id, &ncn);
+    println!("Account Payer: {}", account_payer.to_string());
 
     let tie_breaker_admin = tie_breaker_admin.unwrap_or_else(|| keypair.pubkey());
 
@@ -398,6 +400,8 @@ pub async fn admin_fund_account_payer(handler: &CliHandler, amount: f64) -> Resu
 }
 
 // --------------------- NCN Program ------------------------------
+
+// ----------------------- Keeper ---------------------------------
 
 pub async fn create_vault_registry(handler: &CliHandler) -> Result<()> {
     let ncn = *handler.ncn()?;
@@ -838,6 +842,8 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
 
     let (account_payer, _, _) = AccountPayer::find_program_address(&handler.ncn_program_id, &ncn);
     let (epoch_marker, _, _) = EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch);
+    let (consensus_result, _, _) =
+        ConsensusResult::find_program_address(&handler.ncn_program_id, &ncn, epoch);
 
     let ballot_box_account = get_account(handler, &ballot_box).await?;
 
@@ -852,6 +858,7 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
             .ncn(ncn)
             .epoch(epoch)
             .account_payer(account_payer)
+            .consensus_result(consensus_result)
             .system_program(system_program::id())
             .instruction();
 
@@ -894,64 +901,6 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
             format!("NCN: {:?}", ncn),
             format!("Epoch: {:?}", epoch),
             format!("Number of reallocations: {:?}", num_reallocs),
-        ],
-    )
-    .await?;
-
-    Ok(())
-}
-
-pub async fn operator_cast_vote(
-    handler: &CliHandler,
-    operator: &Pubkey,
-    epoch: u64,
-    weather_status: u8,
-) -> Result<()> {
-    let keypair = handler.keypair()?;
-
-    let ncn = *handler.ncn()?;
-
-    let operator = *operator;
-
-    let (config, _, _) = NCNProgramConfig::find_program_address(&handler.ncn_program_id, &ncn);
-
-    let (epoch_state, _, _) =
-        EpochState::find_program_address(&handler.ncn_program_id, &ncn, epoch);
-
-    let (ballot_box, _, _) = BallotBox::find_program_address(&handler.ncn_program_id, &ncn, epoch);
-
-    let (epoch_snapshot, _, _) =
-        EpochSnapshot::find_program_address(&handler.ncn_program_id, &ncn, epoch);
-
-    let (operator_snapshot, _, _) =
-        OperatorSnapshot::find_program_address(&handler.ncn_program_id, &operator, &ncn, epoch);
-
-    let cast_vote_ix = CastVoteBuilder::new()
-        .config(config)
-        .epoch_state(epoch_state)
-        .ballot_box(ballot_box)
-        .ncn(ncn)
-        .epoch_snapshot(epoch_snapshot)
-        .operator_snapshot(operator_snapshot)
-        .operator(operator)
-        .operator_voter(keypair.pubkey())
-        .weather_status(weather_status)
-        .epoch(epoch)
-        .instruction();
-
-    send_and_log_transaction(
-        handler,
-        &[cast_vote_ix],
-        &[],
-        "Cast Vote",
-        &[
-            format!("NCN: {:?}", ncn),
-            format!("Operator: {:?}", operator),
-            format!(
-                "Meta Merkle Root: {:?}",
-                WeatherStatus::from_u8(weather_status)
-            ),
-            format!("Epoch: {:?}", epoch),
         ],
     )
     .await?;
@@ -1012,7 +961,71 @@ pub async fn close_epoch_account(
     Ok(())
 }
 
+// --------------------- operator ------------------------------
+
+pub async fn operator_cast_vote(
+    handler: &CliHandler,
+    operator: &Pubkey,
+    epoch: u64,
+    weather_status: u8,
+) -> Result<()> {
+    let keypair = handler.keypair()?;
+
+    let ncn = *handler.ncn()?;
+
+    let operator = *operator;
+
+    let (config, _, _) = NCNProgramConfig::find_program_address(&handler.ncn_program_id, &ncn);
+
+    let (epoch_state, _, _) =
+        EpochState::find_program_address(&handler.ncn_program_id, &ncn, epoch);
+
+    let (ballot_box, _, _) = BallotBox::find_program_address(&handler.ncn_program_id, &ncn, epoch);
+
+    let (epoch_snapshot, _, _) =
+        EpochSnapshot::find_program_address(&handler.ncn_program_id, &ncn, epoch);
+
+    let (operator_snapshot, _, _) =
+        OperatorSnapshot::find_program_address(&handler.ncn_program_id, &operator, &ncn, epoch);
+    let (consensus_result, _, _) =
+        ConsensusResult::find_program_address(&handler.ncn_program_id, &ncn, epoch);
+
+    let cast_vote_ix = CastVoteBuilder::new()
+        .config(config)
+        .epoch_state(epoch_state)
+        .ballot_box(ballot_box)
+        .ncn(ncn)
+        .epoch_snapshot(epoch_snapshot)
+        .operator_snapshot(operator_snapshot)
+        .operator(operator)
+        .operator_voter(keypair.pubkey())
+        .consensus_result(consensus_result)
+        .weather_status(weather_status)
+        .epoch(epoch)
+        .instruction();
+
+    send_and_log_transaction(
+        handler,
+        &[cast_vote_ix],
+        &[],
+        "Cast Vote",
+        &[
+            format!("NCN: {:?}", ncn),
+            format!("Operator: {:?}", operator),
+            format!(
+                "Meta Merkle Root: {:?}",
+                WeatherStatus::from_u8(weather_status)
+            ),
+            format!("Epoch: {:?}", epoch),
+        ],
+    )
+    .await?;
+
+    Ok(())
+}
+
 // --------------------- MIDDLEWARE ------------------------------
+
 pub const CREATE_TIMEOUT_MS: u64 = 2000;
 pub const CREATE_GET_RETRIES: u64 = 3;
 pub async fn check_created(handler: &CliHandler, address: &Pubkey) -> Result<()> {
@@ -1290,8 +1303,6 @@ pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
         .copied()
         .collect();
 
-    //TODO check if ST mint is registered first
-
     for vault in vaults_to_register.iter() {
         let result = register_vault(handler, vault).await;
 
@@ -1299,32 +1310,6 @@ pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
             log::error!(
                 "Failed to register vault: {:?} with error: {:?}",
                 vault,
-                err
-            );
-        }
-    }
-
-    Ok(())
-}
-
-pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
-    let weight_table = get_or_create_weight_table(handler, epoch).await?;
-
-    let st_mints = weight_table
-        .table()
-        .iter()
-        .filter(|entry| !entry.is_empty() && !entry.is_set())
-        .map(|entry| *entry.st_mint())
-        .collect::<Vec<Pubkey>>();
-
-    for st_mint in st_mints {
-        let result = admin_set_weight_with_st_mint(handler, &st_mint, epoch, WEIGHT).await;
-
-        if let Err(err) = result {
-            log::error!(
-                "Failed to set weight for st_mint: {:?} in epoch: {:?} with error: {:?}",
-                st_mint,
-                epoch,
                 err
             );
         }
@@ -1419,11 +1404,6 @@ pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Re
         crank_test_vote(handler, epoch).await?;
     }
 
-    Ok(())
-}
-
-#[allow(clippy::large_stack_frames)]
-pub async fn crank_post_vote_cooldown(_: &CliHandler, _: u64) -> Result<()> {
     Ok(())
 }
 

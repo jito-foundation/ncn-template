@@ -109,6 +109,7 @@ pub enum ProgramCommand {
     CrankRegisterVaults {},
     CrankSnapshot {},
     CrankCloseEpochAccounts {},
+    SetEpochWeights {},
 
     /// Admin
     AdminCreateConfig {
@@ -131,7 +132,6 @@ pub enum ProgramCommand {
         #[arg(long, help = "Weight")]
         weight: Option<u128>,
     },
-    SetEpochWeights,
 
     AdminSetWeight {
         #[arg(long, help = "Vault address")]
