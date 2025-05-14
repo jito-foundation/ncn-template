@@ -243,35 +243,6 @@ pub enum ProgramCommand {
         #[arg(long, help = "Vault address")]
         vault: Option<String>,
     },
-
-    /// TESTS
-    Test,
-    CreateTestNcn,
-    CreateAndAddTestOperator {
-        #[arg(
-            long,
-            env = "OPERATOR_FEE_BPS",
-            default_value_t = 100,
-            help = "Operator Fee BPS"
-        )]
-        operator_fee_bps: u16,
-    },
-    CreateAndAddTestVault {
-        #[arg(
-            long,
-            env = "VAULT_DEPOSIT_FEE",
-            default_value_t = 100,
-            help = "Deposit fee BPS"
-        )]
-        deposit_fee_bps: u16,
-        #[arg(
-            long,
-            env = "VAULT_WITHDRAWAL_FEE",
-            default_value_t = 100,
-            help = "Withdrawal fee BPS"
-        )]
-        withdrawal_fee_bps: u16,
-    },
 }
 
 #[rustfmt::skip]

@@ -14,9 +14,8 @@ use crate::{
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
         admin_set_parameters, admin_set_tie_breaker, admin_set_weight, crank_close_epoch_accounts,
-        crank_register_vaults, crank_snapshot, create_and_add_test_operator,
-        create_and_add_test_vault, create_ballot_box, create_epoch_snapshot, create_epoch_state,
-        create_operator_snapshot, create_test_ncn, create_vault_registry, create_weight_table,
+        crank_register_vaults, crank_snapshot, create_ballot_box, create_epoch_snapshot,
+        create_epoch_state, create_operator_snapshot, create_vault_registry, create_weight_table,
         full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
         snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
@@ -600,20 +599,6 @@ impl CliHandler {
                 }
                 Ok(())
             }
-
-            // Testers
-            ProgramCommand::Test {} => {
-                info!("Test!");
-                Ok(())
-            }
-            ProgramCommand::CreateTestNcn {} => create_test_ncn(self).await,
-            ProgramCommand::CreateAndAddTestOperator { operator_fee_bps } => {
-                create_and_add_test_operator(self, operator_fee_bps).await
-            }
-            ProgramCommand::CreateAndAddTestVault {
-                deposit_fee_bps,
-                withdrawal_fee_bps,
-            } => create_and_add_test_vault(self, deposit_fee_bps, withdrawal_fee_bps).await,
         }
     }
 }
