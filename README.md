@@ -5,6 +5,7 @@
 The NCN (Network Consensus Node) Program is a Solana program designed for reaching consensus on weather status in a decentralized network. It manages the collection, voting, and consensus mechanisms across vaults and operators in the ecosystem, leveraging Jito's restaking infrastructure.
 
 Key features:
+
 - Stake-weighted voting mechanism (66% consensus threshold)
 - Epoch-based consensus cycles
 - Support for multiple stake token mints with configurable weights
@@ -32,9 +33,26 @@ Key features:
 ## Customization
 
 While this implementation uses weather status as the consensus target, the framework can be adapted for various applications:
+
 - Replace weather status with other vote data
 - Modify consensus thresholds
 - Adjust epoch and timing parameters
 - Implement custom reward distribution logic
 
-For full documentation, see the docs.md file.
+## Deploy
+
+- build .so file: `cargo-build-sbf`
+
+- create a new keypair: `solana-keygen new -o target/tmp/buffer.json`
+
+- Deploy: `solana program deploy --use-rpc --buffer target/tmp/buffer.json --with-compute-unit-price 10000 --max-sign-attempts 10000 target/deploy/ncn_program.so`
+
+## Upgrade
+
+- (Pre Upgrade) Write to buffer: `solana program write-buffer --use-rpc --buffer target/tmp/buffer.json --with-compute-unit-price 10000 --max-sign-attempts 10000 target/deploy/ncn_program.so`
+
+- Upgrade: `solana program upgrade $(solana address --keypair target/tmp/buffer.json) $(solana address --keypair target/deploy/ncn_program-keypair.json)`
+
+- Close Buffers: `solana program close --buffers`
+
+- Upgrade Program Size: `solana program extend $(solana address --keypair target/deploy/ncn_program_program-keypair.json) 100000`
