@@ -8,4 +8,4 @@
 use solana_program::{pubkey, pubkey::Pubkey};
 
 /// `ncn_program` program ID.
-pub const NCN_PROGRAM_ID: Pubkey = pubkey!("RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb");
+pub const NCN_PROGRAM_ID: Pubkey = pubkey!("7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8");

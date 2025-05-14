@@ -4,7 +4,7 @@
 
 | Account                    | Address                                      |
 | -------------------------- | -------------------------------------------- |
-| Test NCN Program ID        |                                                     |
+| Test NCN Program ID        | 7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8       |
 | Test NCN                   |                                              |
 
 ## Setup CLIs

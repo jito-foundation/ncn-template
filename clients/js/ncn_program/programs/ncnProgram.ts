@@ -37,7 +37,7 @@ import {
 } from '../instructions';
 
 export const NCN_PROGRAM_PROGRAM_ADDRESS =
-  'RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb' as Address<'RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb'>;
+  '7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8' as Address<'7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8'>;
 
 export enum NcnProgramAccount {
   BallotBox,
@@ -148,7 +148,7 @@ export function identifyNcnProgramInstruction(
 }
 
 export type ParsedNcnProgramInstruction<
-  TProgram extends string = 'RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb',
+  TProgram extends string = '7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8',
 > =
   | ({
       instructionType: NcnProgramInstruction.InitializeConfig;

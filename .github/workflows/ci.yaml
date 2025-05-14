@@ -163,7 +163,7 @@ jobs:
   #     - name: Generate code coverage
   #       run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
   #       env:
-  #         NCN_PROGRAM_ID: RouterBmuRBkPUbgEDMtdvTZ75GBdSREZR5uGUxxxpb
+  #         NCN_PROGRAM_ID: 7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8
   #     - name: Upload coverage to Codecov
   #       uses: codecov/codecov-action@v4.5.0
   #       with:
