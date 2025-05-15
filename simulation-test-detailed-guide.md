@@ -32,7 +32,7 @@
         - [5.3 Activating Relationships with Time Advancement](#53-activating-relationships-with-time-advancement)
       - [5.4 Token Registration and Weight Assignment](#54-token-registration-and-weight-assignment)
         - [5.5 Vault Registration](#55-vault-registration)
-      - [5.6 Architecture Considerations](#56-architecture-considerations)
+      - [5.6 NCN Architecture and Security Considerations](#56-ncn-architecture-and-security-considerations)
       - [6. Epoch Snapshot and Voting Preparation](#6-epoch-snapshot-and-voting-preparation)
         - [6.1 Epoch State Initialization](#61-epoch-state-initialization)
         - [6.2 Weight Table Initialization and Population](#62-weight-table-initialization-and-population)
@@ -40,7 +40,7 @@
         - [6.4 Operator Snapshots](#64-operator-snapshots)
         - [6.5 Vault-Operator Delegation Snapshots](#65-vault-operator-delegation-snapshots)
         - [6.6 Ballot Box Initialization](#66-ballot-box-initialization)
-        - [6.7 Architecture and Security Considerations](#67-architecture-and-security-considerations)
+        - [6.7 Snapshot Architecture and Security Considerations](#67-snapshot-architecture-and-security-considerations)
       - [7. Voting Process](#7-voting-process)
         - [7.1 Setting the Expected Outcome](#71-setting-the-expected-outcome)
         - [7.2 Casting Votes from Different Operators](#72-casting-votes-from-different-operators)
@@ -75,7 +75,7 @@
 
 The Node Consensus Network (NCN) is a robust blockchain consensus system built on Solana. It enables network participants to agree on critical network decisions using a secure, stake-weighted voting mechanism. This system utilizes Jito's restaking infrastructure, allowing operators with delegated tokens to vote on network parameters and states.
 
-This tutorial will focus on a pre-built NCN program that acts like a template or base that you can use to create your own NCN program. To help you understand how it works, we will walk through building a simulation test that covers the majority of its setup and functionality. We do not recommend most NCN developers build an NCN from scratch. Rather, we suggest using this prebuilt program as a starting point and customizing it according to your needs.
+This tutorial will focus on a [pre-built NCN program](TODO: link to repo) that acts like a template or base that you can use to create your own NCN program. To help you understand how it works, we will walk through building a simulation test that covers the majority of its setup and functionality. We do not recommend most NCN developers build an NCN from scratch. Rather, we suggest using this prebuilt program as a starting point and customizing it according to your needs.
 
 By following the simulation test setup in this guide, you will gain hands-on experience with the entire NCN lifecycle: initializing vaults and operators using Jito's restaking and vault programs, configuring the NCN program, and executing the full voting process.
 
@@ -132,13 +132,13 @@ The program uses several types of accounts:
     *   **[`ConsensusResult`](#consensusresult)**: Stores the final outcome (the winning ballot and associated details) for the completed epoch.
 
 ### Weather status system
-The program uses a simple weather status system as the consensus target:
+The goal of the NCN program is to come to consensus on the weather in Solana Beach. For the purposes of keeping this tutorial simple, our weather statuses are as follows:
 
 1. **Sunny (0)**: Represents clear, sunny weather.
 2. **Cloudy (1)**: Represents cloudy weather conditions.
 3. **Rainy (2)**: Represents rainy weather conditions.
 
-Operators vote on these status values. The program tallies the votes, weighting each vote by the operator's associated stake weight, to determine the final consensus result.
+Operators vote on these status values. The program tallies the votes, weighting each vote by the operator's associated stake weight, to determine the final consensus result. Leveraging the final result of this NCN, we can build onchain programs whose behavior is dependent on the weather in Solana Beach.
 
 ### Consensus mechanism
 The consensus process follows these steps:
@@ -180,17 +180,21 @@ The instructions are broadly categorized:
 3.  **Operator Instruction**: This is the primary action taken by participants during a consensus cycle.
     *   `cast_vote`: Allows an operator (using their admin key) to submit their vote for the current epoch.
 
-For more details, you can always check the source code or the API documentation [here](put a link here). (TODO: Add link to API docs if available)
+For more details, you can always check the source code or the API documentation [here](TODO: Add link to API docs if available).
 
 ## Build and run the Simulation Test
 
-The simulation test is a comprehensive scenario designed to mimic a complete NCN system. It involves multiple operators, vaults, and different types of tokens. The test covers the entire workflow, from the initial setup of participants and the NCN program itself, through the voting process, and finally to reaching and verifying consensus. It heavily utilizes Jito's restaking and vault infrastructure alongside the custom NCN voting logic.
+This section will walk through building simulation test of our example NCN program. The test represents is a comprehensive scenario designed to mimic a complete NCN system. It involves multiple operators, vaults, and different types of tokens. The test covers the entire workflow, from the initial setup of participants and the NCN program itself, through the voting process, and finally to reaching and verifying consensus. It heavily utilizes Jito's restaking and vault infrastructure alongside the custom NCN voting logic.
+
+The NCN program used can be found [here](TODO: provide link to repo). By creating a simulation test of this NCN, you'll be better prepared to use it as a template or base that you can adapt to create your own NCN program. Just a reminder: we do not recommend most NCN developers build their NCN from scratch. Rather, we suggest using this prebuilt program as a starting point and customizing it according to your needs.
+
+The simulation test we'll be creating below can also be found in the [example NCN repository](TODO: provide link). However, you'll understand the system better if you write the test along with us, so feel free to clone the repository, delete the test, and follow along. This will give you hands-on experience with the entire NCN lifecycle: initializing vaults and operators using Jito's restaking and vault programs, configuring the NCN program, and executing the full voting process.
 
 ### Prerequisites
 
 Before running the simulation test, ensure you have completed the following setup steps:
 
-1.  Set up the local Solana test ledger by running the script: `./scripts/setup-test-ledger.sh`
+1.  Set up the local Solana test ledger by running the script: `./scripts/setup-test-ledger.sh` TODO:- @mohammed - did we say we still need this step? I remember you and Christian debating it
 2.  Build the NCN onchain program using Cargo: `cargo build-sbf --manifest-path program/Cargo.toml --sbf-out-dir integration_tests/tests/fixtures`
 3.  Ensure you have the correct versions installed:
     *   Solana CLI: 2.2.6 (recommended)
@@ -220,6 +224,8 @@ mod tests {
 }
 ```
 
+Unless otherwise specified, all of the code snippets provided in this guide represent code that should go inside the `simulation_test_new` test function, in the order provided.
+
 Next, you need to make this new test discoverable. Open the `integration_tests/tests/mod.rs` file and add this line to declare the new module:
 
 ```rust
@@ -227,12 +233,12 @@ Next, you need to make this new test discoverable. Open the `integration_tests/t
 mod simulation_test_new;
 ```
 
-Now, you can run just this specific test using the following command:
+Now, you can run this specific test using the following command:
 
 ```bash
 SBF_OUT_DIR=integration_tests/tests/fixtures cargo test -p ncn-program-integration-tests --test tests simulation_test_new
 ```
-
+TODO:- @mohammed do you think we should rename the simulation test to just be `simulation_test` rather than `simulation_test_new`?
 This command targets the `ncn-program-integration-tests` package and runs only the `simulation_test_new` test function. If you want to run all tests in the suite, simply remove the test name filter (`simulation_test_new`) from the command.
 
 Currently, the test will pass because it doesn't contain any logic yet. You should see output similar to this:
@@ -246,11 +252,12 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; fin
 
 #### 2. Environment Setup
 
-The first step within our test function is to set up the testing environment using the `TestBuilder`. We'll store this in a variable called `fixture`.
+The first step within our test function is to set up the testing environment using the `TestBuilder`. We'll store this in a variable called `fixture`. Remember, unless otherwise specified, all code we reference will go inside the `simulation_test_new` test function.
+
+TODO:- @mohammed I think the indentation in these code snippets looks sloppy and we should remove it. I've used the code snippet below as an example compared to all the others. What do you think?
 
 ```rust
-        // Inside the simulation_test_new function
-        let mut fixture = TestBuilder::new().await;
+let mut fixture = TestBuilder::new().await;
 ```
 
 Since we are running this test locally against a test ledger, we need to initialize the Jito Restaking and Vault programs on the ledger. In a real network environment (devnet, mainnet), these programs would already be deployed.
@@ -440,7 +447,7 @@ You can run the test now and see the output.
 
 #### 5. NCN Program Configuration
 
-All the work above is using the Jito restaking program and Jito vault program, now we will start using the NCN program that you will have to deploy.
+Until now, all the code we've written uses the Jito restaking program and Jito vault program. Now we will start using the example NCN program that you will have to deploy.
 
 The NCN Program Configuration phase establishes the on-chain infrastructure necessary for the voting and consensus mechanisms. This includes setting up configuration parameters, creating data structures, and registering the token types and vaults that will participate in the system.
 
@@ -461,13 +468,13 @@ This step initializes the core configuration for the NCN program with critical p
 *   **Epochs After Consensus Before Close**: How long to wait after consensus before closing epoch data (default: 10)
 *   **Valid Slots After Consensus**: How many slots votes are still accepted after consensus is reached (default: 10000)
 
-Under the hood, this creates a `NcnConfig` account that stores these parameters and serves as the authoritative configuration for this NCN instance.
+Under the hood, this creates an `NcnConfig` account that stores these parameters and serves as the authoritative configuration for this NCN instance.
 
 ##### 5.2 Vault Registry Initialization
 
-The vault registery account is a big one, so it is not possible to initiate it in one call due to solana network limitation, so we will have to call the NCN program multiple times to get to the full size, the first call will be an init call to the instruction `admin_initialize_vault_registry`, after that we will call a realoc instruction `admin_realloc_vault_registry` to increase the size of the account, this will be done in a loop until the account is the correct size.
+The vault registry account is a big one, so it is not possible to initiate it in one call due to solana network limitation, so we will have to call the NCN program multiple times to get to the full size, the first call will be an init call to the instruction `admin_initialize_vault_registry`, after that we will call a realloc instruction `admin_realloc_vault_registry` to increase the size of the account, this will be done in a loop until the account is the correct size.
 
-the realoc will take care of assigning the default values to the vault registry account once the desirable size is reached, and in our example, we will do that by calling one function `do_full_initialize_vault_registry`, if you want to learn more about this, you can check the API docs, or the source code
+The realloc will take care of assigning the default values to the vault registry account once the desirable size is reached, and in our example, we will do that by calling one function `do_full_initialize_vault_registry`, if you want to learn more about this, you can check the API docs, or the source code
 
 ```rust
         // Initialize the VaultRegistry account (handles potential reallocations)
@@ -482,9 +489,9 @@ The vault registry is a critical data structure that:
 *   Records the weight assigned to each token type
 *   Serves as the source of truth for vault and token configurations
 
-Note that this is only initilizeing the vault registry, the vaults and the supported tokens will be registered in the next steps.
+Note that this is only initializing the vault registry. The vaults and the supported tokens will be registered in the next steps.
 
-check out the vault registry struct [here](#vaultregistry)
+Check out the vault registry struct [here](#vaultregistry)
 
 ##### 5.3 Activating Relationships with Time Advancement
 
@@ -537,7 +544,7 @@ Good to know that in real life examples, NCNs will probably want to have to set 
 
 ##### 5.5 Vault Registration
 
-Registering a vault is a premissionless operation, the reason is the admin has already gave premission to the vault to be part of the NCN in the vault registerition step earlier, so this step is just to register the vault in the NCN program.
+Registering a vault is a permissionless operation, the reason is the admin has already gave permission to the vault to be part of the NCN in the vault registration step earlier, so this step is just to register the vault in the NCN program.
 
 ```rust
         // Register all the vaults in the ncn program
@@ -563,7 +570,7 @@ The final configuration step registers each vault with the NCN program:
 
 This registration process establishes the complete set of vaults that can contribute to the voting system, creating a closed ecosystem of verified participants.
 
-#### 5.6 Architecture Considerations
+#### 5.6 NCN Architecture and Security Considerations
 
 The NCN program configuration establishes a multi-layered security model:
 
@@ -713,7 +720,7 @@ The [`BallotBox`](#ballotbox) becomes the central repository where all votes are
 *   The current winning ballot (if any).
 *   Whether consensus has been reached.
 
-##### 6.7 Architecture and Security Considerations
+##### 6.7 Snapshot Architecture and Security Considerations
 
 The snapshot system implements several key architectural principles:
 1.  **Point-in-Time Consistency**: All snapshots capture the system state relative to the start of the epoch, creating a consistent view based on frozen weights and delegations present at that time.
