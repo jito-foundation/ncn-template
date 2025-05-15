@@ -184,7 +184,7 @@ For more details, you can always check the source code or the API documentation 
 
 ## Build and run the Simulation Test
 
-This section will walk through building simulation test of our example NCN program. The test represents is a comprehensive scenario designed to mimic a complete NCN system. It involves multiple operators, vaults, and different types of tokens. The test covers the entire workflow, from the initial setup of participants and the NCN program itself, through the voting process, and finally to reaching and verifying consensus. It heavily utilizes Jito's restaking and vault infrastructure alongside the custom NCN voting logic.
+This section will walk through building a simulation test of our example NCN program. The test represents a comprehensive scenario designed to mimic a complete NCN system. It involves multiple operators, vaults, and different types of tokens. The test covers the entire workflow, from the initial setup of participants and the NCN program itself, through the voting process, and finally to reaching and verifying consensus. It heavily utilizes Jito's restaking and vault infrastructure alongside the custom NCN voting logic.
 
 The NCN program used can be found [here](TODO: provide link to repo). By creating a simulation test of this NCN, you'll be better prepared to use it as a template or base that you can adapt to create your own NCN program. Just a reminder: we do not recommend most NCN developers build their NCN from scratch. Rather, we suggest using this prebuilt program as a starting point and customizing it according to your needs.
 
@@ -472,9 +472,9 @@ Under the hood, this creates an `NcnConfig` account that stores these parameters
 
 ##### 5.2 Vault Registry Initialization
 
-The vault registry account is a big one, so it is not possible to initiate it in one call due to solana network limitation, so we will have to call the NCN program multiple times to get to the full size, the first call will be an init call to the instruction `admin_initialize_vault_registry`, after that we will call a realloc instruction `admin_realloc_vault_registry` to increase the size of the account, this will be done in a loop until the account is the correct size.
+The vault registry account is a large one, so it is not possible to initialize it in one call due to Solana network limitations. We will have to call the NCN program multiple times to get to the full size. The first call will be an init call to the instruction `admin_initialize_vault_registry`. After that, we will call a realloc instruction `admin_realloc_vault_registry` to increase the size of the account. This will be done in a loop until the account is the correct size.
 
-The realloc will take care of assigning the default values to the vault registry account once the desirable size is reached, and in our example, we will do that by calling one function `do_full_initialize_vault_registry`, if you want to learn more about this, you can check the API docs, or the source code
+The realloc will take care of assigning the default values to the vault registry account once the desirable size is reached. In our example, we will do that by calling one function `do_full_initialize_vault_registry`. If you want to learn more about this, you can check the [API docs](TODO: link) or the [source code](TODO: link).
 
 ```rust
         // Initialize the VaultRegistry account (handles potential reallocations)
@@ -540,11 +540,11 @@ This step registers each Supported Token (ST) mint with the NCN program and assi
 
 The weight assignment is fundamental to the design, allowing different tokens to have varying influence on the voting process based on their economic significance or other criteria determined by the NCN administrators.
 
-Good to know that in real life examples, NCNs will probably want to have to set the token weights based on the token's price or market cap, to do so you will have to use an oracle to get the price of the token and then set the weight based on that, in this case you will have to store the feed of the price in this step instead of the weight.
+It's good to know that in real-life examples, NCNs will probably want to set the token weights based on the token's price or market cap. To do so, you will have to use an oracle to get the price of the token and then set the weight based on that. In this case, you will have to store the feed of the price in this step instead of the weight.
 
 ##### 5.5 Vault Registration
 
-Registering a vault is a permissionless operation, the reason is the admin has already gave permission to the vault to be part of the NCN in the vault registration step earlier, so this step is just to register the vault in the NCN program.
+Registering a vault is a permissionless operation. The reason is the admin has already given permission to the vault to be part of the NCN in the vault registration step earlier, so this step is just to register the vault in the NCN program.
 
 ```rust
         // Register all the vaults in the ncn program
@@ -587,7 +587,7 @@ The configuration phase completes the preparation of the system's infrastructure
 
 The Epoch Snapshot and Voting Preparation phase is where the system captures the current state of all participants and prepares the infrastructure for voting. This is an essential component of the architecture as it ensures voting is based on a consistent, verifiable snapshot of the network state at a specific moment in time.
 
-The upcoming part a keeper task (except for the voting part), which means that it is premissionless and can be done by anyone.
+The upcoming section is a keeper task (with the exception of the voting). This means that it is permissionless and can be done by anyone.
 
 ##### 6.1 Epoch State Initialization
 
@@ -605,7 +605,7 @@ This step initializes the **Epoch State** for the current consensus cycle:
 
 Once initialized, the `EpochState` account becomes the authoritative record of where the system is in the voting process, preventing operations from happening out of order or in duplicate.
 
-you can take a look at the epoch state struct [here](#epochaccountstatus)
+You can take a look at the epoch state struct [here](#epochaccountstatus).
 
 ##### 6.2 Weight Table Initialization and Population
 
@@ -798,10 +798,9 @@ For testing purposes, the system defines an expected outcome (`WeatherStatus::Su
 ```
 
 This section demonstrates the system's ability to handle diverse voting preferences using the `do_cast_vote` helper, which calls the `cast_vote` instruction:
-
-1.  The first operator votes for "Cloudy" (representing a minority view).
-2.  The second and third operators vote for "Sunny" (the presumed majority view).
-3.  Each `do_cast_vote` call invokes the NCN program with the operator's choice and admin signature.
+*   The first operator votes for "Cloudy" (representing a minority view).
+*   The second and third operators vote for "Sunny" (the presumed majority view).
+*   Each `do_cast_vote` call invokes the NCN program with the operator's choice and admin signature.
 
 Under the hood, each vote triggers several key operations within the `cast_vote` instruction:
 *   **Verification**:
@@ -919,9 +918,9 @@ The Verification phase validates that the voting process completed successfully 
 The first verification step examines the `BallotBox` account for the completed epoch:
 *   **Winning Ballot Check**:
     - `has_winning_ballot()` confirms that the `winning_ballot` field within the `BallotBox` structure is marked as valid.
-2.  **Consensus Status Check**:
+*   **Consensus Status Check**:
     - `is_consensus_reached()` checks if the `slot_consensus_reached` field is greater than zero, indicating the consensus condition was met during the voting process.
-3.  **Outcome Verification**:
+*   **Outcome Verification**:
     - The test retrieves the `winning_ballot` struct and asserts that its `weather_status` field matches the `winning_weather_status` defined earlier (`WeatherStatus::Sunny`). This confirms the correct outcome was identified based on the stake-weighted tally.
 
 Verifying the `BallotBox` ensures the core voting and tallying mechanism functioned correctly during the active epoch.
@@ -958,16 +957,16 @@ Verifying the `BallotBox` ensures the core voting and tallying mechanism functio
 The second verification step examines the `ConsensusResult` account, which serves as the permanent, immutable record of the voting outcome:
 *   **Consensus Result Existence & Fetching**:
     - The test successfully fetches the `ConsensusResult` account using its PDA derived from the NCN pubkey and epoch. Its existence implies consensus was reached and the account was created.
-2.  **Consensus Status Validation**:
+*   **Consensus Status Validation**:
     - `is_consensus_reached()` checks an internal flag derived from stored values (like `consensus_slot` > 0), confirming the outcome is officially recognized.
-3.  **Metadata Verification**:
+*   **Metadata Verification**:
     - Asserts that the `epoch` field matches the current epoch.
     - Asserts that the `weather_status` matches the expected `winning_weather_status`.
-4.  **Cross-Account Consistency Check**:
+*   **Cross-Account Consistency Check**:
     - Fetches the `BallotBox` again.
     - Retrieves the `BallotTally` corresponding to the winning ballot from the `BallotBox`.
     - Asserts that the `vote_weight` stored in the `ConsensusResult` exactly matches the `stake_weight` recorded in the winning `BallotTally` within the `BallotBox`. This ensures consistency between the temporary voting record and the permanent result.
-5.  **Detailed Reporting**:
+*   **Detailed Reporting**:
     - Prints key details from the verified `ConsensusResult` account for confirmation.
 
 Verifying the `ConsensusResult` confirms that the outcome was durably stored with the correct details and consistent with the voting process itself.
