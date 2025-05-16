@@ -55,3 +55,7 @@ While this implementation uses weather status as the consensus target, the frame
 - Close Buffers: `solana program close --buffers`
 
 - Upgrade Program Size: `solana program extend $(solana address --keypair target/deploy/ncn_program_program-keypair.json) 100000`
+
+## More info
+
+You can check the docs for more into [here](TODO: add link). There is also a tutorial on how to use the program [here](TODO: add link).
