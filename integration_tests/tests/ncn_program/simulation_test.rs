@@ -23,10 +23,10 @@ mod tests {
         // 1. Preparing the test variables
         const OPERATOR_COUNT: usize = 13; // Number of operators to create for testing
         let mints = vec![
-            (Keypair::new(), WEIGHT),     // TKN1 with base weight
-            (Keypair::new(), WEIGHT * 2), // TKN2 with double weight
-            (Keypair::new(), WEIGHT * 3), // TKN3 with triple weight
-            (Keypair::new(), WEIGHT * 4), // TKN4 with quadruple weight
+            (Keypair::new(), WEIGHT),     // Alice with base weight
+            (Keypair::new(), WEIGHT * 2), // Bob with double weight
+            (Keypair::new(), WEIGHT * 3), // Charlie with triple weight
+            (Keypair::new(), WEIGHT * 4), // Dave with quadruple weight
         ];
         let delegations = [
             1,                  // minimum delegation amount
@@ -54,19 +54,19 @@ mod tests {
         // 2.c. Initialize the vaults using the Vault program By Jito
         // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
         {
-            // Create 3 vaults for TKN1
+            // Create 3 vaults for Alice
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 3, Some(mints[0].0.insecure_clone()))
                 .await?;
-            // Create 2 vaults for TKN2
+            // Create 2 vaults for Bob
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 2, Some(mints[1].0.insecure_clone()))
                 .await?;
-            // Create 1 vault for TKN3
+            // Create 1 vault for Charlie
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[2].0.insecure_clone()))
                 .await?;
-            // Create 1 vault for TKN4
+            // Create 1 vault for Dave
             fixture
                 .add_vaults_to_test_ncn(&mut test_ncn, 1, Some(mints[3].0.insecure_clone()))
                 .await?;
