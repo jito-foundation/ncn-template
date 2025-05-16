@@ -12,6 +12,10 @@ Key features:
 - Weather status system (Sunny, Cloudy, Rainy)
 - Admin controls for configuration and tie-breaking
 
+## NCN Guides and Tutorials
+
+For more information about Jito (Re)Staking, take a look at the [docs](https://docs.restaking.jito.network). You can also find an in-depth tutorial on NCN programs (and this NCN program, specifically) [here](https://docs.restaking.jito.network/ncn/00_implementation).
+
 ## Testing Setup
 
 ### Prerequisites
@@ -55,7 +59,3 @@ While this implementation uses weather status as the consensus target, the frame
 - Close Buffers: `solana program close --buffers`
 
 - Upgrade Program Size: `solana program extend $(solana address --keypair target/deploy/ncn_program_program-keypair.json) 100000`
-
-## More info
-
-You can check the docs for more into [here](TODO: add link). There is also a tutorial on how to use the program [here](TODO: add link).
