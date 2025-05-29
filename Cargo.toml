@@ -106,6 +106,7 @@ thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
 ncn-program-client = { path = "./clients/rust/ncn_program", version = "0.0.1" }
 ncn-program-core = { path = "./core", version = "=0.0.1" }
+ncn-program-cli = { path = "./cli", version = "=0.0.1" }
 ncn-program = { path = "./program", version = "=0.0.1" }
 ncn-program-shank-cli = { path = "./shank_cli", version = "=0.0.1" }
 jito-bytemuck = { package = "jito-bytemuck", git = "https://github.com/jito-foundation/restaking", branch = "v2.1-upgrade" }

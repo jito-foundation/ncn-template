@@ -3,9 +3,10 @@ use std::time::Duration;
 use crate::{
     getters::{
         get_account, get_all_operators_in_ncn, get_all_sorted_operators_for_vault, get_all_vaults,
-        get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot, get_operator,
-        get_operator_snapshot, get_vault, get_vault_config, get_vault_registry,
-        get_vault_update_state_tracker, get_weight_table,
+        get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
+        get_epoch_snapshot, get_operator, get_operator_snapshot, get_or_create_vault_registry,
+        get_vault, get_vault_config, get_vault_registry, get_vault_update_state_tracker,
+        get_weight_table,
     },
     handler::CliHandler,
     log::boring_progress_bar,
@@ -17,8 +18,7 @@ use jito_restaking_core::{
 };
 use jito_vault_client::{
     instructions::{
-        CloseVaultUpdateStateTrackerBuilder,
-        CrankVaultUpdateStateTrackerBuilder,
+        CloseVaultUpdateStateTrackerBuilder, CrankVaultUpdateStateTrackerBuilder,
         InitializeVaultUpdateStateTrackerBuilder,
     },
     types::WithdrawalAllocationMethod,
@@ -47,7 +47,7 @@ use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     config::Config as NCNProgramConfig,
-    consensus_result::{ConsensusResult},
+    consensus_result::ConsensusResult,
     constants::MAX_REALLOC_BYTES,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
@@ -60,6 +60,7 @@ use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
+    msg,
     native_token::sol_to_lamports,
     pubkey::Pubkey,
     signature::{Keypair, Signature},
@@ -630,7 +631,7 @@ pub async fn set_epoch_weights(handler: &CliHandler, epoch: u64) -> Result<()> {
         handler,
         &[set_epoch_weights_ix],
         &[],
-        "Set Weight",
+        "Set Epoch Weights",
         &[
             format!("NCN: {:?}", ncn),
             format!("Epoch: {:?}", epoch),
@@ -1016,6 +1017,17 @@ pub async fn operator_cast_vote(
 
 // --------------------- MIDDLEWARE ------------------------------
 
+pub async fn get_consensus_result_instruction(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let consensus_result = get_consensus_result(handler, epoch).await?;
+
+    info!(
+        "Consensus Result for epoch {}: {:?}",
+        epoch, consensus_result
+    );
+
+    Ok(())
+}
+
 pub const CREATE_TIMEOUT_MS: u64 = 2000;
 pub const CREATE_GET_RETRIES: u64 = 3;
 pub async fn check_created(handler: &CliHandler, address: &Pubkey) -> Result<()> {
@@ -1280,7 +1292,7 @@ pub async fn get_or_create_ballot_box(handler: &CliHandler, epoch: u64) -> Resul
 
 pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
     let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
-    let vault_registry = get_vault_registry(handler).await?;
+    let vault_registry = get_or_create_vault_registry(handler).await?;
     let all_registered_vaults: Vec<Pubkey> = vault_registry
         .get_valid_vault_entries()
         .iter()
@@ -1400,7 +1412,7 @@ pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Re
 #[allow(clippy::large_stack_frames)]
 pub async fn crank_test_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
     let voter = handler.keypair()?.pubkey();
-    let weather_status = 8;
+    let weather_status = 0;
     let operators = get_all_operators_in_ncn(handler).await?;
 
     for operator in operators.iter() {
@@ -1507,6 +1519,22 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
         );
     }
 
+    Ok(())
+}
+
+pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
+    create_weight_table(handler, epoch).await?;
+    set_epoch_weights(handler, epoch).await?;
+    Ok(())
+}
+
+pub async fn crank_post_vote_cooldown(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let result = get_consensus_result(handler, epoch).await?;
+
+    info!(
+        "\n\n--- Consensus Result for epoch {} is: \n {} ---",
+        epoch, result
+    );
     Ok(())
 }
 

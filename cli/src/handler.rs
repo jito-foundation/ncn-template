@@ -5,20 +5,21 @@ use crate::{
     args::{Args, ProgramCommand},
     getters::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
-        get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot,
-        get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
-        get_ncn_program_config, get_ncn_vault_ticket, get_operator_snapshot,
-        get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
-        get_vault_registry, get_weight_table,
+        get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
+        get_epoch_snapshot, get_epoch_state, get_is_epoch_completed, get_ncn,
+        get_ncn_operator_state, get_ncn_program_config, get_ncn_vault_ticket,
+        get_operator_snapshot, get_total_epoch_rent_cost, get_vault_ncn_ticket,
+        get_vault_operator_delegation, get_vault_registry, get_weight_table,
     },
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
         admin_set_parameters, admin_set_tie_breaker, admin_set_weight, crank_close_epoch_accounts,
-        crank_register_vaults, crank_snapshot, create_ballot_box, create_epoch_snapshot,
-        create_epoch_state, create_operator_snapshot, create_vault_registry, create_weight_table,
-        full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
-        snapshot_vault_operator_delegation, update_all_vaults_in_network,
+        crank_register_vaults, crank_snapshot, crank_vote, create_ballot_box,
+        create_epoch_snapshot, create_epoch_state, create_operator_snapshot, create_vault_registry,
+        create_weight_table, full_vault_update, operator_cast_vote, register_vault,
+        set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
+    keeper::keeper_loop::startup_keeper,
 };
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
@@ -156,6 +157,30 @@ impl CliHandler {
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
+            // Keeper
+            ProgramCommand::Keeper {
+                loop_timeout_ms,
+                error_timeout_ms,
+                test_vote,
+                all_vault_update,
+                emit_metrics,
+                metrics_only,
+                cluster,
+                region,
+            } => {
+                startup_keeper(
+                    self,
+                    loop_timeout_ms,
+                    error_timeout_ms,
+                    test_vote,
+                    all_vault_update,
+                    emit_metrics,
+                    metrics_only,
+                    cluster.to_string(),
+                    region.to_string(),
+                )
+                .await
+            }
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
@@ -163,6 +188,10 @@ impl CliHandler {
             ProgramCommand::CrankSnapshot {} => crank_snapshot(self, self.epoch).await,
             ProgramCommand::CrankCloseEpochAccounts {} => {
                 crank_close_epoch_accounts(self, self.epoch).await
+            }
+
+            ProgramCommand::CrankVote { test_vote } => {
+                crank_vote(self, self.epoch, test_vote).await
             }
             ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
 
@@ -428,6 +457,15 @@ impl CliHandler {
                 info!(
                     "\n\n--- Total Epoch Rent Cost ---\nCost: {}\n",
                     lamports_to_sol(total_epoch_rent_cost)
+                );
+                Ok(())
+            }
+            ProgramCommand::GetConsensusResult {} => {
+                let result = get_consensus_result(self, self.epoch).await?;
+
+                info!(
+                    "\n\n--- Consensus Result for epoch {} is: \n {} ---",
+                    self.epoch, result
                 );
                 Ok(())
             }
