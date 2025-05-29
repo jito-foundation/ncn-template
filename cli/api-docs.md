@@ -17,10 +17,12 @@ A CLI for creating and managing the ncn program
 
 ###### **Subcommands:**
 
+* `keeper` — Keeper
 * `crank-update-all-vaults` — Crank Functions
 * `crank-register-vaults` — 
 * `crank-snapshot` — 
 * `crank-close-epoch-accounts` — 
+* `crank-vote` — 
 * `set-epoch-weights` — 
 * `admin-create-config` — Admin
 * `admin-register-st-mint` — 
@@ -55,14 +57,11 @@ A CLI for creating and managing the ncn program
 * `get-ballot-box` — 
 * `get-account-payer` — 
 * `get-total-epoch-rent-cost` — 
+* `get-consensus-result` — 
 * `get-operator-stakes` — 
 * `get-vault-stakes` — 
 * `get-vault-operator-stakes` — 
 * `full-update-vaults` — 
-* `test` — TESTS
-* `create-test-ncn` — 
-* `create-and-add-test-operator` — 
-* `create-and-add-test-vault` — 
 
 ###### **Options:**
 
@@ -97,6 +96,34 @@ A CLI for creating and managing the ncn program
 
 
 
+## `ncn-program-cli keeper`
+
+Keeper
+
+**Usage:** `ncn-program-cli keeper [OPTIONS] --cluster <CLUSTER>`
+
+###### **Options:**
+
+* `--loop-timeout-ms <LOOP_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `600000`
+* `--error-timeout-ms <ERROR_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `10000`
+* `--test-vote` — Calls test vote, instead of waiting for a real vote
+* `--all-vault-update` — At the start of the epoch the keeper will update all vaults in the network
+* `--emit-metrics` — Emits metrics to Influx - adds a lot of network calls
+* `--metrics-only` — Only emit metrics
+* `--cluster <CLUSTER>` — Cluster label for metrics purposes
+
+  Possible values: `mainnet`, `testnet`, `localnet`
+
+* `--region <REGION>` — Region for metrics purposes
+
+  Default value: `local`
+
+
+
 ## `ncn-program-cli crank-update-all-vaults`
 
 Crank Functions
@@ -120,6 +147,16 @@ Crank Functions
 ## `ncn-program-cli crank-close-epoch-accounts`
 
 **Usage:** `ncn-program-cli crank-close-epoch-accounts`
+
+
+
+## `ncn-program-cli crank-vote`
+
+**Usage:** `ncn-program-cli crank-vote [OPTIONS]`
+
+###### **Options:**
+
+* `--test-vote` — Calls test vote, instead of waiting for a real vote
 
 
 
@@ -415,6 +452,12 @@ Getters
 
 
 
+## `ncn-program-cli get-consensus-result`
+
+**Usage:** `ncn-program-cli get-consensus-result`
+
+
+
 ## `ncn-program-cli get-operator-stakes`
 
 **Usage:** `ncn-program-cli get-operator-stakes`
@@ -440,47 +483,6 @@ Getters
 ###### **Options:**
 
 * `--vault <VAULT>` — Vault address
-
-
-
-## `ncn-program-cli test`
-
-TESTS
-
-**Usage:** `ncn-program-cli test`
-
-
-
-## `ncn-program-cli create-test-ncn`
-
-**Usage:** `ncn-program-cli create-test-ncn`
-
-
-
-## `ncn-program-cli create-and-add-test-operator`
-
-**Usage:** `ncn-program-cli create-and-add-test-operator [OPTIONS]`
-
-###### **Options:**
-
-* `--operator-fee-bps <OPERATOR_FEE_BPS>` — Operator Fee BPS
-
-  Default value: `100`
-
-
-
-## `ncn-program-cli create-and-add-test-vault`
-
-**Usage:** `ncn-program-cli create-and-add-test-vault [OPTIONS]`
-
-###### **Options:**
-
-* `--deposit-fee-bps <DEPOSIT_FEE_BPS>` — Deposit fee BPS
-
-  Default value: `100`
-* `--withdrawal-fee-bps <WITHDRAWAL_FEE_BPS>` — Withdrawal fee BPS
-
-  Default value: `100`
 
 
 
