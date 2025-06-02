@@ -241,7 +241,7 @@ pub enum ProgramCommand {
     OperatorCastVote {
         #[arg(long, help = "Operator address")]
         operator: String,
-        #[arg(long, help = "Meta merkle root")]
+        #[arg(long, help = "weather status at solana beach")]
         weather_status: u8,
     },
 
