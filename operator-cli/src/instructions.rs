@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    getters::{get_account, get_consensus_result},
+    getters::{get_account, get_ballot_box, get_consensus_result},
     handler::CliHandler,
     log::boring_progress_bar,
 };
@@ -22,6 +22,7 @@ use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
+    msg,
     pubkey::Pubkey,
     signature::{Keypair, Signature},
     signer::Signer,
@@ -87,6 +88,82 @@ pub async fn operator_cast_vote(
         ],
     )
     .await?;
+
+    Ok(())
+}
+
+pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
+    // TODO: implement voting logic
+
+    let ballot_box = get_ballot_box(handler, epoch).await?;
+    msg!("Ballot Box for epoch {}: {}", epoch, ballot_box);
+    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
+    msg!("did_operator_vote {}", did_operator_vote);
+    msg!("operator votes {:?}", ballot_box.operators_voted());
+
+    if ballot_box.is_consensus_reached() {
+        log::info!(
+            "Consensus already reached for epoch: {:?}. Skipping voting.",
+            epoch
+        );
+        return Ok(());
+    }
+
+    if test_vote {
+        operator_cast_vote(handler, epoch, 1).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn crank_post_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let ballot_box = get_ballot_box(handler, epoch).await?;
+    let operator = *handler.operator()?;
+
+    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
+    let operator_vote = if did_operator_vote {
+        ballot_box
+            .operator_votes()
+            .iter()
+            .find(|v| v.operator().eq(&operator))
+    } else {
+        None
+    };
+
+    let mut log_message = format!("\n----- Post Vote Status -----\n");
+    log_message.push_str(&format!("Epoch: {}\n", epoch));
+    log_message.push_str(&format!("Did Operator Vote: {}\n", did_operator_vote));
+
+    if let Some(vote) = operator_vote {
+        let operator_ballot = ballot_box.ballot_tallies()[vote.ballot_index() as usize];
+        let operator_ballot_weight = operator_ballot.stake_weights();
+        log_message.push_str("Operator Vote Details:\n");
+        log_message.push_str(&format!("  Operator: {}\n", vote.operator()));
+        log_message.push_str(&format!("  Slot Voted: {}\n", vote.slot_voted()));
+        log_message.push_str(&format!("  Ballot Index: {}\n", vote.ballot_index()));
+        log_message.push_str(&format!(
+            "  Operator Ballot Weight: {}\n",
+            operator_ballot_weight.stake_weight()
+        ));
+        log_message.push_str(&format!("  Operator Vote: {}\n", operator_ballot.ballot()));
+    } else {
+        log_message.push_str("No operator vote found\n");
+    }
+
+    log_message.push_str(&format!(
+        "Consensus Reached: {}\n",
+        ballot_box.is_consensus_reached()
+    ));
+
+    if ballot_box.is_consensus_reached() {
+        log_message.push_str(&format!(
+            "Winning Ballot: {}\n",
+            ballot_box.get_winning_ballot()?
+        ));
+    }
+    log_message.push_str("--------------------------\n");
+
+    log::info!("{}", log_message);
 
     Ok(())
 }

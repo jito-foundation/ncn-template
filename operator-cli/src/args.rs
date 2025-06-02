@@ -111,9 +111,39 @@ pub struct Args {
 
 #[derive(Subcommand)]
 pub enum ProgramCommand {
+    /// Keeper
+    Keeper {
+        #[arg(
+            long,
+            env,
+            default_value_t = 600_000, // 10 minutes
+            help = "Keeper error timeout in milliseconds"
+        )]
+        loop_timeout_ms: u64,
+        #[arg(
+            long,
+            env,
+            default_value_t = 10_000, // 10 seconds
+            help = "Keeper error timeout in milliseconds"
+        )]
+        error_timeout_ms: u64,
+        #[arg(long, help = "Calls test vote, instead of waiting for a real vote")]
+        test_vote: bool,
+        #[arg(long, env, help = "Only emit metrics")]
+        metrics_only: bool,
+        #[arg(long, env, help = "Cluster label for metrics purposes")]
+        cluster: Cluster,
+        #[arg(
+            long,
+            env,
+            default_value = "local",
+            help = "Region for metrics purposes"
+        )]
+        region: String,
+    },
     /// Instructions
     OperatorCastVote {
-        #[arg(long, help = "Meta merkle root")]
+        #[arg(long, help = "Weather status at solana beach")]
         weather_status: u8,
     },
 
