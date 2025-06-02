@@ -1,0 +1,56 @@
+[package]
+name = "ncn-operator-cli"
+description = "NCN program template CLI"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+readme = { workspace = true }
+
+[dependencies]
+anchor-lang = { workspace = true }
+anyhow = { workspace = true }
+base64 = { workspace = true }
+borsh = { workspace = true }
+borsh1 = { package = "borsh", version = "1.5.3" }
+bytemuck = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+clap-markdown = { workspace = true }
+dotenv = { workspace = true }
+env_logger = { workspace = true }
+futures = { workspace = true }
+jito-bytemuck = { workspace = true }
+jito-jsm-core = { workspace = true }
+jito-restaking-client = { workspace = true }
+jito-restaking-core = { workspace = true }
+jito-restaking-program = { workspace = true }
+jito-restaking-sdk = { workspace = true }
+ncn-program-client = { workspace = true }
+ncn-program-core = { workspace = true }
+ncn-program = { workspace = true }
+jito-vault-client = { workspace = true }
+jito-vault-core = { workspace = true }
+jito-vault-program = { workspace = true }
+jito-vault-sdk = { workspace = true }
+log = { workspace = true }
+solana-account-decoder = { workspace = true }
+solana-client = { workspace = true }
+solana-metrics = { workspace = true }
+solana-program = { workspace = true }
+solana-rpc-client = { workspace = true }
+solana-sdk = { workspace = true }
+solana-transaction-status = { workspace = true }
+spl-associated-token-account = { workspace = true }
+spl-token = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+assert_matches = { workspace = true }
+
+[[bin]]
+name = "ncn-operator-cli"
+path = "src/bin/main.rs"

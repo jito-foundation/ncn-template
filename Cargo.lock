@@ -3381,6 +3381,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "ncn-operator-cli"
+version = "0.0.1"
+dependencies = [
+ "anchor-lang",
+ "anyhow",
+ "assert_matches",
+ "base64 0.22.1",
+ "borsh 0.10.4",
+ "borsh 1.5.5",
+ "bytemuck",
+ "chrono",
+ "clap 4.5.23",
+ "clap-markdown",
+ "dotenv",
+ "env_logger 0.10.2",
+ "futures",
+ "jito-bytemuck",
+ "jito-jsm-core",
+ "jito-restaking-client",
+ "jito-restaking-core",
+ "jito-restaking-program",
+ "jito-restaking-sdk",
+ "jito-vault-client",
+ "jito-vault-core",
+ "jito-vault-program",
+ "jito-vault-sdk",
+ "log",
+ "ncn-program",
+ "ncn-program-client",
+ "ncn-program-core",
+ "solana-account-decoder",
+ "solana-client",
+ "solana-metrics",
+ "solana-program",
+ "solana-rpc-client",
+ "solana-sdk",
+ "solana-transaction-status",
+ "spl-associated-token-account 6.0.0",
+ "spl-token 7.0.0",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
 name = "ncn-program"
 version = "0.0.1"
 dependencies = [
