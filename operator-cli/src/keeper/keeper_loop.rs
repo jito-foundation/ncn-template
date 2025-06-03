@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    getters::get_guaranteed_epoch_and_slot,
+    getters::{get_ballot_box, get_guaranteed_epoch_and_slot},
     handler::CliHandler,
     instructions::{crank_post_vote, crank_vote},
     keeper::keeper_state::KeeperState,
@@ -221,7 +221,17 @@ pub async fn startup_keeper(
                     );
                     Ok(())
                 }
-                State::Vote => crank_vote(handler, state.epoch, test_vote).await,
+                State::Vote => {
+                    let ballot_box = get_ballot_box(handler, state.epoch).await?;
+                    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
+                    if !did_operator_vote {
+                        crank_vote(handler, state.epoch, test_vote).await?
+                    } else {
+                        crank_post_vote(handler, state.epoch).await?;
+                        state.is_epoch_completed = true;
+                    }
+                    Ok(())
+                }
                 State::PostVoteCooldown => {
                     crank_post_vote(handler, state.epoch).await?;
                     state.is_epoch_completed = true;
