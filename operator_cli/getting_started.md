@@ -38,7 +38,6 @@ Ensure it works
 jito-restaking-cli --help
 ```
 
-
 ## CLI Configuration
 
 You can setup a .env file to store your configuration variables
@@ -48,7 +47,6 @@ cp .env.example .env
 ```
 
 Edit the .env file with your own values for the following variables:
-
 
 - RPC_URL: The RPC URL for the Solana cluster you want to use
 - COMMITMENT: The commitment level for the Solana cluster you want to use
@@ -170,5 +168,3 @@ You have the following getters:
 - `get-vault-operator-stakes` — Get the vault operator stakes
 
 For detailed usage instructions and examples, refer to the [API documentation](api-docs.md).
-
-
