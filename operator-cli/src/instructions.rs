@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::{
     getters::{get_account, get_ballot_box, get_consensus_result},
     handler::CliHandler,
+    keeper::keeper_metrics::emit_ncn_metrics_operator_post_vote,
     log::boring_progress_bar,
 };
 use anyhow::{anyhow, Ok, Result};
@@ -123,11 +124,12 @@ async fn get_weather_status(api_key: &str, city_name: &str) -> Result<u8> {
     }
 }
 
-pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
+pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<u8> {
     let api_key = handler.open_weather_api_key()?;
 
     if test_vote {
         operator_cast_vote(handler, epoch, 1).await?;
+        Ok(1)
     } else {
         // Get actual weather status
         let weather_value = get_weather_status(&api_key, "Solana Beach").await?;
@@ -136,9 +138,8 @@ pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Re
             weather_value
         );
         operator_cast_vote(handler, epoch, weather_value).await?;
+        Ok(weather_value)
     }
-
-    Ok(())
 }
 
 pub async fn crank_post_vote(handler: &CliHandler, epoch: u64) -> Result<()> {

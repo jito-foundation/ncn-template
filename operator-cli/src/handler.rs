@@ -179,6 +179,7 @@ impl CliHandler {
                 error_timeout_ms,
                 test_vote,
                 metrics_only,
+                emit_metrics,
                 cluster,
                 region,
             } => {
@@ -187,6 +188,7 @@ impl CliHandler {
                     loop_timeout_ms,
                     error_timeout_ms,
                     test_vote,
+                    emit_metrics,
                     metrics_only,
                     cluster.to_string(),
                     region.to_string(),

@@ -4,7 +4,13 @@ use crate::{
     getters::{get_ballot_box, get_guaranteed_epoch_and_slot},
     handler::CliHandler,
     instructions::{crank_post_vote, crank_vote},
-    keeper::keeper_state::KeeperState,
+    keeper::{
+        keeper_metrics::{
+            emit_error, emit_heartbeat, emit_ncn_metrics_operator_post_vote,
+            emit_ncn_metrics_operator_vote,
+        },
+        keeper_state::KeeperState,
+    },
 };
 use anyhow::Result;
 use log::info;
@@ -50,6 +56,7 @@ async fn check_and_timeout_error<T>(
         let message = format!("Error: [{}] \n{}\n\n", title, error);
 
         log::error!("{}", message);
+        emit_error(title, error, message, keeper_epoch).await;
         timeout_error(error_timeout_ms).await;
         true
     } else {
@@ -76,19 +83,20 @@ pub async fn startup_keeper(
     loop_timeout_ms: u64,
     error_timeout_ms: u64,
     test_vote: bool,
+    emit_metrics: bool,
     metrics_only: bool,
     cluster_label: String,
     region: String,
 ) -> Result<()> {
     let mut state: KeeperState = KeeperState::default();
     let mut current_keeper_epoch = handler.epoch;
-    let mut is_new_epoch = true;
+    let mut tick = 0;
     let (mut last_current_epoch, _) = get_guaranteed_epoch_and_slot(handler).await;
 
-    let mut start_of_loop;
     let mut end_of_loop;
 
     let run_operations = !metrics_only;
+    let emit_metrics = emit_metrics || metrics_only;
 
     let hostname_cmd = Command::new("hostname")
         .output()
@@ -128,11 +136,12 @@ pub async fn startup_keeper(
                     "\n\nPROGRESS EPOCH: {} -> {}\n\n",
                     current_keeper_epoch, result
                 );
+
+                break Ok(());
             }
 
             current_keeper_epoch = result;
             last_current_epoch = last_current_epoch.max(current_keeper_epoch);
-            start_of_loop = current_keeper_epoch == handler.epoch;
             end_of_loop = current_keeper_epoch == current_epoch;
         }
 
@@ -210,20 +219,87 @@ pub async fn startup_keeper(
                     let ballot_box = get_ballot_box(handler, state.epoch).await?;
                     let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
                     if !did_operator_vote {
-                        crank_vote(handler, state.epoch, test_vote).await?
+                        let vote = crank_vote(handler, state.epoch, test_vote).await?;
+
+                        if emit_metrics {
+                            info!(
+                                "\n\n Emit Epoch NCN Operator Vote Metrics - {}\n",
+                                current_keeper_epoch
+                            );
+                            let result =
+                                emit_ncn_metrics_operator_vote(handler, vote, state.epoch).await;
+
+                            check_and_timeout_error(
+                                "Emit NCN Operator Vote metrics".to_string(),
+                                &result,
+                                error_timeout_ms,
+                                state.epoch,
+                            )
+                            .await;
+                        }
                     } else {
-                        crank_post_vote(handler, state.epoch).await?;
+                        emit_ncn_metrics_operator_post_vote(handler, state.epoch).await;
+                        if emit_metrics {
+                            info!(
+                                "\n\n Emit Epoch post vote metrics - {}\n",
+                                current_keeper_epoch
+                            );
+                            let result =
+                                emit_ncn_metrics_operator_post_vote(handler, state.epoch).await;
+
+                            check_and_timeout_error(
+                                "Emit NCN Operator Post Vote Metrics".to_string(),
+                                &result,
+                                error_timeout_ms,
+                                state.epoch,
+                            )
+                            .await;
+                        }
                         state.is_epoch_completed = true;
                     }
                     Ok(())
                 }
                 State::PostVoteCooldown => {
                     crank_post_vote(handler, state.epoch).await?;
+
+                    if emit_metrics {
+                        info!(
+                            "\n\n Emit Epoch post vote metrics - {}\n",
+                            current_keeper_epoch
+                        );
+                        let result =
+                            emit_ncn_metrics_operator_post_vote(handler, state.epoch).await;
+
+                        check_and_timeout_error(
+                            "Emit NCN Operator Post Vote Metrics".to_string(),
+                            &result,
+                            error_timeout_ms,
+                            state.epoch,
+                        )
+                        .await;
+                    }
                     state.is_epoch_completed = true;
                     Ok(())
                 }
                 State::Close => {
                     crank_post_vote(handler, state.epoch).await?;
+
+                    if emit_metrics {
+                        info!(
+                            "\n\n Emit Epoch post vote metrics - {}\n",
+                            current_keeper_epoch
+                        );
+                        let result =
+                            emit_ncn_metrics_operator_post_vote(handler, state.epoch).await;
+
+                        check_and_timeout_error(
+                            "Emit NCN Operator Post Vote Metrics".to_string(),
+                            &result,
+                            error_timeout_ms,
+                            state.epoch,
+                        )
+                        .await;
+                    }
                     state.is_epoch_completed = true;
                     Ok(())
                 }
@@ -246,6 +322,9 @@ pub async fn startup_keeper(
             info!("\n\nF. Timeout - {}\n", current_keeper_epoch);
 
             timeout_keeper(loop_timeout_ms).await;
+
+            emit_heartbeat(tick, run_operations, emit_metrics).await;
+            tick += 1;
         }
     }
 }

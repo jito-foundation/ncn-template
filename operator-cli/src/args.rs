@@ -137,6 +137,8 @@ pub enum ProgramCommand {
         error_timeout_ms: u64,
         #[arg(long, help = "Calls test vote, instead of waiting for a real vote")]
         test_vote: bool,
+        #[arg(long, env, help = "Emit metrics")]
+        emit_metrics: bool,
         #[arg(long, env, help = "Only emit metrics")]
         metrics_only: bool,
         #[arg(long, env, help = "Cluster label for metrics purposes")]
