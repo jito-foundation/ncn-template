@@ -107,6 +107,14 @@ pub struct Args {
 
     #[arg(long, global = true, hide = true)]
     pub markdown_help: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "OPENWEATHER_API_KEY",
+        help = "Open weather api key"
+    )]
+    pub open_weather_api_key: Option<String>,
 }
 
 #[derive(Subcommand)]

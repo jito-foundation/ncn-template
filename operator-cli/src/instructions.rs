@@ -30,6 +30,8 @@ use solana_sdk::{
 };
 use tokio::time::sleep;
 
+use serde::Deserialize;
+
 // --------------------- operator ------------------------------
 
 pub async fn operator_cast_vote(
@@ -92,25 +94,48 @@ pub async fn operator_cast_vote(
     Ok(())
 }
 
-pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
-    // TODO: implement voting logic
+#[derive(Deserialize, Debug)]
+struct WeatherInfo {
+    main: String,
+}
 
-    let ballot_box = get_ballot_box(handler, epoch).await?;
-    msg!("Ballot Box for epoch {}: {}", epoch, ballot_box);
-    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
-    msg!("did_operator_vote {}", did_operator_vote);
-    msg!("operator votes {:?}", ballot_box.operators_voted());
+#[derive(Deserialize, Debug)]
+struct WeatherResponse {
+    weather: Vec<WeatherInfo>,
+}
 
-    if ballot_box.is_consensus_reached() {
-        log::info!(
-            "Consensus already reached for epoch: {:?}. Skipping voting.",
-            epoch
-        );
-        return Ok(());
+async fn get_weather_status(api_key: &str, city_name: &str) -> Result<u8> {
+    let url = format!(
+        "http://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
+        city_name, api_key
+    );
+
+    let response = reqwest::get(&url).await?.json::<WeatherResponse>().await?;
+
+    if let Some(weather_condition) = response.weather.get(0) {
+        match weather_condition.main.as_str() {
+            "Clear" => Ok(0),                                      // Sunny
+            "Rain" | "Snow" | "Drizzle" | "Thunderstorm" => Ok(2), // Raining/Snowing
+            _ => Ok(1),                                            // Anything else
+        }
+    } else {
+        Ok(1) // Default to "Anything else" if no weather info is available
     }
+}
+
+pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
+    let api_key = handler.open_weather_api_key()?;
 
     if test_vote {
         operator_cast_vote(handler, epoch, 1).await?;
+    } else {
+        // Get actual weather status
+        let weather_value = get_weather_status(&api_key, "Solana Beach").await?;
+        info!(
+            "Current weather in Solana Beach (0:Sunny, 1:Other, 2:Rain/Snow): {}",
+            weather_value
+        );
+        operator_cast_vote(handler, epoch, weather_value).await?;
     }
 
     Ok(())

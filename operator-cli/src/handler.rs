@@ -45,6 +45,7 @@ pub struct CliHandler {
     pub rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
+    pub open_weather_api_key: Option<String>,
 }
 
 impl CliHandler {
@@ -83,6 +84,7 @@ impl CliHandler {
             .transpose()?;
 
         let rpc_client = RpcClient::new_with_commitment(rpc_url.clone(), commitment);
+        let open_weather_api_key = args.open_weather_api_key.clone();
 
         let mut handler = Self {
             rpc_url,
@@ -98,6 +100,7 @@ impl CliHandler {
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
+            open_weather_api_key,
         };
 
         handler.epoch = {
@@ -153,6 +156,12 @@ impl CliHandler {
 
     pub fn ncn(&self) -> Result<&Pubkey> {
         self.ncn.as_ref().ok_or_else(|| anyhow!("No NCN address"))
+    }
+
+    pub fn open_weather_api_key(&self) -> Result<String> {
+        self.open_weather_api_key.clone().ok_or_else(|| {
+            anyhow!("No Open Weather API key provided. Set the OPENWEATHER_API_KEY environment variable or pass it as an argument.")
+        })
     }
 
     pub fn operator(&self) -> Result<&Pubkey> {
