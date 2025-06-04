@@ -38,7 +38,6 @@ pub struct KeeperState {
 
 impl KeeperState {
     pub async fn fetch(&mut self, handler: &CliHandler, epoch: u64) -> Result<()> {
-        // Fetch all vaults and operators
         let ncn = *handler.ncn()?;
         self.ncn = ncn;
 
@@ -95,7 +94,6 @@ impl KeeperState {
         let is_epoch_completed = get_is_epoch_completed(handler, self.epoch).await?;
         if is_epoch_completed {
             self.is_epoch_completed = true;
-            return Ok(());
         } else {
             self.is_epoch_completed = false;
         }

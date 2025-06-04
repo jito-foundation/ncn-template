@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    getters::{get_ballot_box, get_guaranteed_epoch_and_slot},
+    getters::{get_ballot_box, get_guaranteed_epoch_and_slot, get_operator_snapshot},
     handler::CliHandler,
     instructions::{crank_post_vote, crank_vote},
     keeper::{
@@ -14,7 +14,7 @@ use crate::{
 };
 use anyhow::Result;
 use log::info;
-use ncn_program_core::epoch_state::State;
+use ncn_program_core::{epoch_state::State, utils::can_operator_vote};
 use solana_metrics::set_host_id;
 use std::process::Command;
 use tokio::time::sleep;
@@ -141,6 +141,10 @@ pub async fn startup_keeper(
             current_keeper_epoch = result;
             last_current_epoch = last_current_epoch.max(current_keeper_epoch);
             end_of_loop = current_keeper_epoch == current_epoch;
+            info!(
+                "Current Keeper Epoch: {}, Current Epoch: {}, End of Loop: {}",
+                current_keeper_epoch, current_epoch, end_of_loop
+            );
         }
 
         // Fetches the current state of the keeper, which holds the Epoch State
@@ -163,8 +167,6 @@ pub async fn startup_keeper(
             }
         }
 
-        // If there is no state found for the given epoch, this will create it, or
-        // detect if its already been closed. Then the epoch will progress to the next
         if run_operations {
             info!("\n\n2. Check State - {}\n", current_keeper_epoch);
 
@@ -214,16 +216,28 @@ pub async fn startup_keeper(
                     Ok(())
                 }
                 State::Vote => {
+                    let operator = handler.operator()?;
                     let ballot_box = get_ballot_box(handler, state.epoch).await?;
-                    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
-                    if !did_operator_vote {
-                        let vote = crank_vote(handler, state.epoch, test_vote).await?;
+                    let operator_snapshot =
+                        get_operator_snapshot(handler, operator, state.epoch).await?;
+                    let can_operator_vote =
+                        can_operator_vote(ballot_box, operator_snapshot, operator);
+                    if can_operator_vote {
+                        let result = crank_vote(handler, state.epoch, test_vote).await;
+                        check_and_timeout_error(
+                            "Operator Casting a Vote".to_string(),
+                            &result,
+                            error_timeout_ms,
+                            state.epoch,
+                        )
+                        .await;
 
                         if emit_metrics {
                             info!(
                                 "\n\n Emit Epoch NCN Operator Vote Metrics - {}\n",
                                 current_keeper_epoch
                             );
+                            let vote = result.unwrap_or(3);
                             let result =
                                 emit_ncn_metrics_operator_vote(handler, vote, state.epoch).await;
 
@@ -237,6 +251,7 @@ pub async fn startup_keeper(
                         }
                     } else {
                         crank_post_vote(handler, state.epoch).await?;
+
                         if emit_metrics {
                             info!(
                                 "\n\n Emit Epoch post vote metrics - {}\n",
