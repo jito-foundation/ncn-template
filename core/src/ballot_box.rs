@@ -652,6 +652,16 @@ impl BallotBox {
 
         Ok(true)
     }
+
+    pub fn did_operator_vote(&self, operator: &Pubkey) -> bool {
+        for vote in self.operator_votes.iter() {
+            if vote.operator().eq(operator) {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 #[rustfmt::skip]

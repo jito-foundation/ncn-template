@@ -4,21 +4,14 @@ use std::{collections::HashMap, mem::size_of, str::FromStr};
 use crate::{
     args::{Args, ProgramCommand},
     getters::{
-        get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
-        get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
-        get_epoch_snapshot, get_epoch_state, get_is_epoch_completed, get_ncn,
-        get_ncn_operator_state, get_ncn_program_config, get_ncn_vault_ticket,
-        get_operator_snapshot, get_total_epoch_rent_cost, get_vault_ncn_ticket,
-        get_vault_operator_delegation, get_vault_registry, get_weight_table,
+        get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults_in_ncn,
+        get_ballot_box, get_consensus_result, get_current_slot, get_epoch_snapshot,
+        get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
+        get_ncn_program_config, get_ncn_vault_ticket, get_operator_snapshot,
+        get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
+        get_vault_registry, get_weight_table,
     },
-    instructions::{
-        admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
-        admin_set_parameters, admin_set_tie_breaker, admin_set_weight, crank_close_epoch_accounts,
-        crank_register_vaults, crank_snapshot, crank_vote, create_ballot_box,
-        create_epoch_snapshot, create_epoch_state, create_operator_snapshot, create_vault_registry,
-        create_weight_table, full_vault_update, operator_cast_vote, register_vault,
-        set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
-    },
+    instructions::operator_cast_vote,
     keeper::keeper_loop::startup_keeper,
 };
 use anyhow::{anyhow, Result};
@@ -46,11 +39,13 @@ pub struct CliHandler {
     pub vault_program_id: Pubkey,
     pub ncn_program_id: Pubkey,
     pub token_program_id: Pubkey,
+    pub operator: Option<Pubkey>,
     pub ncn: Option<Pubkey>,
     pub epoch: u64,
     pub rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
+    pub open_weather_api_key: Option<String>,
 }
 
 impl CliHandler {
@@ -76,6 +71,12 @@ impl CliHandler {
 
         let token_program_id = Pubkey::from_str(&args.token_program_id)?;
 
+        let operator = args
+            .operator
+            .clone()
+            .map(|id| Pubkey::from_str(&id))
+            .transpose()?;
+
         let ncn = args
             .ncn
             .clone()
@@ -83,6 +84,7 @@ impl CliHandler {
             .transpose()?;
 
         let rpc_client = RpcClient::new_with_commitment(rpc_url.clone(), commitment);
+        let open_weather_api_key = args.open_weather_api_key.clone();
 
         let mut handler = Self {
             rpc_url,
@@ -92,11 +94,13 @@ impl CliHandler {
             vault_program_id,
             ncn_program_id,
             token_program_id,
+            operator,
             ncn,
             epoch: u64::MAX,
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
+            open_weather_api_key,
         };
 
         handler.epoch = {
@@ -154,17 +158,28 @@ impl CliHandler {
         self.ncn.as_ref().ok_or_else(|| anyhow!("No NCN address"))
     }
 
+    pub fn open_weather_api_key(&self) -> Result<String> {
+        self.open_weather_api_key.clone().ok_or_else(|| {
+            anyhow!("No Open Weather API key provided. Set the OPENWEATHER_API_KEY environment variable or pass it as an argument.")
+        })
+    }
+
+    pub fn operator(&self) -> Result<&Pubkey> {
+        self.operator
+            .as_ref()
+            .ok_or_else(|| anyhow!("No Operator address"))
+    }
+
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
-            // Keeper
+            //Keeper
             ProgramCommand::Keeper {
                 loop_timeout_ms,
                 error_timeout_ms,
                 test_vote,
-                all_vault_update,
-                emit_metrics,
                 metrics_only,
+                emit_metrics,
                 cluster,
                 region,
             } => {
@@ -173,7 +188,6 @@ impl CliHandler {
                     loop_timeout_ms,
                     error_timeout_ms,
                     test_vote,
-                    all_vault_update,
                     emit_metrics,
                     metrics_only,
                     cluster.to_string(),
@@ -181,130 +195,9 @@ impl CliHandler {
                 )
                 .await
             }
-            // Cranks
-            ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
-            ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
-
-            ProgramCommand::CrankSnapshot {} => crank_snapshot(self, self.epoch).await,
-            ProgramCommand::CrankCloseEpochAccounts {} => {
-                crank_close_epoch_accounts(self, self.epoch).await
-            }
-
-            ProgramCommand::CrankVote { test_vote } => {
-                crank_vote(self, self.epoch, test_vote).await
-            }
-            ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
-
-            // Admin
-            ProgramCommand::AdminCreateConfig {
-                epochs_before_stall,
-                valid_slots_after_consensus,
-                epochs_after_consensus_before_close,
-                tie_breaker_admin,
-            } => {
-                let tie_breaker = if let Some(admin_str) = tie_breaker_admin {
-                    Some(
-                        Pubkey::from_str(&admin_str)
-                            .map_err(|e| anyhow!("Error parsing tie breaker admin: {}", e))?,
-                    )
-                } else {
-                    None
-                };
-
-                admin_create_config(
-                    self,
-                    epochs_before_stall,
-                    valid_slots_after_consensus,
-                    epochs_after_consensus_before_close,
-                    tie_breaker,
-                )
-                .await
-            }
-            ProgramCommand::AdminRegisterStMint { vault, weight } => {
-                let vault =
-                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                admin_register_st_mint(self, &vault, weight).await
-            }
-            ProgramCommand::AdminSetWeight { vault, weight } => {
-                let vault =
-                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                admin_set_weight(self, &vault, self.epoch, weight).await
-            }
-            ProgramCommand::AdminSetTieBreaker { weather_status } => {
-                admin_set_tie_breaker(self, self.epoch, weather_status).await
-            }
-            ProgramCommand::AdminSetParameters {
-                epochs_before_stall,
-                epochs_after_consensus_before_close,
-                valid_slots_after_consensus,
-                starting_valid_epoch,
-            } => {
-                admin_set_parameters(
-                    self,
-                    epochs_before_stall,
-                    epochs_after_consensus_before_close,
-                    valid_slots_after_consensus,
-                    starting_valid_epoch,
-                )
-                .await?;
-                let config = get_ncn_program_config(self).await?;
-                info!("\n\n--- Parameters Set ---\nepochs_before_stall: {}\nepochs_after_consensus_before_close: {}\nvalid_slots_after_consensus: {}\nstarting_valid_epoch: {}\n",
-                    config.epochs_before_stall(),
-                    config.epochs_after_consensus_before_close(),
-                    config.valid_slots_after_consensus(),
-                    config.starting_valid_epoch()
-                );
-
-                Ok(())
-            }
-            ProgramCommand::AdminSetNewAdmin {
-                new_admin,
-                set_tie_breaker_admin,
-            } => {
-                let new_admin = Pubkey::from_str(&new_admin)
-                    .map_err(|e| anyhow!("Error parsing new admin: {}", e))?;
-                admin_set_new_admin(self, &new_admin, set_tie_breaker_admin).await
-            }
-            ProgramCommand::AdminFundAccountPayer { amount_in_sol } => {
-                admin_fund_account_payer(self, amount_in_sol).await
-            }
-
             // Instructions
-            ProgramCommand::CreateVaultRegistry {} => create_vault_registry(self).await,
-
-            ProgramCommand::RegisterVault { vault } => {
-                let vault =
-                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                register_vault(self, &vault).await
-            }
-
-            ProgramCommand::CreateEpochState {} => create_epoch_state(self, self.epoch).await,
-
-            ProgramCommand::CreateWeightTable {} => create_weight_table(self, self.epoch).await,
-
-            ProgramCommand::CreateEpochSnapshot {} => create_epoch_snapshot(self, self.epoch).await,
-            ProgramCommand::CreateOperatorSnapshot { operator } => {
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
-                create_operator_snapshot(self, &operator, self.epoch).await
-            }
-            ProgramCommand::SnapshotVaultOperatorDelegation { vault, operator } => {
-                let vault =
-                    Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
-                snapshot_vault_operator_delegation(self, &vault, &operator, self.epoch).await
-            }
-
-            ProgramCommand::CreateBallotBox {} => create_ballot_box(self, self.epoch).await,
-            ProgramCommand::OperatorCastVote {
-                operator,
-                weather_status,
-            } => {
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
-
-                operator_cast_vote(self, &operator, self.epoch, weather_status).await
+            ProgramCommand::OperatorCastVote { weather_status } => {
+                operator_cast_vote(self, self.epoch, weather_status).await
             }
 
             // Getters
@@ -313,9 +206,8 @@ impl CliHandler {
                 info!("NCN: {:?}", ncn);
                 Ok(())
             }
-            ProgramCommand::GetNcnOperatorState { operator } => {
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+            ProgramCommand::GetNcnOperatorState {} => {
+                let operator = *self.operator()?;
                 let ncn_operator_state = get_ncn_operator_state(self, &operator).await?;
                 info!("NCN Operator State: {:?}", ncn_operator_state);
                 Ok(())
@@ -334,11 +226,10 @@ impl CliHandler {
                 info!("NCN Vault Ticket: {:?}", ncn_ticket);
                 Ok(())
             }
-            ProgramCommand::GetVaultOperatorDelegation { vault, operator } => {
+            ProgramCommand::GetVaultOperatorDelegation { vault } => {
                 let vault =
                     Pubkey::from_str(&vault).map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                let operator = *self.operator()?;
 
                 let vault_operator_delegation =
                     get_vault_operator_delegation(self, &vault, &operator).await?;
@@ -429,9 +320,8 @@ impl CliHandler {
                 info!("{}", epoch_snapshot);
                 Ok(())
             }
-            ProgramCommand::GetOperatorSnapshot { operator } => {
-                let operator = Pubkey::from_str(&operator)
-                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+            ProgramCommand::GetOperatorSnapshot {} => {
+                let operator = *self.operator()?;
                 let operator_snapshot = get_operator_snapshot(self, &operator, self.epoch).await?;
                 info!("{}", operator_snapshot);
                 Ok(())
@@ -616,25 +506,6 @@ impl CliHandler {
                     println!();
                 }
 
-                Ok(())
-            }
-            ProgramCommand::FullUpdateVaults { vault } => {
-                let mut vaults_to_update = vec![];
-
-                if let Some(vault) = vault {
-                    let vault = Pubkey::from_str(&vault)
-                        .map_err(|e| anyhow!("Error parsing vault: {}", e))?;
-                    vaults_to_update.push(vault);
-                } else {
-                    let vaults = get_all_vaults(self).await?;
-                    println!("Updating {:?} Vaults", vaults.len());
-                    vaults_to_update.extend(vaults.iter().cloned());
-                }
-
-                for vault in vaults_to_update.iter() {
-                    println!("Updating {:?}", vault);
-                    full_vault_update(self, vault).await?;
-                }
                 Ok(())
             }
         }

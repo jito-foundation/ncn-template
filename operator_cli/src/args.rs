@@ -1,7 +1,6 @@
 use std::fmt;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use solana_sdk::clock::DEFAULT_SLOTS_PER_EPOCH;
 
 #[derive(Parser)]
 #[command(author, version, about = "A CLI for creating and managing the ncn program", long_about = None)]
@@ -87,6 +86,14 @@ pub struct Args {
     #[arg(
         long,
         global = true,
+        env = "OPERATOR",
+        help = "Operator Account Address"
+    )]
+    pub operator: Option<String>,
+
+    #[arg(
+        long,
+        global = true,
         env = "EPOCH",
         help = "Epoch - defaults to current epoch"
     )]
@@ -100,6 +107,14 @@ pub struct Args {
 
     #[arg(long, global = true, hide = true)]
     pub markdown_help: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "OPENWEATHER_API_KEY",
+        help = "Open weather api key"
+    )]
+    pub open_weather_api_key: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -122,17 +137,7 @@ pub enum ProgramCommand {
         error_timeout_ms: u64,
         #[arg(long, help = "Calls test vote, instead of waiting for a real vote")]
         test_vote: bool,
-        #[arg(
-            long,
-            env,
-            help = "At the start of the epoch the keeper will update all vaults in the network"
-        )]
-        all_vault_update: bool,
-        #[arg(
-            long,
-            env,
-            help = "Emits metrics to Influx - adds a lot of network calls"
-        )]
+        #[arg(long, env, help = "Emit metrics")]
         emit_metrics: bool,
         #[arg(long, env, help = "Only emit metrics")]
         metrics_only: bool,
@@ -146,111 +151,15 @@ pub enum ProgramCommand {
         )]
         region: String,
     },
-    /// Crank Functions
-    CrankUpdateAllVaults {},
-    CrankRegisterVaults {},
-    CrankSnapshot {},
-    CrankCloseEpochAccounts {},
-    CrankVote {
-        #[arg(long, help = "Calls test vote, instead of waiting for a real vote")]
-        test_vote: bool,
-    },
-    SetEpochWeights {},
-
-    /// Admin
-    AdminCreateConfig {
-        #[arg(long, default_value_t = 10 as u64, help = "Epochs before tie breaker can set consensus")]
-        epochs_before_stall: u64,
-        #[arg(long, default_value_t = (DEFAULT_SLOTS_PER_EPOCH as f64 * 0.1) as u64, help = "Valid slots after consensus")]
-        valid_slots_after_consensus: u64,
-        #[arg(
-            long,
-            default_value_t = 10,
-            help = "Epochs after consensus before accounts can be closed"
-        )]
-        epochs_after_consensus_before_close: u64,
-        #[arg(long, help = "Tie breaker admin address")]
-        tie_breaker_admin: Option<String>,
-    },
-    AdminRegisterStMint {
-        #[arg(long, help = "Vault address")]
-        vault: String,
-        #[arg(long, help = "Weight")]
-        weight: Option<u128>,
-    },
-
-    AdminSetWeight {
-        #[arg(long, help = "Vault address")]
-        vault: String,
-        #[arg(long, help = "Weight value")]
-        weight: u128,
-    },
-    AdminSetTieBreaker {
-        #[arg(long, help = "tir breaker for voting")]
-        weather_status: u8,
-    },
-    AdminSetParameters {
-        #[arg(long, help = "Epochs before tie breaker can set consensus")]
-        epochs_before_stall: Option<u64>,
-        #[arg(long, help = "Epochs after consensus before accounts can be closed")]
-        epochs_after_consensus_before_close: Option<u64>,
-        #[arg(long, help = "Slots to which voting is allowed after consensus")]
-        valid_slots_after_consensus: Option<u64>,
-        #[arg(long, help = "Starting valid epoch")]
-        starting_valid_epoch: Option<u64>,
-    },
-    AdminSetNewAdmin {
-        #[arg(long, help = "New admin address")]
-        new_admin: String,
-        #[arg(long, help = "Set tie breaker admin")]
-        set_tie_breaker_admin: bool,
-    },
-    AdminFundAccountPayer {
-        #[arg(long, help = "Amount of SOL to fund")]
-        amount_in_sol: f64,
-    },
-
     /// Instructions
-    CreateVaultRegistry,
-
-    RegisterVault {
-        #[arg(long, help = "Vault address")]
-        vault: String,
-    },
-
-    CreateEpochState,
-
-    CreateWeightTable,
-
-    CreateEpochSnapshot,
-
-    CreateOperatorSnapshot {
-        #[arg(long, help = "Operator address")]
-        operator: String,
-    },
-
-    SnapshotVaultOperatorDelegation {
-        #[arg(long, help = "Vault address")]
-        vault: String,
-        #[arg(long, help = "Operator address")]
-        operator: String,
-    },
-
-    CreateBallotBox,
-
     OperatorCastVote {
-        #[arg(long, help = "Operator address")]
-        operator: String,
-        #[arg(long, help = "weather status at solana beach")]
+        #[arg(long, help = "Weather status at solana beach")]
         weather_status: u8,
     },
 
     /// Getters
     GetNcn,
-    GetNcnOperatorState {
-        #[arg(long, env = "OPERATOR", help = "Operator Account Address")]
-        operator: String,
-    },
+    GetNcnOperatorState,
     GetVaultNcnTicket {
         #[arg(long, env = "VAULT", help = "Vault Account Address")]
         vault: String,
@@ -262,8 +171,6 @@ pub enum ProgramCommand {
     GetVaultOperatorDelegation {
         #[arg(long, env = "VAULT", help = "Vault Account Address")]
         vault: String,
-        #[arg(long, env = "OPERATOR", help = "Operator Account Address")]
-        operator: String,
     },
     GetAllTickets,
     GetAllOperatorsInNcn,
@@ -273,10 +180,7 @@ pub enum ProgramCommand {
     GetWeightTable,
     GetEpochState,
     GetEpochSnapshot,
-    GetOperatorSnapshot {
-        #[arg(long, env = "OPERATOR", help = "Operator Account Address")]
-        operator: String,
-    },
+    GetOperatorSnapshot,
     GetBallotBox,
     GetAccountPayer,
     GetTotalEpochRentCost,
@@ -285,11 +189,6 @@ pub enum ProgramCommand {
     GetOperatorStakes,
     GetVaultStakes,
     GetVaultOperatorStakes,
-    // GetAllOptedInValidators,
-    FullUpdateVaults {
-        #[arg(long, help = "Vault address")]
-        vault: Option<String>,
-    },
 }
 
 #[rustfmt::skip]

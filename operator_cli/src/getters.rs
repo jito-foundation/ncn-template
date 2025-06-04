@@ -2,7 +2,6 @@ use std::mem::size_of;
 use std::{fmt, time::Duration};
 
 use crate::handler::CliHandler;
-use crate::instructions::create_vault_registry;
 use anyhow::Result;
 use jito_bytemuck::{AccountDeserialize, Discriminator};
 use jito_jsm_core::slot_toggle::SlotToggleState;
@@ -120,46 +119,6 @@ pub async fn get_vault_registry(handler: &CliHandler) -> Result<VaultRegistry> {
 
     let account = VaultRegistry::try_from_slice_unchecked(account.data.as_slice())?;
     Ok(*account)
-}
-
-pub async fn get_or_create_vault_registry(handler: &CliHandler) -> Result<VaultRegistry> {
-    let (address, _, _) =
-        VaultRegistry::find_program_address(&handler.ncn_program_id, handler.ncn()?);
-
-    // First, try to get the account.
-    match get_account(handler, &address).await? {
-        Some(account) => {
-            info!("VaultRegistry account found at {}", address);
-            let vr = VaultRegistry::try_from_slice_unchecked(account.data.as_slice())?;
-            Ok(*vr)
-        }
-        None => {
-            info!(
-                "VaultRegistry account not found at {}. \
-                A creation step via CliHandler method is needed before re-fetching.",
-                address
-            );
-
-            create_vault_registry(handler).await?;
-
-            // Attempt to fetch the account again after the conceptual creation call.
-            match get_account(handler, &address).await? {
-                Some(account_after_attempt) => {
-                    info!(
-                        "VaultRegistry account successfully fetched from {} after conceptual creation attempt.",
-                        address
-                    );
-                    let vr = VaultRegistry::try_from_slice_unchecked(account_after_attempt.data.as_slice())?;
-                    Ok(*vr)
-                }
-                None => Err(anyhow::anyhow!(
-                    "Failed to get VaultRegistry account at {} even after conceptual creation attempt. \
-                    Ensure the CliHandler method for creation is implemented and was successful, or initialize the account manually.",
-                    address
-                )),
-            }
-        }
-    }
 }
 
 pub async fn get_epoch_state(handler: &CliHandler, epoch: u64) -> Result<EpochState> {
