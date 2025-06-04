@@ -60,7 +60,6 @@ use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
-    msg,
     native_token::sol_to_lamports,
     pubkey::Pubkey,
     signature::{Keypair, Signature},

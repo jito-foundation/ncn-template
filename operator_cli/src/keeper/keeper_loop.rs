@@ -136,8 +136,6 @@ pub async fn startup_keeper(
                     "\n\nPROGRESS EPOCH: {} -> {}\n\n",
                     current_keeper_epoch, result
                 );
-
-                break Ok(());
             }
 
             current_keeper_epoch = result;
@@ -238,7 +236,7 @@ pub async fn startup_keeper(
                             .await;
                         }
                     } else {
-                        emit_ncn_metrics_operator_post_vote(handler, state.epoch).await;
+                        crank_post_vote(handler, state.epoch).await?;
                         if emit_metrics {
                             info!(
                                 "\n\n Emit Epoch post vote metrics - {}\n",

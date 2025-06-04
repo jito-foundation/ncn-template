@@ -3,7 +3,6 @@ use std::time::Duration;
 use crate::{
     getters::{get_account, get_ballot_box, get_consensus_result},
     handler::CliHandler,
-    keeper::keeper_metrics::emit_ncn_metrics_operator_post_vote,
     log::boring_progress_bar,
 };
 use anyhow::{anyhow, Ok, Result};
@@ -23,7 +22,6 @@ use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
-    msg,
     pubkey::Pubkey,
     signature::{Keypair, Signature},
     signer::Signer,
