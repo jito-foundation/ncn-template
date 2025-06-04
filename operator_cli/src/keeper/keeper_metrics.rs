@@ -85,7 +85,7 @@ pub async fn emit_ncn_metrics_operator_post_vote(handler: &CliHandler, epoch: u6
     let ballot_box = get_ballot_box(handler, epoch).await?;
     let operator = *handler.operator()?;
 
-    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?)?;
+    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?);
     let operator_vote = if did_operator_vote {
         ballot_box
             .operator_votes()

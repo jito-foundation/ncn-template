@@ -653,14 +653,14 @@ impl BallotBox {
         Ok(true)
     }
 
-    pub fn did_operator_vote(&self, operator: &Pubkey) -> Result<bool, NCNProgramError> {
+    pub fn did_operator_vote(&self, operator: &Pubkey) -> bool {
         for vote in self.operator_votes.iter() {
             if vote.operator().eq(operator) {
-                return Ok(true);
+                return true;
             }
         }
 
-        Ok(false)
+        false
     }
 }
 
