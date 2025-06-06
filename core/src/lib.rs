@@ -8,6 +8,7 @@ pub mod epoch_marker;
 pub mod epoch_snapshot;
 pub mod epoch_state;
 pub mod error;
+pub mod fees;
 pub mod instruction;
 pub mod loaders;
 pub mod stake_weight;
