@@ -161,26 +161,8 @@ impl CliHandler {
             ProgramCommand::Keeper {
                 loop_timeout_ms,
                 error_timeout_ms,
-                test_vote,
                 all_vault_update,
-                emit_metrics,
-                metrics_only,
-                cluster,
-                region,
-            } => {
-                startup_keeper(
-                    self,
-                    loop_timeout_ms,
-                    error_timeout_ms,
-                    test_vote,
-                    all_vault_update,
-                    emit_metrics,
-                    metrics_only,
-                    cluster.to_string(),
-                    region.to_string(),
-                )
-                .await
-            }
+            } => startup_keeper(self, loop_timeout_ms, error_timeout_ms, all_vault_update).await,
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
@@ -190,9 +172,7 @@ impl CliHandler {
                 crank_close_epoch_accounts(self, self.epoch).await
             }
 
-            ProgramCommand::CrankVote { test_vote } => {
-                crank_vote(self, self.epoch, test_vote).await
-            }
+            ProgramCommand::CrankVote {} => crank_vote(self, self.epoch).await,
             ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
 
             // Admin

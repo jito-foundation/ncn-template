@@ -34,20 +34,16 @@ pub async fn emit_error(title: String, error: String, message: String, keeper_ep
     );
 }
 
-pub async fn emit_heartbeat(tick: u64, run_operations: bool, emit_metrics: bool) {
-    if run_operations {
-        datapoint_info!(
-            "ncn-program-keeper-keeper-heartbeat-operations",
-            ("tick", tick, i64),
-        );
-    }
+pub async fn emit_heartbeat(tick: u64) {
+    datapoint_info!(
+        "ncn-program-keeper-keeper-heartbeat-operations",
+        ("tick", tick, i64),
+    );
 
-    if emit_metrics {
-        datapoint_info!(
-            "ncn-program-keeper-keeper-heartbeat-metrics",
-            ("tick", tick, i64),
-        );
-    }
+    datapoint_info!(
+        "ncn-program-keeper-keeper-heartbeat-metrics",
+        ("tick", tick, i64)
+    );
 }
 
 #[allow(clippy::large_stack_frames)]
@@ -61,7 +57,6 @@ pub async fn emit_ncn_metrics(handler: &CliHandler, start_of_loop: bool) -> Resu
         emit_ncn_metrics_vault_registry(handler).await?;
         emit_ncn_metrics_config(handler).await?;
         emit_ncn_metrics_account_payer(handler).await?;
-        // emit_ncn_metrics_opted_in_validators(handler).await?;
     }
 
     Ok(())

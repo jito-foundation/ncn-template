@@ -100,7 +100,7 @@ Setting up and using the NCN program follows this general workflow:
 4. Running the keeper command to automate epoch management:
 
    ```bash
-   ncn-program-cli keeper --loop-timeout-ms 600000 --error-timeout-ms 10000 --cluster testnet
+   ncn-program-cli keeper
    ```
 
 Keeper command will run these commands internally:
@@ -160,10 +160,7 @@ The `keeper` command is responsible for automating various epoch-related tasks, 
 **Example Usage:**
 
 ```bash
-ncn-program-cli keeper \
-  --loop-timeout-ms 600000 \
-  --cluster testnet \
-  --region local
+ncn-program-cli keeper
 ```
 
 This command starts the keeper process with a loop timeout of 10 minutes, an error timeout of 10 seconds, targeting the testnet cluster, and identifying the region as local for metrics.
