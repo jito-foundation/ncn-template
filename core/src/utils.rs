@@ -41,5 +41,5 @@ pub fn can_operator_vote(
         return false;
     }
 
-    false
+    true
 }
