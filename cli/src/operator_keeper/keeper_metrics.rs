@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ncn_program_core::ballot_box::Ballot;
 use solana_metrics::datapoint_info;
-use solana_sdk::native_token::lamports_to_sol;
+use solana_sdk::{native_token::lamports_to_sol, pubkey::Pubkey};
 
 use crate::{
     getters::{get_ballot_box, get_current_epoch_and_slot},
@@ -41,29 +41,25 @@ pub async fn emit_error(title: String, error: String, message: String, keeper_ep
     );
 }
 
-pub async fn emit_heartbeat(tick: u64, run_operations: bool, emit_metrics: bool) {
-    if run_operations {
-        datapoint_info!(
-            "ncn-operator-keeper-keeper-heartbeat-operations",
-            ("tick", tick, i64),
-        );
-    }
+pub async fn emit_heartbeat(tick: u64) {
+    datapoint_info!(
+        "ncn-operator-keeper-keeper-heartbeat-operations",
+        ("tick", tick, i64),
+    );
 
-    if emit_metrics {
-        datapoint_info!(
-            "ncn-operator-keeper-keeper-heartbeat-metrics",
-            ("tick", tick, i64),
-        );
-    }
+    datapoint_info!(
+        "ncn-operator-keeper-keeper-heartbeat-metrics",
+        ("tick", tick, i64),
+    );
 }
 
 pub async fn emit_ncn_metrics_operator_vote(
     handler: &CliHandler,
     vote: u8,
     epoch: u64,
+    operator: &Pubkey,
 ) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
-    let operator = *handler.operator()?;
 
     let is_current_epoch = current_epoch == epoch;
     emit_epoch_datapoint!(
@@ -79,13 +75,16 @@ pub async fn emit_ncn_metrics_operator_vote(
     Ok(())
 }
 
-pub async fn emit_ncn_metrics_operator_post_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
+pub async fn emit_ncn_metrics_operator_post_vote(
+    handler: &CliHandler,
+    epoch: u64,
+    operator: &Pubkey,
+) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
     let ballot_box = get_ballot_box(handler, epoch).await?;
-    let operator = *handler.operator()?;
 
-    let did_operator_vote = ballot_box.did_operator_vote(handler.operator()?);
+    let did_operator_vote = ballot_box.did_operator_vote(operator);
     let operator_vote = if did_operator_vote {
         ballot_box
             .operator_votes()

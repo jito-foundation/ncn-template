@@ -100,12 +100,20 @@ pub struct Args {
 
     #[arg(long, global = true, hide = true)]
     pub markdown_help: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "OPENWEATHER_API_KEY",
+        help = "Open weather api key"
+    )]
+    pub open_weather_api_key: Option<String>,
 }
 
 #[derive(Subcommand)]
 pub enum ProgramCommand {
-    /// Keeper
-    Keeper {
+    /// NCN Keeper
+    RunNcnKeeper {
         #[arg(
             long,
             env,
@@ -126,6 +134,26 @@ pub enum ProgramCommand {
             help = "At the start of the epoch the keeper will update all vaults in the network"
         )]
         all_vault_update: bool,
+    },
+
+    /// Operator Keeper
+    RunOperatorKeeper {
+        #[arg(long, help = "Operator address")]
+        operator: String,
+        #[arg(
+            long,
+            env,
+            default_value_t = 600_000, // 10 minutes
+            help = "Keeper error timeout in milliseconds"
+        )]
+        loop_timeout_ms: u64,
+        #[arg(
+            long,
+            env,
+            default_value_t = 10_000, // 10 seconds
+            help = "Keeper error timeout in milliseconds"
+        )]
+        error_timeout_ms: u64,
     },
     /// Crank Functions
     CrankUpdateAllVaults {},

@@ -57,6 +57,7 @@ use ncn_program_core::{
 };
 use solana_client::rpc_config::RpcSendTransactionConfig;
 
+use serde::Deserialize;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
@@ -1398,6 +1399,107 @@ pub async fn crank_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
         );
         return Ok(());
     }
+
+    Ok(())
+}
+
+#[derive(Deserialize, Debug)]
+struct WeatherInfo {
+    main: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct WeatherResponse {
+    weather: Vec<WeatherInfo>,
+}
+
+async fn get_weather_status(api_key: &str, city_name: &str) -> Result<u8> {
+    let url = format!(
+        "http://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
+        city_name, api_key
+    );
+
+    let response = reqwest::get(&url).await?.json::<WeatherResponse>().await?;
+
+    if let Some(weather_condition) = response.weather.get(0) {
+        match weather_condition.main.as_str() {
+            "Clear" => Ok(0),                                      // Sunny
+            "Rain" | "Snow" | "Drizzle" | "Thunderstorm" => Ok(2), // Raining/Snowing
+            _ => Ok(1),                                            // Anything else
+        }
+    } else {
+        Ok(1) // Default to "Anything else" if no weather info is available
+    }
+}
+
+pub async fn operator_crank_vote(
+    handler: &CliHandler,
+    epoch: u64,
+    operator: &Pubkey,
+) -> Result<u8> {
+    let api_key = handler.open_weather_api_key()?;
+
+    // Get actual weather status
+    let weather_value = get_weather_status(&api_key, "Solana Beach").await?;
+    info!(
+        "Current weather in Solana Beach (0:Sunny, 1:Other, 2:Rain/Snow): {}",
+        weather_value
+    );
+    operator_cast_vote(handler, operator, epoch, weather_value).await?;
+    Ok(weather_value)
+}
+
+pub async fn operator_crank_post_vote(
+    handler: &CliHandler,
+    epoch: u64,
+    operator: &Pubkey,
+) -> Result<()> {
+    let ballot_box = get_ballot_box(handler, epoch).await?;
+
+    let did_operator_vote = ballot_box.did_operator_vote(operator);
+    let operator_vote = if did_operator_vote {
+        ballot_box
+            .operator_votes()
+            .iter()
+            .find(|v| v.operator().eq(&operator))
+    } else {
+        None
+    };
+
+    let mut log_message = format!("\n----- Post Vote Status -----\n");
+    log_message.push_str(&format!("Epoch: {}\n", epoch));
+    log_message.push_str(&format!("Did Operator Vote: {}\n", did_operator_vote));
+
+    if let Some(vote) = operator_vote {
+        let operator_ballot = ballot_box.ballot_tallies()[vote.ballot_index() as usize];
+        let operator_ballot_weight = operator_ballot.stake_weights();
+        log_message.push_str("Operator Vote Details:\n");
+        log_message.push_str(&format!("  Operator: {}\n", vote.operator()));
+        log_message.push_str(&format!("  Slot Voted: {}\n", vote.slot_voted()));
+        log_message.push_str(&format!("  Ballot Index: {}\n", vote.ballot_index()));
+        log_message.push_str(&format!(
+            "  Operator Ballot Weight: {}\n",
+            operator_ballot_weight.stake_weight()
+        ));
+        log_message.push_str(&format!("  Operator Vote: {}\n", operator_ballot.ballot()));
+    } else {
+        log_message.push_str("No operator vote found\n");
+    }
+
+    log_message.push_str(&format!(
+        "Consensus Reached: {}\n",
+        ballot_box.is_consensus_reached()
+    ));
+
+    if ballot_box.is_consensus_reached() {
+        log_message.push_str(&format!(
+            "Winning Ballot: {}\n",
+            ballot_box.get_winning_ballot()?
+        ));
+    }
+    log_message.push_str("--------------------------\n");
+
+    log::info!("{}", log_message);
 
     Ok(())
 }

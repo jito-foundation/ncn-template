@@ -8,7 +8,7 @@ use crate::{
         crank_set_weight, crank_snapshot, crank_vote, create_epoch_state,
         update_all_vaults_in_network,
     },
-    keeper::{
+    ncn_keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
         keeper_state::KeeperState,
     },
@@ -78,7 +78,7 @@ async fn timeout_keeper(duration_ms: u64) {
 
 #[allow(clippy::large_stack_frames)]
 #[allow(clippy::too_many_arguments)]
-pub async fn startup_keeper(
+pub async fn startup_ncn_keeper(
     handler: &CliHandler,
     loop_timeout_ms: u64,
     error_timeout_ms: u64,

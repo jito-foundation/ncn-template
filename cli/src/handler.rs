@@ -19,7 +19,8 @@ use crate::{
         create_weight_table, full_vault_update, operator_cast_vote, register_vault,
         set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
-    keeper::keeper_loop::startup_keeper,
+    ncn_keeper::keeper_loop::startup_ncn_keeper,
+    operator_keeper::keeper_loop::startup_operator_keeper,
 };
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
@@ -51,6 +52,7 @@ pub struct CliHandler {
     pub rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
+    pub open_weather_api_key: Option<String>,
 }
 
 impl CliHandler {
@@ -76,6 +78,8 @@ impl CliHandler {
 
         let token_program_id = Pubkey::from_str(&args.token_program_id)?;
 
+        let open_weather_api_key = args.open_weather_api_key.clone();
+
         let ncn = args
             .ncn
             .clone()
@@ -97,6 +101,7 @@ impl CliHandler {
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
+            open_weather_api_key,
         };
 
         handler.epoch = {
@@ -146,6 +151,12 @@ impl CliHandler {
         Ok(config)
     }
 
+    pub fn open_weather_api_key(&self) -> Result<String> {
+        self.open_weather_api_key.clone().ok_or_else(|| {
+            anyhow!("No Open Weather API key provided. Set the OPENWEATHER_API_KEY environment variable or pass it as an argument.")
+        })
+    }
+
     pub fn keypair(&self) -> Result<&Keypair> {
         self.keypair.as_ref().ok_or_else(|| anyhow!("No keypair"))
     }
@@ -157,12 +168,26 @@ impl CliHandler {
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
-            // Keeper
-            ProgramCommand::Keeper {
+            // Keepers
+            // Ncn Keeper
+            ProgramCommand::RunNcnKeeper {
                 loop_timeout_ms,
                 error_timeout_ms,
                 all_vault_update,
-            } => startup_keeper(self, loop_timeout_ms, error_timeout_ms, all_vault_update).await,
+            } => {
+                startup_ncn_keeper(self, loop_timeout_ms, error_timeout_ms, all_vault_update).await
+            }
+
+            // Operator Keeper
+            ProgramCommand::RunOperatorKeeper {
+                loop_timeout_ms,
+                error_timeout_ms,
+                operator,
+            } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                startup_operator_keeper(self, loop_timeout_ms, error_timeout_ms, operator).await
+            }
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
