@@ -19,7 +19,7 @@ use crate::{
         create_weight_table, full_vault_update, operator_cast_vote, register_vault,
         set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
-    ncn_keeper::keeper_loop::startup_ncn_keeper,
+    keeper::keeper_loop::startup_ncn_keeper,
     operator::operator_loop::startup_operator_loop,
 };
 use anyhow::{anyhow, Result};
@@ -170,7 +170,7 @@ impl CliHandler {
         match action {
             // Keepers
             // Ncn Keeper
-            ProgramCommand::RunNcnKeeper {
+            ProgramCommand::RunKeeper {
                 loop_timeout_ms,
                 error_timeout_ms,
             } => startup_ncn_keeper(self, loop_timeout_ms, error_timeout_ms).await,

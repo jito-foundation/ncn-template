@@ -7,7 +7,7 @@ use crate::{
         crank_close_epoch_accounts, crank_post_vote_cooldown, crank_register_vaults,
         crank_set_weight, crank_snapshot, crank_vote, create_epoch_state,
     },
-    ncn_keeper::{
+    keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
         keeper_state::KeeperState,
     },

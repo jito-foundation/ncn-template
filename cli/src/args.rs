@@ -113,7 +113,7 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum ProgramCommand {
     /// NCN Keeper
-    RunNcnKeeper {
+    RunKeeper {
         #[arg(
             long,
             env,
