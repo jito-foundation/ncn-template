@@ -4,12 +4,12 @@ use crate::{
     getters::{get_ballot_box, get_guaranteed_epoch_and_slot, get_operator_snapshot},
     handler::CliHandler,
     instructions::{operator_crank_post_vote, operator_crank_vote},
-    operator_keeper::{
-        keeper_metrics::{
+    operator::{
+        operator_metrics::{
             emit_error, emit_heartbeat, emit_ncn_metrics_operator_post_vote,
             emit_ncn_metrics_operator_vote,
         },
-        keeper_state::KeeperState,
+        operator_state::KeeperState,
     },
 };
 use anyhow::Result;
@@ -21,7 +21,7 @@ use std::process::Command;
 use tokio::time::sleep;
 
 #[allow(clippy::large_stack_frames)]
-pub async fn startup_operator_keeper(
+pub async fn startup_operator_loop(
     handler: &CliHandler,
     loop_timeout_ms: u64,
     error_timeout_ms: u64,

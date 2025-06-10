@@ -131,7 +131,7 @@ pub enum ProgramCommand {
     },
 
     /// Operator Keeper
-    RunOperatorKeeper {
+    RunOperator {
         #[arg(long, help = "Operator address")]
         operator: String,
         #[arg(
