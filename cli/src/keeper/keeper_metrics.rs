@@ -414,7 +414,6 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                 let ballot_index = operator_vote.ballot_index();
                 let ballot_tally = ballot_box.ballot_tallies()[ballot_index as usize];
                 let vote = format!("{:?}", ballot_tally.ballot().status());
-                ballot_tally.stake_weights().stake_weight();
 
                 emit_epoch_datapoint!(
                     "ncn-program-keeper-ee-ballot-box-votes",

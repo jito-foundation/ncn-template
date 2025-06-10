@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ncn_program_core::ballot_box::Ballot;
 use solana_metrics::datapoint_info;
-use solana_sdk::{native_token::lamports_to_sol, pubkey::Pubkey};
+use solana_sdk::pubkey::Pubkey;
 
 use crate::{
     getters::{get_ballot_box, get_current_epoch_and_slot},
@@ -21,14 +21,6 @@ macro_rules! emit_epoch_datapoint {
             );
         }
     };
-}
-
-pub const fn format_stake_weight(value: u128) -> f64 {
-    value as f64
-}
-
-pub fn format_token_amount(value: u64) -> f64 {
-    lamports_to_sol(value)
 }
 
 pub async fn emit_error(title: String, error: String, message: String, keeper_epoch: u64) {
