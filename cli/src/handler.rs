@@ -173,10 +173,7 @@ impl CliHandler {
             ProgramCommand::RunNcnKeeper {
                 loop_timeout_ms,
                 error_timeout_ms,
-                all_vault_update,
-            } => {
-                startup_ncn_keeper(self, loop_timeout_ms, error_timeout_ms, all_vault_update).await
-            }
+            } => startup_ncn_keeper(self, loop_timeout_ms, error_timeout_ms).await,
 
             // Operator Keeper
             ProgramCommand::RunOperatorKeeper {

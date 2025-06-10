@@ -128,12 +128,6 @@ pub enum ProgramCommand {
             help = "Keeper error timeout in milliseconds"
         )]
         error_timeout_ms: u64,
-        #[arg(
-            long,
-            env,
-            help = "At the start of the epoch the keeper will update all vaults in the network"
-        )]
-        all_vault_update: bool,
     },
 
     /// Operator Keeper
