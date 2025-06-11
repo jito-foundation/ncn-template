@@ -89,14 +89,19 @@ pub async fn startup_operator_loop(
             end_of_loop = current_keeper_epoch == current_epoch;
         }
 
-        // Fetch the current state of the keeper/operator
+        // Keeper state and epoch state update
+        // Fetch and update the keeper's internal state for the current epoch
+        // This includes the EpochState account and derived information
+        // We also update our local understanding of the epoch's progress
         {
-            info!("\n\n0. Fetch Keeper State - {}\n", current_keeper_epoch);
+            info!("\n\n0. Fetch and Update State - {}\n", current_keeper_epoch);
+
+            // If the epoch has changed, fetch the new epoch state
             if state.epoch != current_keeper_epoch {
                 let result = state.fetch(handler, current_keeper_epoch).await;
 
                 if check_and_timeout_error(
-                    "Fetch Keeper State".to_string(),
+                    "Update Keeper State".to_string(),
                     &result,
                     error_timeout_ms,
                     state.epoch,
@@ -105,29 +110,20 @@ pub async fn startup_operator_loop(
                 {
                     continue;
                 }
-            }
-        }
+            } else {
+                // Otherwise, just update the existing epoch state
+                let result = state.update_epoch_state(handler).await;
 
-        // Update the epoch state from on-chain data
-        {
-            info!("\n\n1. Update Epoch State - {}\n", current_keeper_epoch);
-            let result = state.update_epoch_state(handler).await;
-
-            if check_and_timeout_error(
-                "Update Epoch State".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-            .await
-            {
-                continue;
-            }
-
-            // If this epoch is already completed for this operator, move to next iteration
-            if state.is_epoch_completed {
-                info!("Epoch {} is complete", state.epoch);
-                continue;
+                if check_and_timeout_error(
+                    "Update Epoch State".to_string(),
+                    &result,
+                    error_timeout_ms,
+                    state.epoch,
+                )
+                .await
+                {
+                    continue;
+                }
             }
         }
 

@@ -40,11 +40,11 @@ impl KeeperState {
             EpochState::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.epoch_state_address = epoch_state_address;
 
-        // Update the epoch state data from the blockchain
-        self.update_epoch_state(handler).await?;
-
         // Update the epoch number to ensure consistency
         self.epoch = epoch;
+
+        // Update the epoch state data from the blockchain
+        self.update_epoch_state(handler).await?;
 
         Ok(())
     }
