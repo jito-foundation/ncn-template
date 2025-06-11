@@ -100,10 +100,55 @@ pub struct Args {
 
     #[arg(long, global = true, hide = true)]
     pub markdown_help: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "OPENWEATHER_API_KEY",
+        help = "Open weather api key"
+    )]
+    pub open_weather_api_key: Option<String>,
 }
 
 #[derive(Subcommand)]
 pub enum ProgramCommand {
+    /// NCN Keeper
+    RunKeeper {
+        #[arg(
+            long,
+            env,
+            default_value_t = 600_000, // 10 minutes
+            help = "Keeper error timeout in milliseconds"
+        )]
+        loop_timeout_ms: u64,
+        #[arg(
+            long,
+            env,
+            default_value_t = 10_000, // 10 seconds
+            help = "Keeper error timeout in milliseconds"
+        )]
+        error_timeout_ms: u64,
+    },
+
+    /// Operator Keeper
+    RunOperator {
+        #[arg(long, help = "Operator address")]
+        operator: String,
+        #[arg(
+            long,
+            env,
+            default_value_t = 600_000, // 10 minutes
+            help = "Keeper error timeout in milliseconds"
+        )]
+        loop_timeout_ms: u64,
+        #[arg(
+            long,
+            env,
+            default_value_t = 10_000, // 10 seconds
+            help = "Keeper error timeout in milliseconds"
+        )]
+        error_timeout_ms: u64,
+    },
     /// Crank Functions
     CrankUpdateAllVaults {},
     CrankRegisterVaults {},
@@ -195,7 +240,7 @@ pub enum ProgramCommand {
     OperatorCastVote {
         #[arg(long, help = "Operator address")]
         operator: String,
-        #[arg(long, help = "Meta merkle root")]
+        #[arg(long, help = "weather status at solana beach")]
         weather_status: u8,
     },
 
@@ -234,6 +279,7 @@ pub enum ProgramCommand {
     GetBallotBox,
     GetAccountPayer,
     GetTotalEpochRentCost,
+    GetConsensusResult,
 
     GetOperatorStakes,
     GetVaultStakes,

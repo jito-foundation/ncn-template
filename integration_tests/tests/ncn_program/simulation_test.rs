@@ -46,10 +46,42 @@ mod tests {
 
         // 2.b. Initialize the operators using the Jito Restaking program, and initiate the
         //   handshake relationship between the NCN <> operators
-        // Creates OPERATOR_COUNT operators and associates them with the NCN, setting fee to 100 bps (1%)
-        fixture
-            .add_operators_to_test_ncn(&mut test_ncn, OPERATOR_COUNT, Some(100))
-            .await?;
+        {
+            for _ in 0..OPERATOR_COUNT {
+                // Set operator fee to 100 basis points (1%)
+                let operator_fees_bps: Option<u16> = Some(100);
+
+                // Initialize a new operator account with the specified fee
+                let operator_root = restaking_client
+                    .do_initialize_operator(operator_fees_bps)
+                    .await?;
+
+                // Establish bidirectional handshake between NCN and operator:
+                // 1. Initialize the NCN's state tracking (the NCN operator ticket) for this operator
+                restaking_client
+                    .do_initialize_ncn_operator_state(
+                        &test_ncn.ncn_root,
+                        &operator_root.operator_pubkey,
+                    )
+                    .await?;
+
+                // 2. Advance slot to satisfy timing requirements
+                fixture.warp_slot_incremental(1).await.unwrap();
+
+                // 3. NCN warms up to operator - creates NCN's half of the handshake
+                restaking_client
+                    .do_ncn_warmup_operator(&test_ncn.ncn_root, &operator_root.operator_pubkey)
+                    .await?;
+
+                // 4. Operator warms up to NCN - completes operator's half of the handshake
+                restaking_client
+                    .do_operator_warmup_ncn(&operator_root, &test_ncn.ncn_root.ncn_pubkey)
+                    .await?;
+
+                // Add the initialized operator to our test NCN's operator list
+                test_ncn.operators.push(operator_root);
+            }
+        }
 
         // 2.c. Initialize the vaults using the Vault program By Jito
         // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
