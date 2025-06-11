@@ -16,14 +16,33 @@ use crate::{
     handler::CliHandler,
 };
 
+/// Formats stake weight values for metrics (converts u128 to f64)
+///
+/// Stake weights are stored as large integers but are more readable
+/// as floating point values in metrics dashboards.
 pub const fn format_stake_weight(value: u128) -> f64 {
     value as f64
 }
 
+/// Formats token amounts from lamports to SOL for metrics
+///
+/// Converts raw lamport values to human-readable SOL amounts
+/// for better understanding in monitoring dashboards.
 pub fn format_token_amount(value: u64) -> f64 {
     lamports_to_sol(value)
 }
 
+/// Emits error metrics for monitoring and alerting
+///
+/// This function standardizes error reporting across the keeper,
+/// ensuring all errors are captured with consistent metadata for
+/// monitoring, alerting, and debugging purposes.
+///
+/// # Arguments
+/// * `title` - A descriptive title for the operation that failed
+/// * `error` - The error message or description
+/// * `message` - A formatted message with additional context
+/// * `keeper_epoch` - The epoch being processed when the error occurred
 pub async fn emit_error(title: String, error: String, message: String, keeper_epoch: u64) {
     datapoint_info!(
         "ncn-program-keeper-error",
@@ -34,6 +53,13 @@ pub async fn emit_error(title: String, error: String, message: String, keeper_ep
     );
 }
 
+/// Emits heartbeat metrics to indicate the keeper is alive and operational
+///
+/// Heartbeats are essential for monitoring system health and detecting
+/// when the keeper has stopped or is experiencing issues.
+///
+/// # Arguments
+/// * `tick` - A monotonically increasing counter indicating keeper activity
 pub async fn emit_heartbeat(tick: u64) {
     datapoint_info!(
         "ncn-program-keeper-keeper-heartbeat-operations",
@@ -46,10 +72,21 @@ pub async fn emit_heartbeat(tick: u64) {
     );
 }
 
+/// Main entry point for emitting NCN (Network Coordinated Node) metrics
+///
+/// This function orchestrates the emission of various NCN-level metrics,
+/// some of which are emitted only at the start of each loop to avoid
+/// excessive data volume while maintaining adequate monitoring coverage.
+///
+/// # Arguments
+/// * `handler` - CLI handler for blockchain interactions
+/// * `start_of_loop` - Whether this is the first epoch in the processing loop
 #[allow(clippy::large_stack_frames)]
 pub async fn emit_ncn_metrics(handler: &CliHandler, start_of_loop: bool) -> Result<()> {
+    // Always emit current epoch and slot information
     emit_ncn_metrics_epoch_slot(handler).await?;
 
+    // Emit detailed metrics only at the start of the loop to manage data volume
     if start_of_loop {
         emit_ncn_metrics_tickets(handler).await?;
         emit_ncn_metrics_vault_operator_delegation(handler).await?;
@@ -62,6 +99,11 @@ pub async fn emit_ncn_metrics(handler: &CliHandler, start_of_loop: bool) -> Resu
     Ok(())
 }
 
+/// Emits current epoch and slot metrics
+///
+/// Tracks the blockchain's current epoch and slot, along with the
+/// percentage progress through the current epoch. This is fundamental
+/// timing information for understanding the keeper's context.
 pub async fn emit_ncn_metrics_epoch_slot(handler: &CliHandler) -> Result<()> {
     let ncn = handler.ncn()?;
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
@@ -79,6 +121,11 @@ pub async fn emit_ncn_metrics_epoch_slot(handler: &CliHandler) -> Result<()> {
     Ok(())
 }
 
+/// Emits account payer metrics
+///
+/// The account payer is responsible for funding transaction fees and
+/// account rent. Monitoring its balance is crucial for ensuring the
+/// keeper can continue operating.
 pub async fn emit_ncn_metrics_account_payer(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
@@ -98,6 +145,15 @@ pub async fn emit_ncn_metrics_account_payer(handler: &CliHandler) -> Result<()> 
     Ok(())
 }
 
+/// Emits comprehensive ticket metrics
+///
+/// Tickets represent the relationship between NCNs, operators, and vaults.
+/// This function emits detailed metrics about each ticket including:
+/// - Delegation amounts (staked, cooling down, total security)
+/// - Vault state and token information
+/// - Relationship counts and statuses
+///
+/// This provides visibility into the staking and delegation ecosystem.
 pub async fn emit_ncn_metrics_tickets(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let vault_epoch_length = {
@@ -126,13 +182,14 @@ pub async fn emit_ncn_metrics_tickets(handler: &CliHandler) -> Result<()> {
                 ),
                 String
             ),
+            // Relationship indices for data analysis
             ("ncn-vault", ticket.ncn_vault(), i64),
             ("vault-ncn", ticket.vault_ncn(), i64),
             ("ncn-operator", ticket.ncn_operator(), i64),
             ("operator-ncn", ticket.operator_ncn(), i64),
             ("operator-vault", ticket.operator_vault(), i64),
             ("vault-operator", ticket.vault_operator(), i64),
-            // Delegation Info
+            // Delegation amounts
             ("vod-staked-amount", format_token_amount(staked_amount), f64),
             (
                 "vod-cooling-down-amount",
@@ -144,7 +201,7 @@ pub async fn emit_ncn_metrics_tickets(handler: &CliHandler) -> Result<()> {
                 format_token_amount(total_security),
                 f64
             ),
-            // Vault Info
+            // Vault information
             (
                 "vault-st-mint",
                 ticket.vault_account.supported_mint.to_string(),
@@ -185,7 +242,7 @@ pub async fn emit_ncn_metrics_tickets(handler: &CliHandler) -> Result<()> {
             ),
             ("vault-ncn-count", ticket.vault_account.ncn_count(), i64),
             ("vault-config-epoch-length", vault_epoch_length, i64),
-            // Vault Total Delegation
+            // Vault total delegation state
             (
                 "vault-total-staked-amount",
                 format_token_amount(vault_delegation_state.staked_amount()),
@@ -207,6 +264,10 @@ pub async fn emit_ncn_metrics_tickets(handler: &CliHandler) -> Result<()> {
     Ok(())
 }
 
+/// Emits vault-operator delegation metrics
+///
+/// This tracks the delegation relationship between each vault and operator,
+/// providing visibility into how stake is distributed across the network.
 pub async fn emit_ncn_metrics_vault_operator_delegation(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let all_operators = get_all_operators_in_ncn(handler).await?;
@@ -243,6 +304,11 @@ pub async fn emit_ncn_metrics_vault_operator_delegation(handler: &CliHandler) ->
     Ok(())
 }
 
+/// Emits operator metrics including voting status
+///
+/// Tracks each operator's configuration and participation in the network,
+/// including fees, relationship counts, and whether they've voted in the
+/// current epoch.
 pub async fn emit_ncn_metrics_operators(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let all_operators = get_all_operators_in_ncn(handler).await?;
@@ -251,7 +317,8 @@ pub async fn emit_ncn_metrics_operators(handler: &CliHandler) -> Result<()> {
     for operator in all_operators {
         let operator_account = get_operator(handler, &operator).await?;
 
-        // Emitting here so all operators get a trackable has_voted metric for alerts to avoid NoData issue
+        // Check if the operator has voted in the current epoch
+        // This is emitted for all operators to avoid NoData issues in alerting
         let operator_has_voted = ballot_box_result.as_ref().map_or(false, |ballot_box| {
             ballot_box.operator_votes().iter().any(|operator_vote| {
                 operator_vote.operator() == &operator && !operator_vote.is_empty()
@@ -277,10 +344,16 @@ pub async fn emit_ncn_metrics_operators(handler: &CliHandler) -> Result<()> {
     Ok(())
 }
 
+/// Emits vault registry metrics
+///
+/// The vault registry tracks all vaults and supported tokens in the system.
+/// This function emits metrics about the registry state and detailed
+/// information about each registered vault and supported token.
 pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let vault_registry = get_vault_registry(handler).await?;
 
+    // Overall registry statistics
     datapoint_info!(
         "ncn-program-keeper-em-vault-registry",
         ("current-epoch", current_epoch, i64),
@@ -289,6 +362,7 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
         ("vaults", vault_registry.vault_count(), i64)
     );
 
+    // Individual vault metrics
     for vault in vault_registry.vault_list {
         if vault.is_empty() {
             continue;
@@ -318,6 +392,7 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
         );
     }
 
+    // Supported token (st_mint) metrics
     for st_mint in vault_registry.st_mint_list {
         datapoint_info!(
             "ncn-program-keeper-em-vault-registry-st-mint",
@@ -331,6 +406,10 @@ pub async fn emit_ncn_metrics_vault_registry(handler: &CliHandler) -> Result<()>
     Ok(())
 }
 
+/// Emits NCN program configuration metrics
+///
+/// Tracks the current configuration parameters that affect epoch timing,
+/// consensus requirements, and other critical system behaviors.
 pub async fn emit_ncn_metrics_config(handler: &CliHandler) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
@@ -362,6 +441,13 @@ pub async fn emit_ncn_metrics_config(handler: &CliHandler) -> Result<()> {
     Ok(())
 }
 
+/// Macro to emit epoch metrics with optional "-current" suffix
+///
+/// This macro allows the same metric to be emitted twice:
+/// 1. With the standard name for historical tracking
+/// 2. With a "-current" suffix when it's the current epoch for real-time monitoring
+///
+/// This pattern enables both historical analysis and current-state alerting.
 macro_rules! emit_epoch_datapoint {
     ($name:expr, $is_current_epoch:expr, $($fields:tt),*) => {
         // Always emit the standard metric
@@ -377,6 +463,10 @@ macro_rules! emit_epoch_datapoint {
     };
 }
 
+/// Main entry point for emitting epoch-specific metrics
+///
+/// This function orchestrates the emission of all metrics related to a
+/// specific epoch's state and progress through the consensus process.
 #[allow(clippy::large_stack_frames)]
 pub async fn emit_epoch_metrics(handler: &CliHandler, epoch: u64) -> Result<()> {
     emit_epoch_metrics_state(handler, epoch).await?;
@@ -388,6 +478,11 @@ pub async fn emit_epoch_metrics(handler: &CliHandler, epoch: u64) -> Result<()> 
     Ok(())
 }
 
+/// Emits ballot box metrics showing voting progress and results
+///
+/// The ballot box tracks operator votes and consensus outcomes. This function
+/// emits detailed metrics about individual votes, ballot tallies, and the
+/// overall voting state for the epoch.
 #[allow(clippy::large_stack_frames)]
 pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
@@ -406,6 +501,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
         if let Ok(epoch_snapshot) = epoch_snapshot_result {
             let total_stake_weight = epoch_snapshot.stake_weights().stake_weight();
 
+            // Emit metrics for individual operator votes
             for operator_vote in ballot_box.operator_votes() {
                 if operator_vote.is_empty() {
                     continue;
@@ -443,6 +539,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                 );
             }
 
+            // Emit metrics for ballot tallies (aggregated vote results)
             for tally in ballot_box.ballot_tallies() {
                 if !tally.is_valid() {
                     continue;
@@ -472,6 +569,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                 );
             }
 
+            // Determine winning ballot information
             let (winning_ballot_string, winning_stake_weight, winning_tally) = {
                 if ballot_box.has_winning_ballot() {
                     let ballot_tally = ballot_box.get_winning_ballot_tally().unwrap();
@@ -485,6 +583,7 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
                 }
             };
 
+            // Emit overall ballot box state
             emit_epoch_datapoint!(
                 "ncn-program-keeper-ee-ballot-box",
                 is_current_epoch,
@@ -518,6 +617,11 @@ pub async fn emit_epoch_metrics_ballot_box(handler: &CliHandler, epoch: u64) -> 
     Ok(())
 }
 
+/// Emits operator snapshot metrics for each operator in the epoch
+///
+/// Operator snapshots capture the state of each operator at the time of
+/// epoch creation, including their stake weights, delegation counts, and
+/// other relevant information.
 pub async fn emit_epoch_metrics_operator_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let is_current_epoch = current_epoch == epoch;
@@ -575,6 +679,10 @@ pub async fn emit_epoch_metrics_operator_snapshot(handler: &CliHandler, epoch: u
     Ok(())
 }
 
+/// Emits epoch snapshot metrics showing overall epoch state
+///
+/// The epoch snapshot provides a high-level view of the epoch including
+/// total stake weights, operator counts, and other aggregate statistics.
 pub async fn emit_epoch_metrics_epoch_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let is_current_epoch = current_epoch == epoch;
@@ -611,6 +719,10 @@ pub async fn emit_epoch_metrics_epoch_snapshot(handler: &CliHandler, epoch: u64)
     Ok(())
 }
 
+/// Emits weight table metrics showing stake weights by token
+///
+/// The weight table determines how much influence each supported token
+/// has in the consensus process based on its total staked amount.
 pub async fn emit_epoch_metrics_weight_table(handler: &CliHandler, epoch: u64) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
     let is_current_epoch = current_epoch == epoch;
@@ -618,6 +730,7 @@ pub async fn emit_epoch_metrics_weight_table(handler: &CliHandler, epoch: u64) -
     let result = get_weight_table(handler, epoch).await;
 
     if let Ok(weight_table) = result {
+        // Emit individual weight table entries
         for entry in weight_table.table() {
             if entry.is_empty() {
                 continue;
@@ -634,6 +747,7 @@ pub async fn emit_epoch_metrics_weight_table(handler: &CliHandler, epoch: u64) -
             );
         }
 
+        // Emit aggregate weight table statistics
         emit_epoch_datapoint!(
             "ncn-program-keeper-ee-weight-table",
             is_current_epoch,
@@ -649,6 +763,11 @@ pub async fn emit_epoch_metrics_weight_table(handler: &CliHandler, epoch: u64) -
     Ok(())
 }
 
+/// Emits detailed epoch state metrics showing progress and account statuses
+///
+/// This function provides comprehensive visibility into the epoch's current
+/// state, progress through each phase, and the status of all related accounts.
+/// It handles both active epochs and completed epochs differently.
 #[allow(clippy::large_stack_frames)]
 pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
@@ -656,6 +775,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
 
     let is_epoch_completed = get_is_epoch_completed(handler, epoch).await?;
 
+    // Handle completed epochs with simplified metrics
     if is_epoch_completed {
         emit_epoch_datapoint!(
             "ncn-program-keeper-ee-state",
@@ -671,6 +791,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
         return Ok(());
     }
 
+    // Handle active epochs with detailed state information
     let state = get_epoch_state(handler, epoch).await?;
     let current_state = {
         let (valid_slots_after_consensus, epochs_after_consensus_before_close) = {
@@ -682,6 +803,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
         };
         let epoch_schedule = handler.rpc_client().get_epoch_schedule().await?;
 
+        // Use patched state calculation if weight setting has begun
         if state.set_weight_progress().tally() > 0 {
             let weight_table = get_weight_table(handler, epoch).await?;
             state.current_state_patched(
@@ -701,6 +823,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
         }
     }?;
 
+    // Count operator snapshot account statuses
     let mut operator_snapshot_dne = 0;
     let mut operator_snapshot_open = 0;
     let mut operator_snapshot_closed = 0;
@@ -734,6 +857,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
             state.slot_consensus_reached(),
             i64
         ),
+        // Progress tracking for each phase
         (
             "set-weight-progress-tally",
             state.set_weight_progress().tally(),
@@ -764,7 +888,7 @@ pub async fn emit_epoch_metrics_state(handler: &CliHandler, epoch: u64) -> Resul
             state.voting_progress().total(),
             i64
         ),
-        // Account status
+        // Account status tracking
         (
             "epoch-state-account-status",
             state.account_status().epoch_state()?,

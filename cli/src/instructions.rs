@@ -1432,30 +1432,59 @@ async fn get_weather_status(api_key: &str, city_name: &str) -> Result<u8> {
     }
 }
 
+/// Casts a vote for an operator based on the current weather in Solana Beach
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `epoch` - Current epoch number
+/// * `operator` - Public key of the operator voting
+///
+/// # Returns
+/// * `Result<u8>` - Weather value that was voted (0:Sunny, 1:Other, 2:Rain/Snow)
 pub async fn operator_crank_vote(
     handler: &CliHandler,
     epoch: u64,
     operator: &Pubkey,
 ) -> Result<u8> {
+    // Get API key for weather service
     let api_key = handler.open_weather_api_key()?;
 
-    // Get actual weather status
+    // Fetch current weather status from OpenWeather API
     let weather_value = get_weather_status(&api_key, "Solana Beach").await?;
     info!(
         "Current weather in Solana Beach (0:Sunny, 1:Other, 2:Rain/Snow): {}",
         weather_value
     );
+
+    // Cast the vote with the weather value
     operator_cast_vote(handler, operator, epoch, weather_value).await?;
     Ok(weather_value)
 }
 
+/// Logs detailed information about an operator's vote and ballot box state
+///
+/// This function retrieves the ballot box for the current epoch and logs:
+/// - Whether the operator voted
+/// - Details of the operator's vote if they voted
+/// - Current consensus status
+/// - Winning ballot if consensus is reached
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `epoch` - Current epoch number
+/// * `operator` - Public key of the operator to check
+///
+/// # Returns
+/// * `Result<()>` - Success or failure
 pub async fn operator_crank_post_vote(
     handler: &CliHandler,
     epoch: u64,
     operator: &Pubkey,
 ) -> Result<()> {
+    // Get the ballot box for the current epoch
     let ballot_box = get_ballot_box(handler, epoch).await?;
 
+    // Check if operator voted and get their vote details
     let did_operator_vote = ballot_box.did_operator_vote(operator);
     let operator_vote = if did_operator_vote {
         ballot_box
@@ -1466,10 +1495,12 @@ pub async fn operator_crank_post_vote(
         None
     };
 
+    // Build detailed log message
     let mut log_message = format!("\n----- Post Vote Status -----\n");
     log_message.push_str(&format!("Epoch: {}\n", epoch));
     log_message.push_str(&format!("Did Operator Vote: {}\n", did_operator_vote));
 
+    // Add operator vote details if they voted
     if let Some(vote) = operator_vote {
         let operator_ballot = ballot_box.ballot_tallies()[vote.ballot_index() as usize];
         let operator_ballot_weight = operator_ballot.stake_weights();
@@ -1486,11 +1517,13 @@ pub async fn operator_crank_post_vote(
         log_message.push_str("No operator vote found\n");
     }
 
+    // Add consensus information
     log_message.push_str(&format!(
         "Consensus Reached: {}\n",
         ballot_box.is_consensus_reached()
     ));
 
+    // Add winning ballot if consensus is reached
     if ballot_box.is_consensus_reached() {
         log_message.push_str(&format!(
             "Winning Ballot: {}\n",
@@ -1499,6 +1532,7 @@ pub async fn operator_crank_post_vote(
     }
     log_message.push_str("--------------------------\n");
 
+    // Log the complete message
     log::info!("{}", log_message);
 
     Ok(())

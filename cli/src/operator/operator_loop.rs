@@ -20,6 +20,19 @@ use solana_sdk::pubkey::Pubkey;
 use std::process::Command;
 use tokio::time::sleep;
 
+/// Main operator loop that manages the NCN operator's lifecycle
+///
+/// This function continuously processes epochs, checking the current state
+/// and performing appropriate actions based on that state (voting, post-vote actions, etc.)
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `loop_timeout_ms` - Timeout between main loop iterations in milliseconds
+/// * `error_timeout_ms` - Timeout after errors in milliseconds
+/// * `operator` - Public key of the operator
+///
+/// # Returns
+/// * Result indicating success or failure (though this function loops indefinitely)
 #[allow(clippy::large_stack_frames)]
 pub async fn startup_operator_loop(
     handler: &CliHandler,
@@ -33,6 +46,7 @@ pub async fn startup_operator_loop(
 
     let mut end_of_loop;
 
+    // Get hostname for metrics identification
     let hostname_cmd = Command::new("hostname")
         .output()
         .expect("Failed to execute hostname command");
@@ -41,13 +55,13 @@ pub async fn startup_operator_loop(
         .trim()
         .to_string();
 
+    // Set host ID for metrics collection
     set_host_id(format!("ncn-operator-keeper_{}", hostname));
 
     loop {
-        // This will progress the epoch:
-        // If a new Epoch turns over, it will automatically progress to it
-        // If there is still work to be done on the given epoch, it will stay
-        // Note: This will loop around and start back at the beginning
+        // Progress to next epoch if needed
+        // If a new epoch has started, advance to it
+        // If there's still work in the current epoch, stay on it
         {
             info!(
                 "\n\n0. Progress Epoch If Needed - {}\n",
@@ -75,8 +89,7 @@ pub async fn startup_operator_loop(
             end_of_loop = current_keeper_epoch == current_epoch;
         }
 
-        // Fetches the current state of the keeper, which holds the Epoch State
-        // and other helpful information for the keeper to function
+        // Fetch the current state of the keeper/operator
         {
             info!("\n\n0. Fetch Keeper State - {}\n", current_keeper_epoch);
             if state.epoch != current_keeper_epoch {
@@ -95,8 +108,7 @@ pub async fn startup_operator_loop(
             }
         }
 
-        // Updates the Epoch State - pulls from the Epoch State account from on chain
-        // and further updates the keeper state
+        // Update the epoch state from on-chain data
         {
             info!("\n\n1. Update Epoch State - {}\n", current_keeper_epoch);
             let result = state.update_epoch_state(handler).await;
@@ -112,16 +124,18 @@ pub async fn startup_operator_loop(
                 continue;
             }
 
-            // If complete, reset loop
+            // If this epoch is already completed for this operator, move to next iteration
             if state.is_epoch_completed {
                 info!("Epoch {} is complete", state.epoch);
                 continue;
             }
         }
 
+        // Check the current state and perform appropriate actions
         {
             info!("\n\n2. Check State - {}\n", current_keeper_epoch);
 
+            // If no epoch state exists, mark as completed and continue
             if state.epoch_state.is_none() {
                 info!("Epoch {} does not have a state account", state.epoch);
                 state.is_epoch_completed = true;
@@ -135,7 +149,9 @@ pub async fn startup_operator_loop(
                 current_crank_state, current_keeper_epoch
             );
 
+            // Handle different epoch states with appropriate actions
             let crank_result = match current_crank_state {
+                // Weight and Snapshot states are passive - no operator action needed
                 State::SetWeight => {
                     info!(
                         "No explicit handling for {:?}. System will wait and re-evaluate.",
@@ -150,14 +166,23 @@ pub async fn startup_operator_loop(
                     );
                     Ok(())
                 }
+                // Vote state - operator casts a vote if eligible
                 State::Vote => {
+                    // Get the ballot box and operator snapshot for the current epoch
                     let ballot_box = get_ballot_box(handler, state.epoch).await?;
                     let operator_snapshot =
                         get_operator_snapshot(handler, &operator, state.epoch).await?;
+
+                    // Check if this operator is eligible to vote in this epoch
                     let can_operator_vote =
                         can_operator_vote(ballot_box, operator_snapshot, &operator);
+
                     if can_operator_vote {
+                        // If operator can vote:
+                        // 1. Cast the vote
                         let result = operator_crank_vote(handler, state.epoch, &operator).await;
+
+                        // 2. Handle any errors that occurred during voting
                         check_and_timeout_error(
                             "Operator Casting a Vote".to_string(),
                             &result,
@@ -166,15 +191,18 @@ pub async fn startup_operator_loop(
                         )
                         .await;
 
+                        // 3. Emit metrics about the vote
                         info!(
                             "\n\n Emit Epoch NCN Operator Vote Metrics - {}\n",
                             current_keeper_epoch
                         );
+                        // Use vote result or default to 3 if vote failed
                         let vote = result.unwrap_or(3);
                         let result =
                             emit_ncn_metrics_operator_vote(handler, vote, state.epoch, &operator)
                                 .await;
 
+                        // 4. Handle any errors from metrics emission
                         check_and_timeout_error(
                             "Emit NCN Operator Vote metrics".to_string(),
                             &result,
@@ -183,8 +211,11 @@ pub async fn startup_operator_loop(
                         )
                         .await;
                     } else {
+                        // If operator cannot vote (already voted or not eligible):
+                        // 1. Perform post-vote actions
                         operator_crank_post_vote(handler, state.epoch, &operator).await?;
 
+                        // 2. Emit metrics about the post-vote state
                         info!(
                             "\n\n Emit Epoch post vote metrics - {}\n",
                             current_keeper_epoch
@@ -193,6 +224,7 @@ pub async fn startup_operator_loop(
                             emit_ncn_metrics_operator_post_vote(handler, state.epoch, &operator)
                                 .await;
 
+                        // 3. Handle any errors from metrics emission
                         check_and_timeout_error(
                             "Emit NCN Operator Post Vote Metrics".to_string(),
                             &result,
@@ -200,31 +232,14 @@ pub async fn startup_operator_loop(
                             state.epoch,
                         )
                         .await;
+
+                        // 4. Mark this epoch as completed for this operator
                         state.is_epoch_completed = true;
                     }
                     Ok(())
                 }
-                State::PostVoteCooldown => {
-                    operator_crank_post_vote(handler, state.epoch, &operator).await?;
-
-                    info!(
-                        "\n\n Emit Epoch post vote metrics - {}\n",
-                        current_keeper_epoch
-                    );
-                    let result =
-                        emit_ncn_metrics_operator_post_vote(handler, state.epoch, &operator).await;
-
-                    check_and_timeout_error(
-                        "Emit NCN Operator Post Vote Metrics".to_string(),
-                        &result,
-                        error_timeout_ms,
-                        state.epoch,
-                    )
-                    .await;
-                    state.is_epoch_completed = true;
-                    Ok(())
-                }
-                State::Close => {
+                // Post-vote states - perform post-vote actions and mark epoch as completed
+                State::PostVoteCooldown | State::Close => {
                     operator_crank_post_vote(handler, state.epoch, &operator).await?;
 
                     info!(
@@ -258,18 +273,34 @@ pub async fn startup_operator_loop(
             }
         }
 
-        // Times out the keeper - this is the main loop timeout
+        // Main loop timing control - add delay between iterations
         if end_of_loop {
             info!("\n\nF. Timeout - {}\n", current_keeper_epoch);
 
             timeout_keeper(loop_timeout_ms).await;
 
+            // Emit heartbeat metric to indicate the operator is alive
             emit_heartbeat(tick).await;
             tick += 1;
         }
     }
 }
 
+/// Determines whether to progress to the next epoch
+///
+/// Logic for advancing the keeper's current epoch:
+/// - If current epoch is completed and matches the blockchain epoch, reset to starting epoch
+/// - If current epoch is completed, increment to next epoch
+/// - If current epoch is not completed, stay on it
+///
+/// # Arguments
+/// * `is_epoch_completed` - Whether the current epoch is completed
+/// * `current_epoch` - The current blockchain epoch
+/// * `starting_epoch` - The epoch the keeper started with
+/// * `keeper_epoch` - The keeper's current epoch
+///
+/// # Returns
+/// * The new epoch number for the keeper
 async fn progress_epoch(
     is_epoch_completed: bool,
     current_epoch: u64,
@@ -289,6 +320,16 @@ async fn progress_epoch(
     keeper_epoch
 }
 
+/// Checks for errors and implements timeouts if errors occur
+///
+/// # Arguments
+/// * `title` - Description of the operation being checked
+/// * `result` - The result to check for errors
+/// * `error_timeout_ms` - Milliseconds to wait if an error is found
+/// * `keeper_epoch` - Current epoch for error reporting
+///
+/// # Returns
+/// * Boolean indicating whether an error was found (true = error)
 #[allow(clippy::future_not_send)]
 async fn check_and_timeout_error<T>(
     title: String,
@@ -309,14 +350,22 @@ async fn check_and_timeout_error<T>(
     }
 }
 
+/// Implements a timeout delay after an error occurs
+///
+/// # Arguments
+/// * `duration_ms` - Milliseconds to wait
 async fn timeout_error(duration_ms: u64) {
     info!("Error Timeout for {}s", duration_ms as f64 / 1000.0);
     sleep(Duration::from_millis(duration_ms)).await;
-    // progress_bar(duration_ms).await;
+    // progress_bar(duration_ms).await; // Commented out progress bar
 }
 
+/// Implements a timeout delay between keeper loop iterations
+///
+/// # Arguments
+/// * `duration_ms` - Milliseconds to wait
 async fn timeout_keeper(duration_ms: u64) {
     info!("Keeper Timeout for {}s", duration_ms as f64 / 1000.0);
     sleep(Duration::from_millis(duration_ms)).await;
-    // boring_progress_bar(duration_ms).await;
+    // boring_progress_bar(duration_ms).await; // Commented out progress bar
 }

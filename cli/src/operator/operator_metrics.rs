@@ -8,6 +8,13 @@ use crate::{
     handler::CliHandler,
 };
 
+/// Macro for emitting epoch-specific metrics
+///
+/// Emits metrics with two variants:
+/// 1. Standard metric with the given name
+/// 2. If this is the current epoch, also emits a "-current" suffixed metric
+///
+/// This allows tracking both historical and current epoch metrics separately
 macro_rules! emit_epoch_datapoint {
     ($name:expr, $is_current_epoch:expr, $($fields:tt),*) => {
         // Always emit the standard metric
@@ -23,6 +30,13 @@ macro_rules! emit_epoch_datapoint {
     };
 }
 
+/// Emits error metrics for tracking operator failures
+///
+/// # Arguments
+/// * `title` - The title/name of the operation that failed
+/// * `error` - The error string
+/// * `message` - Detailed error message
+/// * `keeper_epoch` - The epoch in which the error occurred
 pub async fn emit_error(title: String, error: String, message: String, keeper_epoch: u64) {
     datapoint_info!(
         "ncn-operator-keeper-error",
@@ -33,6 +47,10 @@ pub async fn emit_error(title: String, error: String, message: String, keeper_ep
     );
 }
 
+/// Emits heartbeat metrics to indicate the operator is alive
+///
+/// # Arguments
+/// * `tick` - Counter representing the number of heartbeats
 pub async fn emit_heartbeat(tick: u64) {
     datapoint_info!(
         "ncn-operator-keeper-keeper-heartbeat-operations",
@@ -45,6 +63,16 @@ pub async fn emit_heartbeat(tick: u64) {
     );
 }
 
+/// Emits metrics when an operator submits a vote
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `vote` - The vote value submitted (weather status code)
+/// * `epoch` - The epoch being voted on
+/// * `operator` - The public key of the operator casting the vote
+///
+/// # Returns
+/// * Result indicating success or failure
 pub async fn emit_ncn_metrics_operator_vote(
     handler: &CliHandler,
     vote: u8,
@@ -67,6 +95,21 @@ pub async fn emit_ncn_metrics_operator_vote(
     Ok(())
 }
 
+/// Emits comprehensive metrics after an operator has voted
+///
+/// Collects and reports detailed information about:
+/// - The operator's vote status
+/// - Ballot box state
+/// - Consensus status
+/// - Vote weights
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `epoch` - The epoch being tracked
+/// * `operator` - The public key of the operator
+///
+/// # Returns
+/// * Result indicating success or failure
 pub async fn emit_ncn_metrics_operator_post_vote(
     handler: &CliHandler,
     epoch: u64,
@@ -74,8 +117,10 @@ pub async fn emit_ncn_metrics_operator_post_vote(
 ) -> Result<()> {
     let (current_epoch, current_slot) = get_current_epoch_and_slot(handler).await?;
 
+    // Get the ballot box to determine vote status and outcomes
     let ballot_box = get_ballot_box(handler, epoch).await?;
 
+    // Check if this operator has voted
     let did_operator_vote = ballot_box.did_operator_vote(operator);
     let operator_vote = if did_operator_vote {
         ballot_box
@@ -88,6 +133,7 @@ pub async fn emit_ncn_metrics_operator_post_vote(
 
     let is_current_epoch = current_epoch == epoch;
 
+    // Emit detailed metrics about the voting process
     emit_epoch_datapoint!(
         "ncn-operator-keeper-vote",
         is_current_epoch,
