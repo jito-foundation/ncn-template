@@ -129,11 +129,17 @@ pub async fn startup_ncn_keeper(
             continue;
         }
 
-        // PHASE 0.4: KEEPER STATE MANAGEMENT
+        // PHASE 0.4: KEEPER STATE AND EPOCH STATE UPDATE
         // Fetch and update the keeper's internal state for the current epoch
         // This includes the EpochState account and derived information
+        // We also update our local understanding of the epoch's progress
         {
-            info!("\n\n0.4. Fetch Keeper State - {}\n", current_keeper_epoch);
+            info!(
+                "\n\n0.4. Fetch and Update State - {}\n",
+                current_keeper_epoch
+            );
+
+            // If the epoch has changed, fetch the new epoch state
             if state.epoch != current_keeper_epoch {
                 let result = state.fetch(handler, current_keeper_epoch).await;
 
@@ -147,25 +153,20 @@ pub async fn startup_ncn_keeper(
                 {
                     continue;
                 }
-            }
-        }
+            } else {
+                // Otherwise, just update the existing epoch state
+                let result = state.update_epoch_state(handler).await;
 
-        // PHASE 1: EPOCH STATE UPDATE
-        // Pull the latest EpochState account data from the blockchain
-        // This updates our local understanding of the epoch's progress
-        {
-            info!("\n\n1. Update Epoch State - {}\n", current_keeper_epoch);
-            let result = state.update_epoch_state(handler).await;
-
-            if check_and_timeout_error(
-                "Update Epoch State".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-            .await
-            {
-                continue;
+                if check_and_timeout_error(
+                    "Update Epoch State".to_string(),
+                    &result,
+                    error_timeout_ms,
+                    state.epoch,
+                )
+                .await
+                {
+                    continue;
+                }
             }
         }
 
