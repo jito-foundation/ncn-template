@@ -14,10 +14,10 @@ use crate::{
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
         admin_set_parameters, admin_set_tie_breaker, admin_set_weight, crank_close_epoch_accounts,
-        crank_register_vaults, crank_snapshot, crank_vote, create_ballot_box,
-        create_epoch_snapshot, create_epoch_state, create_operator_snapshot, create_vault_registry,
-        create_weight_table, full_vault_update, operator_cast_vote, register_vault,
-        set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
+        crank_register_vaults, crank_snapshot, create_ballot_box, create_epoch_snapshot,
+        create_epoch_state, create_operator_snapshot, create_vault_registry, create_weight_table,
+        full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
+        snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
     keeper::keeper_loop::startup_ncn_keeper,
     operator::operator_loop::startup_operator_loop,
@@ -194,7 +194,6 @@ impl CliHandler {
                 crank_close_epoch_accounts(self, self.epoch).await
             }
 
-            ProgramCommand::CrankVote {} => crank_vote(self, self.epoch).await,
             ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
 
             // Admin

@@ -5,7 +5,7 @@ use crate::{
     handler::CliHandler,
     instructions::{
         crank_close_epoch_accounts, crank_post_vote_cooldown, crank_register_vaults,
-        crank_set_weight, crank_snapshot, crank_vote, create_epoch_state,
+        crank_set_weight, crank_snapshot, create_epoch_state,
     },
     keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
@@ -215,9 +215,13 @@ pub async fn startup_ncn_keeper(
             State::SetWeight => crank_set_weight(handler, state.epoch).await,
             // Snapshot: Capture operator and vault state snapshots
             State::Snapshot => crank_snapshot(handler, state.epoch).await,
-            // Vote: Process operator votes on the epoch outcome
-            State::Vote => crank_vote(handler, state.epoch).await,
-            // PostVoteCooldown: Wait period after voting completes
+            // Vote: No need to do anything here
+            State::Vote => {
+                info!("No explicit handling for voting phase. System will wait and re-evaluate.");
+                Ok(())
+            }
+            // PostVoteCooldown: Wait period after voting completes, this step will only log the
+            // consensus result
             State::PostVoteCooldown => crank_post_vote_cooldown(handler, state.epoch).await,
             // Close: Finalize and close the epoch's accounts
             State::Close => crank_close_epoch_accounts(handler, state.epoch).await,

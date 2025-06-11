@@ -154,7 +154,6 @@ pub enum ProgramCommand {
     CrankRegisterVaults {},
     CrankSnapshot {},
     CrankCloseEpochAccounts {},
-    CrankVote {},
     SetEpochWeights {},
 
     /// Admin

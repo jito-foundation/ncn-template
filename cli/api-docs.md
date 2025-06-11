@@ -23,7 +23,6 @@ A CLI for creating and managing the ncn program
 * `crank-register-vaults` — 
 * `crank-snapshot` — 
 * `crank-close-epoch-accounts` — 
-* `crank-vote` — 
 * `set-epoch-weights` — 
 * `admin-create-config` — Admin
 * `admin-register-st-mint` — 
@@ -156,12 +155,6 @@ Crank Functions
 ## `ncn-program-cli crank-close-epoch-accounts`
 
 **Usage:** `ncn-program-cli crank-close-epoch-accounts`
-
-
-
-## `ncn-program-cli crank-vote`
-
-**Usage:** `ncn-program-cli crank-vote`
 
 
 
