@@ -6,14 +6,13 @@ use anyhow::{anyhow, Ok, Result};
 use jito_bytemuck::AccountDeserialize;
 
 use ncn_program_core::epoch_state::{EpochState, State};
-use solana_sdk::pubkey::Pubkey;
 
 /// Manages the state of the keeper for a specific epoch
 ///
 /// The KeeperState tracks the current epoch being processed, the on-chain epoch state,
 /// and provides methods to update and query this state. It serves as the central
 /// state management for the keeper's operations.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct KeeperState {
     /// The epoch number this keeper state is tracking
     pub epoch: u64,
@@ -25,6 +24,18 @@ pub struct KeeperState {
     pub current_state: Option<State>,
     /// Whether this epoch has been completed (closed)
     pub is_epoch_completed: bool,
+}
+
+impl std::fmt::Display for KeeperState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "KeeperState {{")?;
+        writeln!(f, "    epoch: {}", self.epoch)?;
+        writeln!(f, "    epoch_state_address: {}", self.epoch_state_address)?;
+        writeln!(f, "    epoch_state: {:?}", self.epoch_state)?;
+        writeln!(f, "    current_state: {:?}", self.current_state)?;
+        writeln!(f, "    is_epoch_completed: {}", self.is_epoch_completed)?;
+        write!(f, "}}")
+    }
 }
 
 impl KeeperState {
