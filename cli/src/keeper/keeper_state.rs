@@ -6,6 +6,7 @@ use anyhow::{anyhow, Ok, Result};
 use jito_bytemuck::AccountDeserialize;
 
 use ncn_program_core::epoch_state::{EpochState, State};
+use solana_sdk::pubkey::Pubkey;
 
 /// Manages the state of the keeper for a specific epoch
 ///
@@ -57,11 +58,11 @@ impl KeeperState {
             EpochState::find_program_address(&handler.ncn_program_id, &ncn, epoch);
         self.epoch_state_address = epoch_state_address;
 
-        // Fetch the current state from on-chain
-        self.update_epoch_state(handler).await?;
-
         // Store the epoch number to ensure state consistency
         self.epoch = epoch;
+
+        // Fetch the current state from on-chain
+        self.update_epoch_state(handler).await?;
 
         Ok(())
     }
