@@ -12,7 +12,7 @@ use solana_program::{account_info::AccountInfo, program_error::ProgramError, pub
 use spl_math::precise_number::PreciseNumber;
 
 use crate::{
-    constants::MAX_VAULTS, discriminators::Discriminators, error::NCNProgramError,
+    constants::MAX_VAULTS, discriminators::Discriminators, error::NCNProgramError, fees::Fees,
     loaders::check_load, stake_weight::StakeWeights, weight_table::WeightTable,
 };
 
@@ -40,6 +40,8 @@ pub struct EpochSnapshot {
     valid_operator_vault_delegations: PodU64,
     /// Tallies the total stake weights for all vault operator delegations
     stake_weights: StakeWeights,
+    /// Snapshot of the fees configuration for this epoch
+    fees: Fees,
 }
 
 impl Discriminator for EpochSnapshot {
@@ -57,6 +59,7 @@ impl EpochSnapshot {
         current_slot: u64,
         operator_count: u64,
         vault_count: u64,
+        fees: Fees,
     ) -> Self {
         Self {
             ncn: *ncn,
@@ -69,6 +72,7 @@ impl EpochSnapshot {
             operators_registered: PodU64::from(0),
             valid_operator_vault_delegations: PodU64::from(0),
             stake_weights: StakeWeights::default(),
+            fees,
         }
     }
 
@@ -182,6 +186,10 @@ impl EpochSnapshot {
         }
 
         Ok(())
+    }
+
+    pub const fn fees(&self) -> &Fees {
+        &self.fees
     }
 }
 
@@ -566,6 +574,9 @@ impl fmt::Display for EpochSnapshot {
        writeln!(f, "  Slot Finalized:               {}", self.slot_finalized())?;
        writeln!(f, "  Finalized:                    {}", self.finalized())?;
        writeln!(f, "  total Weight:                 {}", self.stake_weights().stake_weight())?;
+       writeln!(f, "  Jito DAO Fee BPS:             {}", self.fees().jito_dao_fee_bps().unwrap_or(0))?;
+       writeln!(f, "  NCN Fee BPS:                  {}", self.fees().ncn_fee_bps().unwrap_or(0))?;
+       writeln!(f, "  Total Fee BPS:                {}", self.fees().total_fees_bps().unwrap_or(0))?;
 
        writeln!(f, "\n")?;
        Ok(())
@@ -824,11 +835,12 @@ mod tests {
         // Create an epoch snapshot
         let mut snapshot = EpochSnapshot::new(
             &Pubkey::new_unique(),
-            1,   // ncn_epoch
-            1,   // bump
-            100, // current_slot
-            1,   // operator_count - set to 1
-            1,   // vault_count
+            1,                          // ncn_epoch
+            1,                          // bump
+            100,                        // current_slot
+            1,                          // operator_count - set to 1
+            1,                          // vault_count
+            Fees::new(100, 1).unwrap(), // fees
         );
 
         // Set operators_registered equal to operator_count to make it finalized

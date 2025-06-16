@@ -10,6 +10,7 @@ use ncn_program_core::{
         MIN_EPOCHS_BEFORE_STALL, MIN_VALID_SLOTS_AFTER_CONSENSUS,
     },
     error::NCNProgramError,
+    fees::FeeConfig,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -37,11 +38,13 @@ pub fn process_admin_initialize_config(
     epochs_before_stall: u64,
     epochs_after_consensus_before_close: u64,
     valid_slots_after_consensus: u64,
+    ncn_fee_bps: u16,
 ) -> ProgramResult {
     msg!("Processing admin initialize config with epochs_before_stall: {}, epochs_after_consensus_before_close: {}, valid_slots_after_consensus: {}", 
         epochs_before_stall, epochs_after_consensus_before_close, valid_slots_after_consensus);
 
-    let [config, ncn, ncn_admin, tie_breaker_admin, account_payer, system_program] = accounts
+    let [config, ncn, ncn_fee_wallet, ncn_admin, tie_breaker_admin, account_payer, system_program] =
+        accounts
     else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
@@ -168,6 +171,8 @@ pub fn process_admin_initialize_config(
         starting_valid_epoch
     );
 
+    let fee_config = FeeConfig::new(ncn_fee_wallet.key, ncn_fee_bps, epoch)?;
+
     msg!(
         "Creating new config with tie_breaker_admin: {}",
         tie_breaker_admin.key
@@ -179,9 +184,12 @@ pub fn process_admin_initialize_config(
         valid_slots_after_consensus,
         epochs_before_stall,
         epochs_after_consensus_before_close,
+        &fee_config,
         config_bump,
     );
     msg!("Config initialized successfully");
+
+    config.fee_config.check_fees_okay(epoch)?;
 
     msg!("Admin initialize config completed successfully");
     Ok(())

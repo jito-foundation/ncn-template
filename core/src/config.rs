@@ -7,7 +7,7 @@ use jito_bytemuck::{types::PodU64, AccountDeserialize, Discriminator};
 use shank::ShankAccount;
 use solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 
-use crate::{discriminators::Discriminators, loaders::check_load};
+use crate::{discriminators::Discriminators, fees::FeeConfig, loaders::check_load};
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub enum ConfigAdminRole {
@@ -29,6 +29,8 @@ pub struct Config {
     pub epochs_after_consensus_before_close: PodU64,
     /// Only epochs after this epoch are valid for voting
     pub starting_valid_epoch: PodU64,
+    /// The fee config
+    pub fee_config: FeeConfig,
     /// Bump seed for the PDA
     pub bump: u8,
 }
@@ -59,6 +61,7 @@ impl Config {
         valid_slots_after_consensus: u64,
         epochs_before_stall: u64,
         epochs_after_consensus_before_close: u64,
+        fee_config: &FeeConfig,
         bump: u8,
     ) -> Self {
         Self {
@@ -68,6 +71,7 @@ impl Config {
             valid_slots_after_consensus: PodU64::from(valid_slots_after_consensus),
             epochs_before_stall: PodU64::from(epochs_before_stall),
             epochs_after_consensus_before_close: PodU64::from(epochs_after_consensus_before_close),
+            fee_config: *fee_config,
             bump,
         }
     }
@@ -157,6 +161,7 @@ mod tests {
             + size_of::<PodU64>() // epochs_before_stall
             + size_of::<PodU64>() // epochs_after_consensus_before_close
             + size_of::<PodU64>() // starting_valid_epoch
+            + size_of::<FeeConfig>() // fee_config
             + 1; // bump
 
         assert_eq!(size_of::<Config>(), expected_total);

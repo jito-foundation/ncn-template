@@ -3,7 +3,7 @@ use jito_jsm_core::loader::{load_system_account, load_system_program};
 use jito_restaking_core::ncn::Ncn;
 use ncn_program_core::{
     account_payer::AccountPayer, config::Config, epoch_marker::EpochMarker,
-    epoch_snapshot::EpochSnapshot, epoch_state::EpochState, error::NCNProgramError,
+    epoch_snapshot::EpochSnapshot, epoch_state::EpochState, error::NCNProgramError, fees::Fees,
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -126,6 +126,13 @@ pub fn process_initialize_epoch_snapshot(
         operator_count,
         vault_count
     );
+
+    let ncn_fees: Fees = {
+        let ncn_config_data = config.data.borrow();
+        let ncn_config_account = Config::try_from_slice_unchecked(&ncn_config_data)?;
+        *ncn_config_account.fee_config.current_fees(ncn_epoch)
+    };
+
     *epoch_snapshot_account = EpochSnapshot::new(
         ncn.key,
         ncn_epoch,
@@ -133,6 +140,7 @@ pub fn process_initialize_epoch_snapshot(
         current_slot,
         operator_count,
         vault_count,
+        ncn_fees,
     );
 
     msg!("Updating epoch state");

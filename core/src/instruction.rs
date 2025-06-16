@@ -23,10 +23,11 @@ pub enum NCNProgramInstruction {
     /// Sets up the basic program parameters
     #[account(0, writable, name = "config")]
     #[account(1, name = "ncn")]
-    #[account(2, signer, name = "ncn_admin")]
-    #[account(3, name = "tie_breaker_admin")]
-    #[account(4, writable, name = "account_payer")]
-    #[account(5, name = "system_program")]
+    #[account(2, name = "ncn_fee_wallet")]
+    #[account(3, signer, name = "ncn_admin")]
+    #[account(4, name = "tie_breaker_admin")]
+    #[account(5, writable, name = "account_payer")]
+    #[account(6, name = "system_program")]
     InitializeConfig {
         /// Number of epochs before voting is considered stalled
         epochs_before_stall: u64,
@@ -34,6 +35,8 @@ pub enum NCNProgramInstruction {
         epochs_after_consensus_before_close: u64,
         /// Number of slots after consensus where voting is still valid
         valid_slots_after_consensus: u64,
+        /// NCN fee basis points (bps) for the NCN program
+        ncn_fee_bps: u16,
     },
 
     /// Initializes the vault registry account to track validator vaults
