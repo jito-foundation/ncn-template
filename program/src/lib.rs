@@ -87,6 +87,7 @@ pub fn process_instruction(
             epochs_before_stall,
             epochs_after_consensus_before_close,
             valid_slots_after_consensus,
+            ncn_fee_bps,
         } => {
             msg!("Instruction: InitializeConfig");
             process_admin_initialize_config(
@@ -95,6 +96,7 @@ pub fn process_instruction(
                 epochs_before_stall,
                 epochs_after_consensus_before_close,
                 valid_slots_after_consensus,
+                ncn_fee_bps,
             )
         }
         NCNProgramInstruction::InitializeVaultRegistry => {

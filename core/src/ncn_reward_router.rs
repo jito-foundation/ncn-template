@@ -1210,7 +1210,7 @@ mod tests {
         );
 
         // Fees
-        let fees = Fees::new(900, 100, 1).unwrap();
+        let fees = Fees::new(100, 1).unwrap();
 
         // Route incoming rewards
         router.route_incoming_rewards(0, INCOMING_REWARDS).unwrap();
@@ -1222,7 +1222,7 @@ mod tests {
 
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
-        assert_eq!(router.jito_dao_rewards(), 90);
+        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
         assert_eq!(router.ncn_rewards(), 10);
     }
 
@@ -1238,7 +1238,7 @@ mod tests {
         );
 
         // Fees
-        let fees = Fees::new(900, 100, 1).unwrap();
+        let fees = Fees::new(100, 1).unwrap();
 
         // Route incoming rewards
         router.route_incoming_rewards(0, INCOMING_REWARDS).unwrap();
@@ -1251,9 +1251,9 @@ mod tests {
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
 
-        assert_eq!(router.jito_dao_rewards(), 90);
+        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
         assert_eq!(router.ncn_rewards(), 10);
-        assert_eq!(router.operator_vault_rewards(), 900);
+        assert_eq!(router.operator_vault_rewards(), 950);
     }
 
     #[test]
@@ -1268,7 +1268,7 @@ mod tests {
         );
 
         // Fees - all base groups and ncn groups
-        let fees = Fees::new(99, 1, 1).unwrap();
+        let fees = Fees::new(19, 1).unwrap();
 
         // Route incoming rewards
         router.route_incoming_rewards(0, INCOMING_REWARDS).unwrap();
@@ -1281,9 +1281,9 @@ mod tests {
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
 
-        assert_eq!(router.jito_dao_rewards(), 9);
-        assert_eq!(router.ncn_rewards(), 0);
-        assert_eq!(router.operator_vault_rewards(), 991);
+        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
+        assert_eq!(router.ncn_rewards(), 1);
+        assert_eq!(router.operator_vault_rewards(), 959);
     }
 
     #[test]
