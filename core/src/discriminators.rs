@@ -14,8 +14,8 @@ pub enum Discriminators {
     ConsensusResult = 0x21,
 
     // Distribution
-    BaseRewardRouter = 0x40,
-    NcnRewardRouter = 0x41,
+    NCNRewardRouter = 0x40,
+    OperatorVaultRewardRouter = 0x41,
 
     // State Tracking
     EpochState = 0x50,
