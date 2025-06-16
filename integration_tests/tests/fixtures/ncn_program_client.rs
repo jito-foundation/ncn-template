@@ -226,8 +226,17 @@ impl NCNProgramClient {
         self.airdrop(&account_payer, 100.0).await?;
 
         let ncn_admin_pubkey = ncn_admin.pubkey();
-        self.initialize_config(ncn, ncn_admin, &ncn_admin_pubkey, 3, 10, 10000)
-            .await
+        self.initialize_config(
+            ncn,
+            ncn_admin,
+            &ncn_admin_pubkey,
+            3,
+            10,
+            10000,
+            &ncn_admin_pubkey,
+            400,
+        )
+        .await
     }
 
     /// Sends a transaction to initialize the NCN config account.
@@ -239,6 +248,8 @@ impl NCNProgramClient {
         epochs_before_stall: u64,
         epochs_after_consensus_before_close: u64,
         valid_slots_after_consensus: u64,
+        ncn_fee_wallet: &Pubkey,
+        ncn_fee_bps: u16,
     ) -> TestResult<()> {
         let config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
 
@@ -247,12 +258,14 @@ impl NCNProgramClient {
         let ix = InitializeConfigBuilder::new()
             .config(config)
             .ncn(ncn)
+            .ncn_fee_wallet(*ncn_fee_wallet)
             .ncn_admin(ncn_admin.pubkey())
             .account_payer(account_payer)
             .tie_breaker_admin(*tie_breaker_admin)
             .epochs_before_stall(epochs_before_stall)
             .epochs_after_consensus_before_close(epochs_after_consensus_before_close)
             .valid_slots_after_consensus(valid_slots_after_consensus)
+            .ncn_fee_bps(ncn_fee_bps)
             .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
