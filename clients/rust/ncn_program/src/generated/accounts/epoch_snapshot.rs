@@ -5,6 +5,7 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
+use crate::generated::types::Fees;
 use crate::generated::types::StakeWeights;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
@@ -28,6 +29,7 @@ pub struct EpochSnapshot {
     pub operators_registered: u64,
     pub valid_operator_vault_delegations: u64,
     pub stake_weights: StakeWeights,
+    pub fees: Fees,
 }
 
 impl EpochSnapshot {

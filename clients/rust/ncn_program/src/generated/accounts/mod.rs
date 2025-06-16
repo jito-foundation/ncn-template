@@ -11,7 +11,9 @@ pub(crate) mod r#consensus_result;
 pub(crate) mod r#epoch_marker;
 pub(crate) mod r#epoch_snapshot;
 pub(crate) mod r#epoch_state;
+pub(crate) mod r#n_c_n_reward_router;
 pub(crate) mod r#operator_snapshot;
+pub(crate) mod r#operator_vault_reward_router;
 pub(crate) mod r#vault_registry;
 pub(crate) mod r#weight_table;
 
@@ -21,6 +23,8 @@ pub use self::r#consensus_result::*;
 pub use self::r#epoch_marker::*;
 pub use self::r#epoch_snapshot::*;
 pub use self::r#epoch_state::*;
+pub use self::r#n_c_n_reward_router::*;
 pub use self::r#operator_snapshot::*;
+pub use self::r#operator_vault_reward_router::*;
 pub use self::r#vault_registry::*;
 pub use self::r#weight_table::*;

@@ -14,6 +14,8 @@ pub struct InitializeConfig {
 
     pub ncn: solana_program::pubkey::Pubkey,
 
+    pub ncn_fee_wallet: solana_program::pubkey::Pubkey,
+
     pub ncn_admin: solana_program::pubkey::Pubkey,
 
     pub tie_breaker_admin: solana_program::pubkey::Pubkey,
@@ -36,13 +38,17 @@ impl InitializeConfig {
         args: InitializeConfigInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.config,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.ncn_fee_wallet,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn_admin,
@@ -96,6 +102,7 @@ pub struct InitializeConfigInstructionArgs {
     pub epochs_before_stall: u64,
     pub epochs_after_consensus_before_close: u64,
     pub valid_slots_after_consensus: u64,
+    pub ncn_fee_bps: u16,
 }
 
 /// Instruction builder for `InitializeConfig`.
@@ -104,14 +111,16 @@ pub struct InitializeConfigInstructionArgs {
 ///
 ///   0. `[writable]` config
 ///   1. `[]` ncn
-///   2. `[signer]` ncn_admin
-///   3. `[]` tie_breaker_admin
-///   4. `[writable]` account_payer
-///   5. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   2. `[]` ncn_fee_wallet
+///   3. `[signer]` ncn_admin
+///   4. `[]` tie_breaker_admin
+///   5. `[writable]` account_payer
+///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeConfigBuilder {
     config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
+    ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
     ncn_admin: Option<solana_program::pubkey::Pubkey>,
     tie_breaker_admin: Option<solana_program::pubkey::Pubkey>,
     account_payer: Option<solana_program::pubkey::Pubkey>,
@@ -119,6 +128,7 @@ pub struct InitializeConfigBuilder {
     epochs_before_stall: Option<u64>,
     epochs_after_consensus_before_close: Option<u64>,
     valid_slots_after_consensus: Option<u64>,
+    ncn_fee_bps: Option<u16>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -134,6 +144,11 @@ impl InitializeConfigBuilder {
     #[inline(always)]
     pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
         self.ncn = Some(ncn);
+        self
+    }
+    #[inline(always)]
+    pub fn ncn_fee_wallet(&mut self, ncn_fee_wallet: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.ncn_fee_wallet = Some(ncn_fee_wallet);
         self
     }
     #[inline(always)]
@@ -178,6 +193,11 @@ impl InitializeConfigBuilder {
         self.valid_slots_after_consensus = Some(valid_slots_after_consensus);
         self
     }
+    #[inline(always)]
+    pub fn ncn_fee_bps(&mut self, ncn_fee_bps: u16) -> &mut Self {
+        self.ncn_fee_bps = Some(ncn_fee_bps);
+        self
+    }
     /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
@@ -201,6 +221,7 @@ impl InitializeConfigBuilder {
         let accounts = InitializeConfig {
             config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
+            ncn_fee_wallet: self.ncn_fee_wallet.expect("ncn_fee_wallet is not set"),
             ncn_admin: self.ncn_admin.expect("ncn_admin is not set"),
             tie_breaker_admin: self
                 .tie_breaker_admin
@@ -223,6 +244,7 @@ impl InitializeConfigBuilder {
                 .valid_slots_after_consensus
                 .clone()
                 .expect("valid_slots_after_consensus is not set"),
+            ncn_fee_bps: self.ncn_fee_bps.clone().expect("ncn_fee_bps is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -234,6 +256,8 @@ pub struct InitializeConfigCpiAccounts<'a, 'b> {
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -252,6 +276,8 @@ pub struct InitializeConfigCpi<'a, 'b> {
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -274,6 +300,7 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
             __program: program,
             config: accounts.config,
             ncn: accounts.ncn,
+            ncn_fee_wallet: accounts.ncn_fee_wallet,
             ncn_admin: accounts.ncn_admin,
             tie_breaker_admin: accounts.tie_breaker_admin,
             account_payer: accounts.account_payer,
@@ -314,13 +341,17 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.config.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.ncn.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.ncn_fee_wallet.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -355,10 +386,11 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.config.clone());
         account_infos.push(self.ncn.clone());
+        account_infos.push(self.ncn_fee_wallet.clone());
         account_infos.push(self.ncn_admin.clone());
         account_infos.push(self.tie_breaker_admin.clone());
         account_infos.push(self.account_payer.clone());
@@ -381,10 +413,11 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
 ///
 ///   0. `[writable]` config
 ///   1. `[]` ncn
-///   2. `[signer]` ncn_admin
-///   3. `[]` tie_breaker_admin
-///   4. `[writable]` account_payer
-///   5. `[]` system_program
+///   2. `[]` ncn_fee_wallet
+///   3. `[signer]` ncn_admin
+///   4. `[]` tie_breaker_admin
+///   5. `[writable]` account_payer
+///   6. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeConfigCpiBuilder<'a, 'b> {
     instruction: Box<InitializeConfigCpiBuilderInstruction<'a, 'b>>,
@@ -396,6 +429,7 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
             __program: program,
             config: None,
             ncn: None,
+            ncn_fee_wallet: None,
             ncn_admin: None,
             tie_breaker_admin: None,
             account_payer: None,
@@ -403,6 +437,7 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
             epochs_before_stall: None,
             epochs_after_consensus_before_close: None,
             valid_slots_after_consensus: None,
+            ncn_fee_bps: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -418,6 +453,14 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.ncn = Some(ncn);
+        self
+    }
+    #[inline(always)]
+    pub fn ncn_fee_wallet(
+        &mut self,
+        ncn_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.ncn_fee_wallet = Some(ncn_fee_wallet);
         self
     }
     #[inline(always)]
@@ -469,6 +512,11 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn valid_slots_after_consensus(&mut self, valid_slots_after_consensus: u64) -> &mut Self {
         self.instruction.valid_slots_after_consensus = Some(valid_slots_after_consensus);
+        self
+    }
+    #[inline(always)]
+    pub fn ncn_fee_bps(&mut self, ncn_fee_bps: u16) -> &mut Self {
+        self.instruction.ncn_fee_bps = Some(ncn_fee_bps);
         self
     }
     /// Add an additional account to the instruction.
@@ -528,6 +576,11 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
                 .valid_slots_after_consensus
                 .clone()
                 .expect("valid_slots_after_consensus is not set"),
+            ncn_fee_bps: self
+                .instruction
+                .ncn_fee_bps
+                .clone()
+                .expect("ncn_fee_bps is not set"),
         };
         let instruction = InitializeConfigCpi {
             __program: self.instruction.__program,
@@ -535,6 +588,11 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
             config: self.instruction.config.expect("config is not set"),
 
             ncn: self.instruction.ncn.expect("ncn is not set"),
+
+            ncn_fee_wallet: self
+                .instruction
+                .ncn_fee_wallet
+                .expect("ncn_fee_wallet is not set"),
 
             ncn_admin: self.instruction.ncn_admin.expect("ncn_admin is not set"),
 
@@ -566,6 +624,7 @@ struct InitializeConfigCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     tie_breaker_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     account_payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
@@ -573,6 +632,7 @@ struct InitializeConfigCpiBuilderInstruction<'a, 'b> {
     epochs_before_stall: Option<u64>,
     epochs_after_consensus_before_close: Option<u64>,
     valid_slots_after_consensus: Option<u64>,
+    ncn_fee_bps: Option<u16>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,
