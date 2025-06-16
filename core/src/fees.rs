@@ -149,17 +149,6 @@ impl FeeConfig {
         current_fees.precise_total_fee_bps()
     }
 
-    /// Gets the adjusted total fee percentage (currently same as total_fees_bps)
-    /// This method exists for potential future adjustments based on other factors
-    pub fn adjusted_total_fees_bps(&self, current_epoch: u64) -> Result<u64, NCNProgramError> {
-        let total_fees_bps = self.total_fees_bps(current_epoch)?;
-        self.adjusted_fee_bps(
-            total_fees_bps
-                .try_into()
-                .map_err(|_| NCNProgramError::ArithmeticOverflow)?,
-        )
-    }
-
     // ------------------- JITO DAO FEES -------------------
 
     /// Gets the Jito DAO fee percentage in basis points for the current epoch
@@ -175,23 +164,6 @@ impl FeeConfig {
     ) -> Result<PreciseNumber, NCNProgramError> {
         let current_fees = self.current_fees(current_epoch);
         current_fees.precise_jito_dao_fee_bps()
-    }
-
-    /// Gets the adjusted Jito DAO fee percentage (currently same as jito_dao_fee_bps)
-    pub fn adjusted_jito_dao_fee_bps(&self, current_epoch: u64) -> Result<u64, NCNProgramError> {
-        let current_fees = self.current_fees(current_epoch);
-        let fee = current_fees.jito_dao_fee_bps()?;
-        self.adjusted_fee_bps(fee)
-    }
-
-    /// Gets the adjusted Jito DAO fee percentage as a precise number
-    pub fn adjusted_precise_jito_dao_fee_bps(
-        &self,
-        current_epoch: u64,
-    ) -> Result<PreciseNumber, NCNProgramError> {
-        let current_fees = self.current_fees(current_epoch);
-        let fee = current_fees.jito_dao_fee_bps()?;
-        self.adjusted_precise_fee_bps(fee)
     }
 
     /// Sets the Jito DAO fee percentage for the next epoch
@@ -219,23 +191,6 @@ impl FeeConfig {
     ) -> Result<PreciseNumber, NCNProgramError> {
         let current_fees = self.current_fees(current_epoch);
         current_fees.precise_ncn_fee_bps()
-    }
-
-    /// Gets the adjusted NCN fee percentage (currently same as ncn_fee_bps)
-    pub fn adjusted_ncn_fee_bps(&self, current_epoch: u64) -> Result<u64, NCNProgramError> {
-        let current_fees = self.current_fees(current_epoch);
-        let fee = current_fees.ncn_fee_bps()?;
-        self.adjusted_fee_bps(fee)
-    }
-
-    /// Gets the adjusted NCN fee percentage as a precise number
-    pub fn adjusted_precise_ncn_fee_bps(
-        &self,
-        current_epoch: u64,
-    ) -> Result<PreciseNumber, NCNProgramError> {
-        let current_fees = self.current_fees(current_epoch);
-        let fee = current_fees.ncn_fee_bps()?;
-        self.adjusted_precise_fee_bps(fee)
     }
 
     /// Sets the NCN fee percentage for the next epoch
@@ -353,8 +308,8 @@ impl FeeConfig {
     /// Validates that fee configuration is acceptable
     /// Checks that total fees don't exceed maximum and are greater than zero
     pub fn check_fees_okay(&self, current_epoch: u64) -> Result<(), NCNProgramError> {
-        let _ = self.adjusted_precise_jito_dao_fee_bps(current_epoch)?;
-        let _ = self.adjusted_precise_ncn_fee_bps(current_epoch)?;
+        let _ = self.precise_jito_dao_fee_bps(current_epoch)?;
+        let _ = self.precise_ncn_fee_bps(current_epoch)?;
 
         let total_fees_bps = self.total_fees_bps(current_epoch)?;
         if total_fees_bps > MAX_FEE_BPS {
@@ -366,44 +321,6 @@ impl FeeConfig {
         }
 
         Ok(())
-    }
-
-    /// Adjusts fee value (currently a pass-through, but exists for future adjustments)
-    /// This method exists to potentially adjust fees based on other factors in the future
-    fn adjusted_fee_bps(&self, fee: u16) -> Result<u64, NCNProgramError> {
-        // TODO: check this code
-        // let remaining_bps = MAX_FEE_BPS
-        //     .checked_sub(fee.jito_dao_fee_bps() as u64)
-        //     .ok_or(NCNProgramError::ArithmeticUnderflowError)?;
-        // (fee as u64)
-        //     .checked_mul(MAX_FEE_BPS)
-        //     .and_then(|x| x.checked_div(remaining_bps))
-        // .ok_or(NCNProgramError::DenominatorIsZero)
-        Ok(fee as u64)
-    }
-
-    /// Adjusts fee value as precise number (currently a pass-through)
-    fn adjusted_precise_fee_bps(&self, fee: u16) -> Result<PreciseNumber, NCNProgramError> {
-        // TODO: check this code
-        // let remaining_bps = MAX_FEE_BPS
-        //     .checked_sub(self.block_engine_fee_bps() as u64)
-        //     .ok_or(NCNProgramError::ArithmeticOverflow)?;
-        //
-        // let precise_remaining_bps = PreciseNumber::new(remaining_bps as u128)
-        //     .ok_or(NCNProgramError::NewPreciseNumberError)?;
-        //
-        // let adjusted_fee = (fee as u64)
-        //     .checked_mul(MAX_FEE_BPS)
-        //     .ok_or(NCNProgramError::ArithmeticOverflow)?;
-        //
-        // let precise_adjusted_fee = PreciseNumber::new(adjusted_fee as u128)
-        //     .ok_or(NCNProgramError::NewPreciseNumberError)?;
-        //
-        // precise_adjusted_fee
-        //     .checked_div(&precise_remaining_bps)
-        //     .ok_or(NCNProgramError::DenominatorIsZero)
-
-        Ok(PreciseNumber::new(fee as u128).ok_or(NCNProgramError::NewPreciseNumberError)?)
     }
 }
 
