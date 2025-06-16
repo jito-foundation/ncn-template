@@ -14,8 +14,8 @@ use solana_program::{
 use spl_math::precise_number::PreciseNumber;
 
 use crate::{
-    ballot_box::BallotBox, constants::MAX_OPERATORS, discriminators::Discriminators,
-    error::NCNProgramError, fees::Fees, loaders::check_load,
+    ballot_box::BallotBox, discriminators::Discriminators, error::NCNProgramError, fees::Fees,
+    loaders::check_load,
 };
 
 // PDA'd ["epoch_reward_router", NCN, NCN_EPOCH_SLOT]
@@ -281,7 +281,7 @@ impl NCNRewardRouter {
         let winning_ballot = ballot_box.get_winning_ballot_tally()?;
         let winning_stake_weight = winning_ballot.stake_weights();
 
-        let (mut starting_vote_index, starting_rewards_to_process) = self.resume_routing_state();
+        let (starting_vote_index, starting_rewards_to_process) = self.resume_routing_state();
 
         let mut iterations: u16 = 0;
         // Always have at least 1 iteration
@@ -1212,7 +1212,7 @@ mod tests {
         );
         router.operator_vault_rewards = PodU64::from(INCOMING_REWARDS);
 
-        let (mut ballot_box, operators) = {
+        let (ballot_box, operators) = {
             let mut ballot_box = get_test_ballot_box();
             for _ in 0..NUM_OPERATORS {
                 cast_test_vote(&mut ballot_box, 200, WeatherStatus::Sunny as u8);
@@ -1251,7 +1251,7 @@ mod tests {
         );
         router.operator_vault_rewards = PodU64::from(INCOMING_REWARDS);
 
-        let (mut ballot_box, operators) = {
+        let (ballot_box, operators) = {
             let mut ballot_box = get_test_ballot_box();
             for _ in 0..NUM_CORRECT_OPERATORS {
                 cast_test_vote(&mut ballot_box, 200, WeatherStatus::Sunny as u8);
@@ -1306,7 +1306,7 @@ mod tests {
 
         router.operator_vault_rewards = PodU64::from(INCOMING_REWARDS);
 
-        let (mut ballot_box, operators) = {
+        let (ballot_box, operators) = {
             let mut ballot_box = get_test_ballot_box();
 
             for _ in 0..256 {
@@ -1347,7 +1347,7 @@ mod tests {
         );
         router.operator_vault_rewards = PodU64::from(INCOMING_REWARDS);
 
-        let (mut ballot_box, operators) = {
+        let (ballot_box, operators) = {
             let mut ballot_box = get_test_ballot_box();
 
             for _ in 0..256 {
@@ -1393,7 +1393,7 @@ mod tests {
         );
         router.operator_vault_rewards = PodU64::from(INCOMING_REWARDS);
 
-        let (mut ballot_box, operators) = {
+        let (ballot_box, operators) = {
             let mut ballot_box = get_test_ballot_box();
 
             for _ in 0..256 {

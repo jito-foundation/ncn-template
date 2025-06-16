@@ -11,6 +11,7 @@ pub mod error;
 pub mod fees;
 pub mod instruction;
 pub mod loaders;
+pub mod ncn_reward_router;
 pub mod stake_weight;
 pub mod utils;
 pub mod vault_operator_reward_router;
