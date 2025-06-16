@@ -47,6 +47,8 @@ export enum NcnProgramAccount {
   EpochSnapshot,
   OperatorSnapshot,
   EpochState,
+  NCNRewardRouter,
+  OperatorVaultRewardRouter,
   VaultRegistry,
   WeightTable,
 }
