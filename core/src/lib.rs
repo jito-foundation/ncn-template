@@ -13,6 +13,7 @@ pub mod instruction;
 pub mod loaders;
 pub mod stake_weight;
 pub mod utils;
+pub mod vault_operator_reward_router;
 pub mod vault_registry;
 pub mod weight_entry;
 pub mod weight_table;
