@@ -18,7 +18,17 @@ use crate::{
     loaders::check_load,
 };
 
-// PDA'd ["epoch_reward_router", NCN, NCN_EPOCH_SLOT]
+/// NCN Reward Router - Main entry point for routing rewards from NCNs
+///
+/// This router receives rewards and distributes them according to the fee structure:
+/// 1. Jito DAO receives a percentage (4%)
+/// 2. NCN receives a percentage (4%)
+/// 3. Remaining rewards (92%) go to operator-vault rewards
+///
+/// The router supports partial routing through iterations to handle large numbers of operators
+/// without hitting transaction limits.
+///
+/// PDA: ["ncn_reward_router", NCN, NCN_EPOCH_SLOT]
 #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
 #[repr(C)]
 pub struct NCNRewardRouter {
@@ -30,30 +40,31 @@ pub struct NCNRewardRouter {
     bump: u8,
     /// Slot the account was created
     slot_created: PodU64,
-    /// Total rewards routed ( in lamports )
+    /// Total rewards routed (in lamports) - cumulative amount ever processed
     total_rewards: PodU64,
-    /// Amount of rewards in the reward pool ( in lamports )
+    /// Amount of rewards in the reward pool (in lamports) - awaiting distribution
     reward_pool: PodU64,
-    /// Amount of rewards processed ( in lamports )
+    /// Amount of rewards processed (in lamports) - moved out of reward pool for distribution
     rewards_processed: PodU64,
-    /// Reserved space
+    /// Reserved space for future fields
     reserved: [u8; 128],
 
-    // route state tracking - to recover from unfinished routing
-    /// Last vote index
+    // Routing state tracking - enables recovery from incomplete routing operations
+    /// Last vote index processed during routing (for resuming partial operations)
     last_vote_index: PodU16,
-    /// Last rewards to process
+    /// Last rewards amount being processed during routing (for resuming partial operations)
     last_rewards_to_process: PodU64,
 
-    /// Rewards that goes to the Jito DAO
+    /// Rewards allocated to the Jito DAO (ready for distribution)
     jito_dao_rewards: PodU64,
-    /// Rewards that goes to the NCN
+    /// Rewards allocated to the NCN (ready for distribution)
     ncn_rewards: PodU64,
 
-    /// Rewards that went to the operator-vault rewards reciver
+    /// Total rewards allocated to operator-vault reward receivers (before individual routing)
     operator_vault_rewards: PodU64,
 
-    /// NCN Fee Group Reward Routes
+    /// Individual operator reward routes - tracks rewards per operator
+    /// Array size 256 limits the number of operators that can participate in an epoch
     operator_vault_reward_routes: [OperatorVaultRewardRoute; 256],
 }
 
@@ -65,13 +76,19 @@ impl NCNRewardRouter {
     pub const SIZE: usize = 8 + size_of::<Self>();
     pub const NCN_REWARD_ROUTER_SEED: &'static [u8] = b"ncn_reward_router";
 
-    pub const JITO_DAO_FEE_BPS: u16 = 400;
-    pub const NCN_DEFAULT_FEE_BPS: u16 = 400;
+    /// Fee constants - in basis points (1/100 of 1%)
+    pub const JITO_DAO_FEE_BPS: u16 = 400; // 4%
+    pub const NCN_DEFAULT_FEE_BPS: u16 = 400; // 4%
+
+    /// Sentinel values indicating no partial routing is in progress
     pub const NO_LAST_NCN_GROUP_INDEX: u8 = u8::MAX;
     pub const NO_LAST_VOTE_INDEX: u16 = u16::MAX;
     pub const NO_LAST_REWARDS_TO_PROCESS: u64 = u64::MAX;
+
+    /// Maximum iterations per routing call to prevent transaction timeout
     pub const MAX_ROUTE_BASE_ITERATIONS: u16 = 30;
 
+    /// Creates a new NCN reward router
     pub fn new(ncn: &Pubkey, ncn_epoch: u64, bump: u8, slot_created: u64) -> Self {
         Self {
             ncn: *ncn,
@@ -91,6 +108,8 @@ impl NCNRewardRouter {
         }
     }
 
+    /// Initializes the router fields individually to avoid stack overflow
+    /// This approach is necessary due to the large size of the struct
     pub fn initialize(&mut self, ncn: &Pubkey, ncn_epoch: u64, bump: u8, current_slot: u64) {
         // Initializes field by field to avoid overflowing stack
         self.ncn = *ncn;
@@ -109,6 +128,7 @@ impl NCNRewardRouter {
         self.reset_routing_state();
     }
 
+    /// Generates PDA seeds for the NCN reward router
     pub fn seeds(ncn: &Pubkey, ncn_epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
@@ -121,6 +141,7 @@ impl NCNRewardRouter {
         )
     }
 
+    /// Finds the program address for the NCN reward router PDA
     pub fn find_program_address(
         program_id: &Pubkey,
         ncn: &Pubkey,
@@ -132,6 +153,7 @@ impl NCNRewardRouter {
         (pda, bump, seeds)
     }
 
+    /// Validates that the account matches expected PDA and discriminator
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,
@@ -149,6 +171,7 @@ impl NCNRewardRouter {
         )
     }
 
+    /// Loads the account for closing (must be writable)
     pub fn load_to_close(
         program_id: &Pubkey,
         account_to_close: &AccountInfo,
@@ -160,26 +183,33 @@ impl NCNRewardRouter {
 
     // ----------------- ROUTE STATE TRACKING --------------
 
+    /// Gets the last vote index processed during partial routing
     pub fn last_vote_index(&self) -> u16 {
         self.last_vote_index.into()
     }
 
+    /// Gets the NCN rewards ready for distribution
     pub fn ncn_rewards(&self) -> u64 {
         self.ncn_rewards.into()
     }
 
+    /// Gets the total operator vault rewards ready for distribution
     pub fn operator_vault_rewards(&self) -> u64 {
         self.operator_vault_rewards.into()
     }
 
+    /// Gets the operator vault reward routes array
     pub fn operator_vault_reward_routes(&self) -> &[OperatorVaultRewardRoute; 256] {
         &self.operator_vault_reward_routes
     }
 
+    /// Gets the last rewards amount being processed during partial routing
     pub fn last_rewards_to_process(&self) -> u64 {
         self.last_rewards_to_process.into()
     }
 
+    /// Resumes routing from the last saved state if routing was interrupted
+    /// Returns (starting_vote_index, rewards_to_process)
     pub fn resume_routing_state(&mut self) -> (usize, u64) {
         if !self.still_routing() {
             return (0, 0);
@@ -191,22 +221,28 @@ impl NCNRewardRouter {
         )
     }
 
+    /// Saves the current routing state for resumption if interrupted
     pub fn save_routing_state(&mut self, vote_index: usize, rewards_to_process: u64) {
         self.last_vote_index = PodU16::from(vote_index as u16);
         self.last_rewards_to_process = PodU64::from(rewards_to_process);
     }
 
+    /// Resets routing state to indicate no partial routing is in progress
     pub fn reset_routing_state(&mut self) {
         self.last_vote_index = PodU16::from(Self::NO_LAST_VOTE_INDEX);
         self.last_rewards_to_process = PodU64::from(Self::NO_LAST_REWARDS_TO_PROCESS);
     }
 
+    /// Checks if routing is still in progress (was interrupted)
     pub fn still_routing(&self) -> bool {
         self.last_vote_index() != Self::NO_LAST_VOTE_INDEX
             || self.last_rewards_to_process() != Self::NO_LAST_REWARDS_TO_PROCESS
     }
 
     // ----------------- ROUTE REWARDS ---------------------
+
+    /// Routes incoming rewards from account balance to the reward pool
+    /// This is the entry point for new rewards coming into the router
     pub fn route_incoming_rewards(
         &mut self,
         rent_cost: u64,
@@ -214,10 +250,12 @@ impl NCNRewardRouter {
     ) -> Result<(), NCNProgramError> {
         let total_rewards = self.total_rewards_in_transit()?;
 
+        // Calculate new rewards as difference between current balance and known rewards
         let incoming_rewards = account_balance
             .checked_sub(total_rewards)
             .ok_or(NCNProgramError::ArithmeticUnderflowError)?;
 
+        // Subtract rent cost to get distributable rewards
         let rewards_to_route = incoming_rewards
             .checked_sub(rent_cost)
             .ok_or(NCNProgramError::ArithmeticUnderflowError)?;
@@ -227,6 +265,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Adds rewards to the reward pool and updates total rewards counter
     pub fn route_to_reward_pool(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -247,9 +286,12 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Routes rewards from the reward pool to Jito DAO and NCN based on fee structure
+    /// This is the first phase of reward distribution
     pub fn route_reward_pool(&mut self, fee: &Fees) -> Result<(), NCNProgramError> {
         let rewards_to_process: u64 = self.reward_pool();
 
+        // Route Jito DAO fee (typically 4%)
         {
             let jito_dao_fee =
                 Self::calculate_reward_split(fee.jito_dao_fee_bps()?, rewards_to_process)?;
@@ -257,13 +299,14 @@ impl NCNRewardRouter {
             self.route_to_jito_dao(jito_dao_fee)?;
         }
 
+        // Route NCN fee (typically 4%)
         {
             let ncn_fee = Self::calculate_reward_split(fee.ncn_fee_bps()?, rewards_to_process)?;
             self.route_from_reward_pool(ncn_fee)?;
             self.route_to_ncn(ncn_fee)?;
         }
 
-        // The rest goes to the operator-vault rewards reciver
+        // The rest goes to operator-vault rewards (typically 92%)
         {
             let operator_vault_rewards = self.reward_pool();
             self.route_from_reward_pool(operator_vault_rewards)?;
@@ -273,6 +316,8 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Routes operator vault rewards to individual operators based on their vote participation
+    /// This is the second phase of reward distribution that can be done iteratively
     pub fn route_operator_vault_rewards(
         &mut self,
         ballot_box: &BallotBox,
@@ -284,7 +329,7 @@ impl NCNRewardRouter {
         let (starting_vote_index, starting_rewards_to_process) = self.resume_routing_state();
 
         let mut iterations: u16 = 0;
-        // Always have at least 1 iteration
+        // Always have at least 1 iteration to make progress
         let max_iterations = max_iterations.max(1);
 
         let rewards_to_process = if starting_rewards_to_process > 0 {
@@ -293,18 +338,17 @@ impl NCNRewardRouter {
             self.operator_vault_rewards()
         };
 
-        // Reset starting rewards to process
-        // starting_rewards_to_process = 0;
-
         if rewards_to_process == 0 {
             return Ok(());
         }
 
+        // Iterate through operator votes and distribute rewards to winning voters
         for vote_index in starting_vote_index..ballot_box.operator_votes().len() {
             let vote = ballot_box.operator_votes()[vote_index];
 
+            // Only reward operators who voted for the winning ballot
             if vote.ballot_index() == winning_ballot.index() {
-                // Update iteration state
+                // Track iterations to prevent transaction timeout
                 {
                     iterations = iterations
                         .checked_add(1)
@@ -325,18 +369,19 @@ impl NCNRewardRouter {
                 let winning_reward_stake_weight = winning_stake_weight.stake_weight();
                 let operator_vote_stake_weight = vote.stake_weights().stake_weight();
 
-                let ncn_fee_group_route_reward = Self::calculate_operator_vault_route_reward(
+                // Calculate proportional reward based on operator's stake weight
+                let operator_route_reward = Self::calculate_operator_vault_route_reward(
                     operator_vote_stake_weight,
                     winning_reward_stake_weight,
                     rewards_to_process,
                 )?;
 
-                self.route_from_operator_vault_rewards(ncn_fee_group_route_reward)?;
-                self.route_to_operator_vault_reward_route(operator, ncn_fee_group_route_reward)?;
+                self.route_from_operator_vault_rewards(operator_route_reward)?;
+                self.route_to_operator_vault_reward_route(operator, operator_route_reward)?;
             }
         }
 
-        // NCN gets any reminder
+        // NCN gets any remaining rewards due to rounding
         {
             let leftover_rewards = self.operator_vault_rewards();
 
@@ -344,13 +389,16 @@ impl NCNRewardRouter {
             self.route_to_ncn(leftover_rewards)?;
         }
 
-        msg!("Finished routing NCN fee group rewards");
+        msg!("Finished routing operator vault rewards");
         self.reset_routing_state();
 
         Ok(())
     }
 
     // ------------------ CALCULATIONS ---------------------
+
+    /// Calculates reward amount based on basis points
+    /// Used for fee calculations (Jito DAO and NCN fees)
     fn calculate_reward_split(
         fee_basis_points: u16,
         total_rewards: u64,
@@ -389,46 +437,49 @@ impl NCNRewardRouter {
         Ok(fee_amount)
     }
 
+    /// Calculates proportional reward for an operator based on their stake weight
+    /// Formula: (operator_stake_weight / total_winning_stake_weight) * total_rewards
     fn calculate_operator_vault_route_reward(
-        ncn_route_reward_stake_weight: u128,
-        winning_reward_stake_weight: u128,
+        operator_stake_weight: u128,
+        winning_total_stake_weight: u128,
         rewards_to_process: u64,
     ) -> Result<u64, NCNProgramError> {
-        if ncn_route_reward_stake_weight == 0 || rewards_to_process == 0 {
+        if operator_stake_weight == 0 || rewards_to_process == 0 {
             return Ok(0);
         }
 
         let precise_rewards_to_process = PreciseNumber::new(rewards_to_process as u128)
             .ok_or(NCNProgramError::NewPreciseNumberError)?;
 
-        let precise_ncn_route_reward_stake_weight =
-            PreciseNumber::new(ncn_route_reward_stake_weight)
-                .ok_or(NCNProgramError::NewPreciseNumberError)?;
-
-        let precise_winning_reward_stake_weight = PreciseNumber::new(winning_reward_stake_weight)
+        let precise_operator_stake_weight = PreciseNumber::new(operator_stake_weight)
             .ok_or(NCNProgramError::NewPreciseNumberError)?;
 
-        let precise_ncn_route_reward = precise_rewards_to_process
-            .checked_mul(&precise_ncn_route_reward_stake_weight)
-            .and_then(|x| x.checked_div(&precise_winning_reward_stake_weight))
+        let precise_winning_total_stake_weight = PreciseNumber::new(winning_total_stake_weight)
+            .ok_or(NCNProgramError::NewPreciseNumberError)?;
+
+        let precise_operator_reward = precise_rewards_to_process
+            .checked_mul(&precise_operator_stake_weight)
+            .and_then(|x| x.checked_div(&precise_winning_total_stake_weight))
             .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
-        let floored_precise_ncn_route_reward = precise_ncn_route_reward
+        let floored_precise_operator_reward = precise_operator_reward
             .floor()
             .ok_or(NCNProgramError::ArithmeticFloorError)?;
 
-        let ncn_route_reward_u128: u128 = floored_precise_ncn_route_reward
+        let operator_reward_u128: u128 = floored_precise_operator_reward
             .to_imprecise()
             .ok_or(NCNProgramError::CastToImpreciseNumberError)?;
 
-        let ncn_route_reward: u64 = ncn_route_reward_u128
+        let operator_reward: u64 = operator_reward_u128
             .try_into()
             .map_err(|_| NCNProgramError::CastToU64Error)?;
 
-        Ok(ncn_route_reward)
+        Ok(operator_reward)
     }
 
     // ------------------ REWARD TALLIES ---------------------
+
+    /// Calculates total rewards currently being processed (reward pool + processed)
     pub fn total_rewards_in_transit(&self) -> Result<u64, NCNProgramError> {
         let total_rewards = self
             .reward_pool()
@@ -438,6 +489,7 @@ impl NCNRewardRouter {
         Ok(total_rewards)
     }
 
+    /// Calculates minimum rent cost for this account
     pub fn rent_cost(&self, rent: &Rent) -> Result<u64, NCNProgramError> {
         let size = 8_u64
             .checked_add(size_of::<Self>() as u64)
@@ -466,6 +518,7 @@ impl NCNRewardRouter {
         self.slot_created.into()
     }
 
+    /// Moves rewards out of the reward pool and marks them as processed
     pub fn route_from_reward_pool(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -482,6 +535,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Moves rewards out of operator vault rewards pool
     pub fn route_from_operator_vault_rewards(
         &mut self,
         rewards: u64,
@@ -499,6 +553,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Routes rewards to Jito DAO allocation
     pub fn route_to_jito_dao(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -513,6 +568,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Routes rewards to NCN allocation
     pub fn route_to_ncn(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -527,6 +583,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Routes rewards to operator vault allocation
     pub fn route_to_operator_vault(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -542,10 +599,12 @@ impl NCNRewardRouter {
     }
 
     // ------------------ REWARDS PROCESSED ---------------------
+
     pub fn rewards_processed(&self) -> u64 {
         self.rewards_processed.into()
     }
 
+    /// Increments the counter of rewards that have been processed (moved out of reward pool)
     pub fn increment_rewards_processed(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -559,6 +618,7 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Decrements the counter of rewards processed (when rewards are distributed)
     pub fn decrement_rewards_processed(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -576,6 +636,8 @@ impl NCNRewardRouter {
         self.jito_dao_rewards.into()
     }
 
+    /// Distributes Jito DAO rewards and updates counters
+    /// Returns the amount of rewards distributed
     pub fn distribute_base_fee_group_rewards(&mut self) -> Result<u64, NCNProgramError> {
         let rewards = self.jito_dao_rewards();
         self.jito_dao_rewards = PodU64::from(
@@ -589,8 +651,9 @@ impl NCNRewardRouter {
         Ok(rewards)
     }
 
-    // ------------------ NCN REWARD ROUTES ---------------------
+    // ------------------ OPERATOR VAULT REWARD ROUTES ---------------------
 
+    /// Checks if an operator has a reward route
     pub fn has_operator_vault_reward_route(&self, operator: &Pubkey) -> bool {
         for operator_vault_route_reward in self.operator_vault_reward_routes().iter() {
             if operator_vault_route_reward.operator.eq(operator) {
@@ -601,6 +664,7 @@ impl NCNRewardRouter {
         false
     }
 
+    /// Gets the reward route for a specific operator
     pub fn oprtator_vault_reward_route(
         &self,
         operator: &Pubkey,
@@ -614,6 +678,8 @@ impl NCNRewardRouter {
         Err(NCNProgramError::NcnRewardRouteNotFound)
     }
 
+    /// Routes rewards to a specific operator's reward route
+    /// Creates a new route if one doesn't exist for the operator
     pub fn route_to_operator_vault_reward_route(
         &mut self,
         operator: &Pubkey,
@@ -623,11 +689,13 @@ impl NCNRewardRouter {
             return Ok(());
         }
 
+        // Try to find existing route and increment rewards
         for operator_vault_route_reward in self.operator_vault_reward_routes.iter_mut() {
             if operator_vault_route_reward.operator.eq(operator) {
                 operator_vault_route_reward.increment_rewards(rewards)?;
                 return Ok(());
             } else if operator_vault_route_reward.operator.eq(&Pubkey::default()) {
+                // Found empty slot, create new route
                 *operator_vault_route_reward = OperatorVaultRewardRoute::new(operator, rewards)?;
                 return Ok(());
             }
@@ -636,6 +704,8 @@ impl NCNRewardRouter {
         Err(NCNProgramError::OperatorRewardListFull)
     }
 
+    /// Distributes rewards for a specific operator and updates counters
+    /// Returns the amount of rewards distributed
     pub fn distribute_operator_vault_reward_route(
         &mut self,
         operator: &Pubkey,
@@ -699,10 +769,14 @@ impl fmt::Display for NCNRewardRouter {
     }
 }
 
+/// Individual operator reward route - tracks rewards for a specific operator
+/// This struct stores the allocation of rewards for an operator before distribution
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
 pub struct OperatorVaultRewardRoute {
+    /// The operator pubkey
     operator: Pubkey,
+    /// Reward amount allocated to this operator
     rewards: NCNRewardRouterRewards,
 }
 
@@ -716,6 +790,7 @@ impl Default for OperatorVaultRewardRoute {
 }
 
 impl OperatorVaultRewardRoute {
+    /// Creates a new operator vault reward route with initial reward amount
     pub fn new(operator: &Pubkey, rewards: u64) -> Result<Self, NCNProgramError> {
         let mut route = Self {
             operator: *operator,
@@ -727,18 +802,22 @@ impl OperatorVaultRewardRoute {
         Ok(route)
     }
 
+    /// Gets the operator pubkey for this route
     pub const fn operator(&self) -> &Pubkey {
         &self.operator
     }
 
+    /// Gets the reward amount for this route
     pub fn rewards(&self) -> Result<u64, NCNProgramError> {
         Ok(self.rewards.rewards())
     }
 
+    /// Checks if this route slot is empty (default operator)
     pub fn is_empty(&self) -> bool {
         self.operator.eq(&Pubkey::default())
     }
 
+    /// Checks if this route has any rewards allocated
     pub fn has_rewards(&self) -> Result<bool, NCNProgramError> {
         if self.rewards()? > 0 {
             return Ok(true);
@@ -747,12 +826,14 @@ impl OperatorVaultRewardRoute {
         Ok(false)
     }
 
+    /// Sets the reward amount for this route
     fn set_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         self.rewards.rewards = PodU64::from(rewards);
 
         Ok(())
     }
 
+    /// Adds rewards to this route
     pub fn increment_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         let current_rewards = self.rewards()?;
 
@@ -763,6 +844,7 @@ impl OperatorVaultRewardRoute {
         self.set_rewards(new_rewards)
     }
 
+    /// Removes rewards from this route (used during distribution)
     pub fn decrement_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         let current_rewards = self.rewards()?;
 
@@ -774,11 +856,17 @@ impl OperatorVaultRewardRoute {
     }
 }
 
-/// Uninitiatilized, no-data account used to hold SOL for routing rewards to NCNRewardRouter
-/// Must be empty and uninitialized to be used as a payer or `transfer` instructions fail
+/// NCN Reward Receiver - Uninitialized account that receives rewards for an NCN
+///
+/// This is a simple PDA account with no data that acts as a destination for rewards.
+/// It must remain uninitialized to be used as a payer in transfer instructions.
+/// The account is closed after rewards are transferred to the NCN Reward Router.
+///
+/// PDA: ["ncn_reward_receiver", NCN, EPOCH]
 pub struct NCNRewardReceiver {}
 
 impl NCNRewardReceiver {
+    /// Generates PDA seeds for the NCN reward receiver
     pub fn seeds(ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         vec![
             b"ncn_reward_receiver".to_vec(),
@@ -787,6 +875,7 @@ impl NCNRewardReceiver {
         ]
     }
 
+    /// Finds the program address for the NCN reward receiver PDA
     pub fn find_program_address(
         program_id: &Pubkey,
         ncn: &Pubkey,
@@ -800,6 +889,8 @@ impl NCNRewardReceiver {
         (address, bump, seeds)
     }
 
+    /// Validates that the account is owned by system program and matches expected PDA
+    /// NCN reward receiver accounts are owned by system program, not the NCN program
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,
@@ -818,6 +909,7 @@ impl NCNRewardReceiver {
         )
     }
 
+    /// Loads the account for closing (must be writable)
     pub fn load_to_close(
         program_id: &Pubkey,
         account_to_close: &AccountInfo,
@@ -827,6 +919,10 @@ impl NCNRewardReceiver {
         Self::load(program_id, account_to_close, ncn, epoch, true)
     }
 
+    /// Closes the NCN reward receiver account and transfers remaining lamports
+    ///
+    /// This function transfers all lamports above minimum rent to the DAO wallet,
+    /// then transfers the minimum rent to the account payer (for rent recovery).
     #[inline(always)]
     pub fn close<'a, 'info>(
         program_id: &Pubkey,
@@ -838,6 +934,7 @@ impl NCNRewardReceiver {
     ) -> ProgramResult {
         let min_rent = Rent::get()?.minimum_balance(0);
 
+        // Transfer excess lamports to DAO wallet
         let delta_lamports = ncn_reward_receiver.lamports().saturating_sub(min_rent);
         if delta_lamports > 0 {
             Self::transfer(
@@ -850,6 +947,7 @@ impl NCNRewardReceiver {
             )?;
         }
 
+        // Transfer minimum rent back to payer
         Self::transfer(
             program_id,
             ncn,
@@ -860,6 +958,7 @@ impl NCNRewardReceiver {
         )
     }
 
+    /// Transfers lamports from the NCN reward receiver using PDA authority
     #[inline(always)]
     pub fn transfer<'a, 'info>(
         program_id: &Pubkey,
@@ -891,13 +990,17 @@ impl NCNRewardReceiver {
     }
 }
 
+/// Wrapper struct for reward amounts in NCN reward router
+/// This struct exists to encapsulate reward amount handling
 #[derive(Default, Debug, Clone, PartialEq, Eq, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
 pub struct NCNRewardRouterRewards {
+    /// Reward amount in lamports
     rewards: PodU64,
 }
 
 impl NCNRewardRouterRewards {
+    /// Gets the reward amount
     pub fn rewards(self) -> u64 {
         self.rewards.into()
     }

@@ -19,7 +19,17 @@ use crate::{
     error::NCNProgramError, loaders::check_load,
 };
 
-// PDA'd ["epoch_reward_router", NCN, NCN_EPOCH_SLOT]
+/// Operator Vault Reward Router - Routes rewards from operators to their associated vaults
+///
+/// This router handles the final stage of reward distribution where operator rewards
+/// are further distributed to the vaults they operate. The distribution is based on:
+/// 1. Operator takes their fee percentage first
+/// 2. Remaining rewards are distributed to vaults proportionally by stake weight
+///
+/// The router supports partial routing through iterations to handle large numbers of vaults
+/// without hitting transaction limits.
+///
+/// PDA: ["operator_vault_reward_route", OPERATOR, NCN, EPOCH]
 #[derive(Debug, Clone, Copy, Zeroable, Pod, AccountDeserialize, ShankAccount)]
 #[repr(C)]
 pub struct OperatorVaultRewardRouter {
@@ -33,22 +43,24 @@ pub struct OperatorVaultRewardRouter {
     bump: u8,
     /// The slot the router was created
     slot_created: PodU64,
-    /// The operator ncn index
+    /// The operator's index within the NCN
     ncn_operator_index: PodU64,
-    /// The total rewards that have been routed ( in lamports )
+    /// The total rewards that have been routed (in lamports) - cumulative amount ever processed
     total_rewards: PodU64,
-    /// The rewards in the reward pool ( in lamports )
+    /// The rewards in the reward pool (in lamports) - awaiting distribution
     reward_pool: PodU64,
-    /// The rewards that have been processed ( in lamports )
+    /// The rewards that have been processed (in lamports) - moved out of reward pool
     rewards_processed: PodU64,
-    /// Rewards to go to the operator ( in lamports )
+    /// Rewards allocated to the operator (in lamports) - operator's fee portion
     operator_rewards: PodU64,
-    // Routing state - so we can recover from a partial routing
-    /// The last rewards to process
+
+    // Routing state - enables recovery from partial routing operations
+    /// The last rewards amount being processed during routing (for resuming partial operations)
     last_rewards_to_process: PodU64,
-    /// The last vault operator delegation index
+    /// The last vault operator delegation index processed during routing
     last_vault_operator_delegation_index: PodU16,
-    /// Routes to vaults
+
+    /// Individual vault reward routes - tracks rewards per vault (limited to 64 vaults)
     vault_reward_routes: [VaultRewardRoute; 64],
 }
 
@@ -59,11 +71,16 @@ impl Discriminator for OperatorVaultRewardRouter {
 impl OperatorVaultRewardRouter {
     pub const SIZE: usize = 8 + size_of::<Self>();
 
+    /// Sentinel values indicating no partial routing is in progress
     pub const NO_LAST_REWARDS_TO_PROCESS: u64 = u64::MAX;
     pub const NO_LAST_VAULT_OPERATION_DELEGATION_INDEX: u16 = u16::MAX;
+
+    /// Maximum iterations per routing call to prevent transaction timeout
     pub const MAX_ROUTE_NCN_ITERATIONS: u16 = 30;
+
     pub const OPERATOR_VAULT_REWARD_ROUTE_SEED: &'static [u8] = b"operator_vault_reward_route";
 
+    /// Creates a new operator vault reward router
     pub fn new(
         operator: &Pubkey,
         operator_ncn_index: u64,
@@ -91,6 +108,7 @@ impl OperatorVaultRewardRouter {
         }
     }
 
+    /// Generates PDA seeds for the operator vault reward router
     pub fn seeds(operator: &Pubkey, ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         Vec::from_iter(
             [
@@ -104,6 +122,7 @@ impl OperatorVaultRewardRouter {
         )
     }
 
+    /// Finds the program address for the operator vault reward router PDA
     pub fn find_program_address(
         program_id: &Pubkey,
         operator: &Pubkey,
@@ -116,6 +135,7 @@ impl OperatorVaultRewardRouter {
         (pda, bump, seeds)
     }
 
+    /// Validates that the account matches expected PDA and discriminator
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,
@@ -134,6 +154,7 @@ impl OperatorVaultRewardRouter {
         )
     }
 
+    /// Loads the account for closing by extracting operator from account data
     pub fn load_to_close(
         program_id: &Pubkey,
         account_to_close: &AccountInfo,
@@ -146,6 +167,8 @@ impl OperatorVaultRewardRouter {
 
         Self::load(program_id, account_to_close, &operator, ncn, epoch, true)
     }
+
+    // ----------------- GETTERS -----------------
 
     pub const fn operator(&self) -> &Pubkey {
         &self.operator
@@ -172,14 +195,19 @@ impl OperatorVaultRewardRouter {
     }
 
     // ----------------- ROUTE STATE TRACKING --------------
+
+    /// Gets the last rewards amount being processed during partial routing
     pub fn last_rewards_to_process(&self) -> u64 {
         self.last_rewards_to_process.into()
     }
 
+    /// Gets the last vault operator delegation index processed during partial routing
     pub fn last_vault_operator_delegation_index(&self) -> u16 {
         self.last_vault_operator_delegation_index.into()
     }
 
+    /// Resumes routing from the last saved state if routing was interrupted
+    /// Returns (rewards_to_process, starting_vault_index)
     pub fn resume_routing_state(&mut self, rewards_to_process: u64) -> (u64, usize) {
         if !self.still_routing() {
             return (rewards_to_process, 0);
@@ -191,6 +219,7 @@ impl OperatorVaultRewardRouter {
         )
     }
 
+    /// Saves the current routing state for resumption if interrupted
     pub fn save_routing_state(
         &mut self,
         rewards_to_process: u64,
@@ -201,12 +230,14 @@ impl OperatorVaultRewardRouter {
             PodU16::from(vault_operator_delegation_index as u16);
     }
 
+    /// Resets routing state to indicate no partial routing is in progress
     pub fn reset_routing_state(&mut self) {
         self.last_rewards_to_process = PodU64::from(Self::NO_LAST_REWARDS_TO_PROCESS);
         self.last_vault_operator_delegation_index =
             PodU16::from(Self::NO_LAST_VAULT_OPERATION_DELEGATION_INDEX);
     }
 
+    /// Checks if routing is still in progress (was interrupted)
     pub fn still_routing(&self) -> bool {
         self.last_rewards_to_process() != Self::NO_LAST_REWARDS_TO_PROCESS
             || self.last_vault_operator_delegation_index()
@@ -214,6 +245,9 @@ impl OperatorVaultRewardRouter {
     }
 
     // ------------------------ ROUTING ------------------------
+
+    /// Routes incoming MEV rewards from account balance to the reward pool
+    /// This is the entry point for new rewards coming into the operator router
     pub fn route_incoming_rewards(
         &mut self,
         rent_cost: u64,
@@ -221,10 +255,12 @@ impl OperatorVaultRewardRouter {
     ) -> Result<(), NCNProgramError> {
         let total_rewards = self.total_rewards_in_transit()?;
 
+        // Calculate new rewards as difference between current balance and known rewards
         let incoming_rewards = account_balance
             .checked_sub(total_rewards)
             .ok_or(NCNProgramError::ArithmeticUnderflowError)?;
 
+        // Subtract rent cost to get distributable rewards
         let rewards_to_route = incoming_rewards
             .checked_sub(rent_cost)
             .ok_or(NCNProgramError::ArithmeticUnderflowError)?;
@@ -234,13 +270,15 @@ impl OperatorVaultRewardRouter {
         Ok(())
     }
 
+    /// Routes operator fee rewards based on the operator's fee percentage
+    /// This is the first phase of reward distribution - operator takes their fee
     pub fn route_operator_rewards(
         &mut self,
         operator_snapshot: &OperatorSnapshot,
     ) -> Result<(), NCNProgramError> {
         let rewards_to_process: u64 = self.reward_pool();
 
-        // Operator Fee Rewards
+        // Calculate and route operator fee rewards
         {
             let operator_fee_bps = operator_snapshot.operator_fee_bps();
             let operator_rewards =
@@ -253,6 +291,8 @@ impl OperatorVaultRewardRouter {
         Ok(())
     }
 
+    /// Routes remaining rewards to vaults based on their stake weights
+    /// This is the second phase of reward distribution that can be done iteratively
     pub fn route_reward_pool(
         &mut self,
         operator_snapshot: &OperatorSnapshot,
@@ -270,16 +310,17 @@ impl OperatorVaultRewardRouter {
             }
 
             let mut iterations: u16 = 0;
-            // Always have at least 1 iteration
+            // Always have at least 1 iteration to make progress
             let max_iterations = max_iterations.max(1);
 
+            // Iterate through vault operator delegations and distribute rewards proportionally
             for vault_operator_delegation_index in starting_vault_operator_delegation_index
                 ..operator_snapshot.vault_operator_stake_weight().len()
             {
                 let vault_operator_delegation = operator_snapshot.vault_operator_stake_weight()
                     [vault_operator_delegation_index];
 
-                // Update iteration state
+                // Track iterations to prevent transaction timeout
                 {
                     iterations = iterations
                         .checked_add(1)
@@ -306,6 +347,7 @@ impl OperatorVaultRewardRouter {
 
                 let operator_reward_stake_weight = operator_stake_weight.stake_weight();
 
+                // Calculate proportional reward based on vault's stake weight
                 let vault_reward = Self::calculate_vault_reward(
                     vault_reward_stake_weight,
                     operator_reward_stake_weight,
@@ -319,7 +361,7 @@ impl OperatorVaultRewardRouter {
             self.reset_routing_state();
         }
 
-        // Operator gets any remainder
+        // Operator gets any remainder due to rounding
         {
             let leftover_rewards = self.reward_pool();
 
@@ -331,6 +373,9 @@ impl OperatorVaultRewardRouter {
     }
 
     // ------------------------ CALCULATIONS ------------------------
+
+    /// Calculates operator reward based on their fee percentage
+    /// Formula: (operator_fee_bps / MAX_BPS) * total_rewards
     fn calculate_operator_reward(
         fee_bps: u64,
         rewards_to_process: u64,
@@ -367,6 +412,8 @@ impl OperatorVaultRewardRouter {
         Ok(operator_rewards)
     }
 
+    /// Calculates proportional vault reward based on its stake weight
+    /// Formula: (vault_stake_weight / total_operator_stake_weight) * total_rewards
     fn calculate_vault_reward(
         vault_reward_stake_weight: u128,
         operator_reward_stake_weight: u128,
@@ -406,6 +453,8 @@ impl OperatorVaultRewardRouter {
     }
 
     // ------------------------ REWARD POOL ------------------------
+
+    /// Calculates total rewards currently being processed (reward pool + processed)
     pub fn total_rewards_in_transit(&self) -> Result<u64, NCNProgramError> {
         let total_rewards = self
             .reward_pool()
@@ -415,6 +464,7 @@ impl OperatorVaultRewardRouter {
         Ok(total_rewards)
     }
 
+    /// Calculates minimum rent cost for this account
     pub fn rent_cost(&self, rent: &Rent) -> Result<u64, NCNProgramError> {
         let size = 8_u64
             .checked_add(size_of::<Self>() as u64)
@@ -431,6 +481,7 @@ impl OperatorVaultRewardRouter {
         self.reward_pool.into()
     }
 
+    /// Adds rewards to the reward pool and updates total rewards counter
     pub fn route_to_reward_pool(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -450,6 +501,7 @@ impl OperatorVaultRewardRouter {
         Ok(())
     }
 
+    /// Moves rewards out of the reward pool and marks them as processed
     pub fn route_from_reward_pool(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -467,10 +519,12 @@ impl OperatorVaultRewardRouter {
     }
 
     // ------------------------ REWARDS PROCESSED ------------------------
+
     pub fn rewards_processed(&self) -> u64 {
         self.rewards_processed.into()
     }
 
+    /// Increments the counter of rewards that have been processed (moved out of reward pool)
     pub fn increment_rewards_processed(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -484,6 +538,7 @@ impl OperatorVaultRewardRouter {
         Ok(())
     }
 
+    /// Decrements the counter of rewards processed (when rewards are distributed)
     pub fn decrement_rewards_processed(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -503,6 +558,7 @@ impl OperatorVaultRewardRouter {
         self.operator_rewards.into()
     }
 
+    /// Routes rewards to operator allocation
     pub fn route_to_operator_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
@@ -517,6 +573,8 @@ impl OperatorVaultRewardRouter {
         Ok(())
     }
 
+    /// Distributes operator rewards and updates counters
+    /// Returns the amount of rewards distributed
     pub fn distribute_operator_rewards(&mut self) -> Result<u64, NCNProgramError> {
         let rewards = self.operator_rewards();
 
@@ -532,6 +590,7 @@ impl OperatorVaultRewardRouter {
 
     // ------------------------ VAULT REWARD ROUTES ------------------------
 
+    /// Gets the reward route for a specific vault
     pub fn vault_reward_route(&self, vault: &Pubkey) -> Result<&VaultRewardRoute, NCNProgramError> {
         for vault_reward in self.vault_reward_routes.iter() {
             if vault_reward.vault().eq(vault) {
@@ -541,6 +600,8 @@ impl OperatorVaultRewardRouter {
         Err(NCNProgramError::VaultRewardNotFound)
     }
 
+    /// Routes rewards to a specific vault's reward route
+    /// Creates a new route if one doesn't exist for the vault
     pub fn route_to_vault_reward_route(
         &mut self,
         vault: &Pubkey,
@@ -550,6 +611,7 @@ impl OperatorVaultRewardRouter {
             return Ok(());
         }
 
+        // Try to find existing route and increment rewards
         for vault_reward in self.vault_reward_routes.iter_mut() {
             if vault_reward.vault().eq(vault) {
                 vault_reward.increment_rewards(rewards)?;
@@ -557,6 +619,7 @@ impl OperatorVaultRewardRouter {
             }
         }
 
+        // Find empty slot and create new route
         for vault_reward in self.vault_reward_routes.iter_mut() {
             if vault_reward.vault().eq(&Pubkey::default()) {
                 *vault_reward = VaultRewardRoute::new(vault, rewards)?;
@@ -567,6 +630,8 @@ impl OperatorVaultRewardRouter {
         Err(NCNProgramError::OperatorRewardListFull)
     }
 
+    /// Distributes rewards for a specific vault and updates counters
+    /// Returns the amount of rewards distributed
     pub fn distribute_vault_reward_route(
         &mut self,
         vault: &Pubkey,
@@ -584,13 +649,20 @@ impl OperatorVaultRewardRouter {
     }
 }
 
-/// Uninitialized, no-data account used to hold SOL for routing rewards to OperatorVaultRewardRoute
-/// Must be empty and uninitialized to be used as a payer or `transfer` instructions fail
+/// Operator Vault Reward Receiver - Uninitialized account that receives rewards for operator-vault combinations
+///
+/// This is a simple PDA account with no data that acts as a destination for operator vault rewards.
+/// It must remain uninitialized to be used as a payer in transfer instructions.
+/// The account is closed after rewards are transferred to the Operator Vault Reward Router.
+///
+/// PDA: ["operator_vault_reward_receiver", OPERATOR, NCN, EPOCH]
 pub struct OperatorVaultRewardReceiver {}
 
 impl OperatorVaultRewardReceiver {
     pub const OPERATOR_VAULT_REWARD_RECEIVER_SEED: &'static [u8] =
         b"operator_vault_reward_receiver";
+
+    /// Generates PDA seeds for the operator vault reward receiver
     pub fn seeds(operator: &Pubkey, ncn: &Pubkey, epoch: u64) -> Vec<Vec<u8>> {
         vec![
             Self::OPERATOR_VAULT_REWARD_RECEIVER_SEED.to_vec(),
@@ -600,6 +672,7 @@ impl OperatorVaultRewardReceiver {
         ]
     }
 
+    /// Finds the program address for the operator vault reward receiver PDA
     pub fn find_program_address(
         program_id: &Pubkey,
         operator: &Pubkey,
@@ -614,6 +687,8 @@ impl OperatorVaultRewardReceiver {
         (address, bump, seeds)
     }
 
+    /// Validates that the account is owned by system program and matches expected PDA
+    /// Operator vault reward receiver accounts are owned by system program, not the NCN program
     pub fn load(
         program_id: &Pubkey,
         account: &AccountInfo,
@@ -633,6 +708,10 @@ impl OperatorVaultRewardReceiver {
         )
     }
 
+    /// Closes the operator vault reward receiver account and transfers remaining lamports
+    ///
+    /// This function transfers all lamports above minimum rent to the DAO wallet,
+    /// then transfers the minimum rent to the account payer (for rent recovery).
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     pub fn close<'a, 'info>(
@@ -646,6 +725,7 @@ impl OperatorVaultRewardReceiver {
     ) -> ProgramResult {
         let min_rent = Rent::get()?.minimum_balance(0);
 
+        // Transfer excess lamports to DAO wallet
         let delta_lamports = operator_vault_reward_receiver
             .lamports()
             .saturating_sub(min_rent);
@@ -661,6 +741,7 @@ impl OperatorVaultRewardReceiver {
             )?;
         }
 
+        // Transfer minimum rent back to payer
         Self::transfer(
             program_id,
             operator,
@@ -672,6 +753,7 @@ impl OperatorVaultRewardReceiver {
         )
     }
 
+    /// Transfers lamports from the operator vault reward receiver using PDA authority
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     pub fn transfer<'a, 'info>(
@@ -712,16 +794,19 @@ impl OperatorVaultRewardReceiver {
     }
 }
 
+/// Individual vault reward route - tracks rewards for a specific vault
+/// This struct stores the allocation of rewards for a vault before distribution
 #[derive(Default, Debug, Clone, PartialEq, Eq, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
 pub struct VaultRewardRoute {
-    /// The vault the rewards are routed to
+    /// The vault pubkey that will receive rewards
     vault: Pubkey,
-    /// The amount of rewards ( in lamports )
+    /// The amount of rewards allocated to this vault (in lamports)
     rewards: PodU64,
 }
 
 impl VaultRewardRoute {
+    /// Creates a new vault reward route with initial reward amount
     pub fn new(vault: &Pubkey, rewards: u64) -> Result<Self, NCNProgramError> {
         Ok(Self {
             vault: *vault,
@@ -729,27 +814,33 @@ impl VaultRewardRoute {
         })
     }
 
+    /// Gets the vault pubkey for this route
     pub const fn vault(&self) -> Pubkey {
         self.vault
     }
 
+    /// Gets the reward amount for this route
     pub fn rewards(&self) -> u64 {
         self.rewards.into()
     }
 
+    /// Checks if this route slot is empty (default vault)
     pub fn is_empty(&self) -> bool {
         self.vault.eq(&Pubkey::default())
     }
 
+    /// Checks if this route has any rewards allocated
     pub fn has_rewards(&self) -> bool {
         self.rewards() > 0
     }
 
+    /// Sets the reward amount for this route
     fn set_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         self.rewards = PodU64::from(rewards);
         Ok(())
     }
 
+    /// Adds rewards to this route
     pub fn increment_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         let current_rewards = self.rewards();
 
@@ -760,6 +851,7 @@ impl VaultRewardRoute {
         self.set_rewards(new_rewards)
     }
 
+    /// Removes rewards from this route (used during distribution)
     pub fn decrement_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         let current_rewards = self.rewards();
 
@@ -771,6 +863,7 @@ impl VaultRewardRoute {
     }
 }
 
+/// Display implementation for OperatorVaultRewardRouter - provides formatted output for debugging
 #[rustfmt::skip]
 impl fmt::Display for OperatorVaultRewardRouter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
