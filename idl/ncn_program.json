@@ -809,6 +809,110 @@
       }
     },
     {
+      "name": "RouteNCNRewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "epochSnapshot",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ballotBox",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "maxIterations",
+          "type": "u16"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 16
+      }
+    },
+    {
+      "name": "DistributeJitoDAORewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "jitoDaoFeeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 17
+      }
+    },
+    {
       "name": "CloseEpochAccount",
       "accounts": [
         {
@@ -867,7 +971,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 16
+        "value": 18
       }
     },
     {
@@ -917,7 +1021,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 17
+        "value": 19
       }
     },
     {
@@ -954,7 +1058,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 18
+        "value": 20
       }
     },
     {
@@ -998,7 +1102,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 21
       }
     },
     {
@@ -1041,7 +1145,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 22
       }
     },
     {
@@ -1083,7 +1187,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 23
       }
     },
     {
@@ -1124,7 +1228,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 22
+        "value": 24
       }
     }
   ],
@@ -1580,6 +1684,12 @@
           },
           {
             "name": "ncnDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "jitoDaoDistributionProgress",
             "type": {
               "defined": "Progress"
             }

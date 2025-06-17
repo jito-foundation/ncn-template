@@ -264,6 +264,9 @@ pub struct EpochState {
     /// base distribution progress
     ncn_distribution_progress: Progress,
 
+    /// base distribution progress
+    jito_dao_distribution_progress: Progress,
+
     /// Is closing
     is_closing: PodBool,
 }
@@ -293,6 +296,7 @@ impl EpochState {
             voting_progress: Progress::default(),
             total_distribution_progress: Progress::default(),
             ncn_distribution_progress: Progress::default(),
+            jito_dao_distribution_progress: Progress::default(),
             is_closing: PodBool::from(false),
         }
     }
@@ -560,6 +564,7 @@ impl EpochState {
         self.account_status
             .set_ncn_reward_router(AccountStatus::CreatedWithReceiver);
         self.ncn_distribution_progress = Progress::new(0);
+        self.jito_dao_distribution_progress = Progress::new(0);
     }
 
     pub fn update_route_ncn_rewards(&mut self, total_rewards: u64) {
@@ -569,8 +574,20 @@ impl EpochState {
 
     pub fn update_distribute_ncn_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         self.total_distribution_progress.increment(rewards)?;
-        self.ncn_distribution_progress.increment(rewards)?;
-        Ok(())
+        self.ncn_distribution_progress.increment(rewards)
+    }
+
+    pub fn update_route_jito_dao_rewards(&mut self, total_rewards: u64) {
+        self.total_distribution_progress.set_total(total_rewards);
+        self.jito_dao_distribution_progress.set_total(total_rewards);
+    }
+
+    pub fn update_distribute_jito_dao_rewards(
+        &mut self,
+        rewards: u64,
+    ) -> Result<(), NCNProgramError> {
+        self.total_distribution_progress.increment(rewards)?;
+        self.jito_dao_distribution_progress.increment(rewards)
     }
 
     // ---------- CLOSERS ----------

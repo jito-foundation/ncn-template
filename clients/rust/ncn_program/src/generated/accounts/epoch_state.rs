@@ -35,6 +35,7 @@ pub struct EpochState {
     pub voting_progress: Progress,
     pub total_distribution_progress: Progress,
     pub ncn_distribution_progress: Progress,
+    pub jito_dao_distribution_progress: Progress,
     pub operator_vault_distribution_progress: Progress,
     pub is_closing: bool,
 }

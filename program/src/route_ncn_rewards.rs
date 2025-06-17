@@ -119,6 +119,7 @@ pub fn process_route_ncn_rewards(
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
         epoch_state_account.update_route_ncn_rewards(total_rewards);
+        epoch_state_account.update_route_jito_dao_rewards(total_rewards);
         msg!("Epoch state updated successfully");
     }
 

@@ -16,6 +16,8 @@ use solana_sdk::{
     account::Account,
     clock::DEFAULT_SLOTS_PER_EPOCH,
     epoch_schedule::EpochSchedule,
+    msg,
+    native_token::lamports_to_sol,
     signature::{Keypair, Signer},
 };
 
@@ -717,7 +719,6 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
         rewards: u64,
-        pool_root: &PoolRoot,
     ) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
 
@@ -753,37 +754,71 @@ impl TestBuilder {
 
         msg!("NCN Reward Router: {}", ncn_reward_router);
 
-        // // Base Rewards
-        // for group in BaseFeeGroup::all_groups().iter() {
-        //     let rewards = ncn_reward_router.base_fee_group_reward(*group).unwrap();
+        // Rewards Distribution
+        // 1. Jito Rewards Distribution
+        {
+            let rewards = ncn_reward_router.jito_dao_rewards();
+
+            if rewards > 0 {
+                let mut ncn_program_client = self.ncn_program_client();
+                let config = ncn_program_client.get_ncn_config(ncn).await?;
+                let jito_dao_fee_wallet = config.fee_config.jito_dao_fee_wallet();
+
+                let balance_before = {
+                    let account = self.get_account(jito_dao_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                println!("Distribute Base {}", rewards);
+                ncn_program_client
+                    .do_distribute_jito_dao_rewards(ncn, epoch)
+                    .await?;
+
+                let balance_after = {
+                    let account = self.get_account(jito_dao_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                assert_eq!(
+                    balance_after,
+                    balance_before + rewards,
+                    "Jito DAO fee wallet balance should increase by the rewards amount"
+                );
+            }
+        }
+
+        // // NCN Rewards
+        // {
+        //     let rewards = ncn_reward_router.ncn_rewards().unwrap();
         //
-        //     if rewards == 0 {
-        //         continue;
+        //     if rewards > 0 {
+        //         println!("Distribute Base {}", rewards);
+        //         ncn_program_client
+        //             .do_distribute_ncn_rewards(*group, ncn, epoch, pool_root)
+        //             .await?;
         //     }
-        //     println!("Distribute Base {}", rewards);
-        //     ncn_program_client
-        //         .do_distribute_ncn_rewards(*group, ncn, epoch, pool_root)
-        //         .await?;
         // }
+
+        // // Operator Vault Rewards
+        // {
+        //     for operator_root in test_ncn.operators.iter() {
+        //         let operator = operator_root.operator_pubkey;
         //
-        // // Ncn
-        // for operator_root in test_ncn.operators.iter() {
-        //     let operator = operator_root.operator_pubkey;
+        //         let operator_route = ncn_reward_router.ncn_fee_group_reward_route(&operator);
         //
-        //     let operator_route = ncn_reward_router.ncn_fee_group_reward_route(&operator);
+        //         if let Ok(operator_route) = operator_route {
+        //             for group in NcnFeeGroup::all_groups().iter() {
+        //                 let rewards = operator_route.rewards(*group).unwrap();
         //
-        //     if let Ok(operator_route) = operator_route {
-        //         for group in NcnFeeGroup::all_groups().iter() {
-        //             let rewards = operator_route.rewards(*group).unwrap();
+        //                 if rewards == 0 {
+        //                     continue;
+        //                 }
         //
-        //             if rewards == 0 {
-        //                 continue;
+        //                 println!("Distribute Ncn Reward {}", rewards);
+        //                 ncn_program_client
+        //                     .do_distribute_base_ncn_reward_route(*group, operator, ncn, epoch)
+        //                     .await?;
         //             }
-        //
-        //             println!("Distribute Ncn Reward {}", rewards);
-        //             ncn_program_client
-        //                 .do_distribute_base_ncn_reward_route(*group, operator, ncn, epoch)
-        //                 .await?;
         //         }
         //     }
         // }

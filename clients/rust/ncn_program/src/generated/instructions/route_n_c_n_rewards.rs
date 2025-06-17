@@ -9,32 +9,40 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct AdminRegisterStMint {
+pub struct RouteNCNRewards {
+    pub epoch_state: solana_program::pubkey::Pubkey,
+
     pub config: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub st_mint: solana_program::pubkey::Pubkey,
+    pub epoch_snapshot: solana_program::pubkey::Pubkey,
 
-    pub vault_registry: solana_program::pubkey::Pubkey,
+    pub ballot_box: solana_program::pubkey::Pubkey,
 
-    pub admin: solana_program::pubkey::Pubkey,
+    pub ncn_reward_router: solana_program::pubkey::Pubkey,
+
+    pub ncn_reward_receiver: solana_program::pubkey::Pubkey,
 }
 
-impl AdminRegisterStMint {
+impl RouteNCNRewards {
     pub fn instruction(
         &self,
-        args: AdminRegisterStMintInstructionArgs,
+        args: RouteNCNRewardsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: AdminRegisterStMintInstructionArgs,
+        args: RouteNCNRewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.epoch_state,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.config,
             false,
@@ -43,20 +51,23 @@ impl AdminRegisterStMint {
             self.ncn, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.st_mint,
+            self.epoch_snapshot,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.ballot_box,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.vault_registry,
+            self.ncn_reward_router,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.admin, true,
+            self.ncn_reward_receiver,
+            false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = AdminRegisterStMintInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = RouteNCNRewardsInstructionData::new().try_to_vec().unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -69,17 +80,17 @@ impl AdminRegisterStMint {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct AdminRegisterStMintInstructionData {
+pub struct RouteNCNRewardsInstructionData {
     discriminator: u8,
 }
 
-impl AdminRegisterStMintInstructionData {
+impl RouteNCNRewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 23 }
+        Self { discriminator: 16 }
     }
 }
 
-impl Default for AdminRegisterStMintInstructionData {
+impl Default for RouteNCNRewardsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -87,33 +98,44 @@ impl Default for AdminRegisterStMintInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AdminRegisterStMintInstructionArgs {
-    pub weight: Option<u128>,
+pub struct RouteNCNRewardsInstructionArgs {
+    pub max_iterations: u16,
+    pub epoch: u64,
 }
 
-/// Instruction builder for `AdminRegisterStMint`.
+/// Instruction builder for `RouteNCNRewards`.
 ///
 /// ### Accounts:
 ///
-///   0. `[]` config
-///   1. `[]` ncn
-///   2. `[]` st_mint
-///   3. `[writable]` vault_registry
-///   4. `[writable, signer]` admin
+///   0. `[writable]` epoch_state
+///   1. `[]` config
+///   2. `[]` ncn
+///   3. `[]` epoch_snapshot
+///   4. `[]` ballot_box
+///   5. `[writable]` ncn_reward_router
+///   6. `[writable]` ncn_reward_receiver
 #[derive(Clone, Debug, Default)]
-pub struct AdminRegisterStMintBuilder {
+pub struct RouteNCNRewardsBuilder {
+    epoch_state: Option<solana_program::pubkey::Pubkey>,
     config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    st_mint: Option<solana_program::pubkey::Pubkey>,
-    vault_registry: Option<solana_program::pubkey::Pubkey>,
-    admin: Option<solana_program::pubkey::Pubkey>,
-    weight: Option<u128>,
+    epoch_snapshot: Option<solana_program::pubkey::Pubkey>,
+    ballot_box: Option<solana_program::pubkey::Pubkey>,
+    ncn_reward_router: Option<solana_program::pubkey::Pubkey>,
+    ncn_reward_receiver: Option<solana_program::pubkey::Pubkey>,
+    max_iterations: Option<u16>,
+    epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl AdminRegisterStMintBuilder {
+impl RouteNCNRewardsBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+    #[inline(always)]
+    pub fn epoch_state(&mut self, epoch_state: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.epoch_state = Some(epoch_state);
+        self
     }
     #[inline(always)]
     pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
@@ -126,24 +148,39 @@ impl AdminRegisterStMintBuilder {
         self
     }
     #[inline(always)]
-    pub fn st_mint(&mut self, st_mint: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.st_mint = Some(st_mint);
+    pub fn epoch_snapshot(&mut self, epoch_snapshot: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.epoch_snapshot = Some(epoch_snapshot);
         self
     }
     #[inline(always)]
-    pub fn vault_registry(&mut self, vault_registry: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.vault_registry = Some(vault_registry);
+    pub fn ballot_box(&mut self, ballot_box: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.ballot_box = Some(ballot_box);
         self
     }
     #[inline(always)]
-    pub fn admin(&mut self, admin: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.admin = Some(admin);
+    pub fn ncn_reward_router(
+        &mut self,
+        ncn_reward_router: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.ncn_reward_router = Some(ncn_reward_router);
         self
     }
-    /// `[optional argument]`
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.weight = Some(weight);
+    pub fn ncn_reward_receiver(
+        &mut self,
+        ncn_reward_receiver: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.ncn_reward_receiver = Some(ncn_reward_receiver);
+        self
+    }
+    #[inline(always)]
+    pub fn max_iterations(&mut self, max_iterations: u16) -> &mut Self {
+        self.max_iterations = Some(max_iterations);
+        self
+    }
+    #[inline(always)]
+    pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.epoch = Some(epoch);
         self
     }
     /// Add an additional account to the instruction.
@@ -166,65 +203,85 @@ impl AdminRegisterStMintBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = AdminRegisterStMint {
+        let accounts = RouteNCNRewards {
+            epoch_state: self.epoch_state.expect("epoch_state is not set"),
             config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            st_mint: self.st_mint.expect("st_mint is not set"),
-            vault_registry: self.vault_registry.expect("vault_registry is not set"),
-            admin: self.admin.expect("admin is not set"),
+            epoch_snapshot: self.epoch_snapshot.expect("epoch_snapshot is not set"),
+            ballot_box: self.ballot_box.expect("ballot_box is not set"),
+            ncn_reward_router: self
+                .ncn_reward_router
+                .expect("ncn_reward_router is not set"),
+            ncn_reward_receiver: self
+                .ncn_reward_receiver
+                .expect("ncn_reward_receiver is not set"),
         };
-        let args = AdminRegisterStMintInstructionArgs {
-            weight: self.weight.clone(),
+        let args = RouteNCNRewardsInstructionArgs {
+            max_iterations: self
+                .max_iterations
+                .clone()
+                .expect("max_iterations is not set"),
+            epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
-/// `admin_register_st_mint` CPI accounts.
-pub struct AdminRegisterStMintCpiAccounts<'a, 'b> {
+/// `route_n_c_n_rewards` CPI accounts.
+pub struct RouteNCNRewardsCpiAccounts<'a, 'b> {
+    pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+    pub epoch_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `admin_register_st_mint` CPI instruction.
-pub struct AdminRegisterStMintCpi<'a, 'b> {
+/// `route_n_c_n_rewards` CPI instruction.
+pub struct RouteNCNRewardsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
+    pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+    pub epoch_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: AdminRegisterStMintInstructionArgs,
+    pub __args: RouteNCNRewardsInstructionArgs,
 }
 
-impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
+impl<'a, 'b> RouteNCNRewardsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: AdminRegisterStMintCpiAccounts<'a, 'b>,
-        args: AdminRegisterStMintInstructionArgs,
+        accounts: RouteNCNRewardsCpiAccounts<'a, 'b>,
+        args: RouteNCNRewardsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
+            epoch_state: accounts.epoch_state,
             config: accounts.config,
             ncn: accounts.ncn,
-            st_mint: accounts.st_mint,
-            vault_registry: accounts.vault_registry,
-            admin: accounts.admin,
+            epoch_snapshot: accounts.epoch_snapshot,
+            ballot_box: accounts.ballot_box,
+            ncn_reward_router: accounts.ncn_reward_router,
+            ncn_reward_receiver: accounts.ncn_reward_receiver,
             __args: args,
         }
     }
@@ -261,7 +318,11 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.epoch_state.key,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.config.key,
             false,
@@ -271,16 +332,20 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.st_mint.key,
+            *self.epoch_snapshot.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.ballot_box.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.vault_registry.key,
+            *self.ncn_reward_router.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.admin.key,
-            true,
+            *self.ncn_reward_receiver.key,
+            false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -289,9 +354,7 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = AdminRegisterStMintInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = RouteNCNRewardsInstructionData::new().try_to_vec().unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -300,13 +363,15 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
+        account_infos.push(self.epoch_state.clone());
         account_infos.push(self.config.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.st_mint.clone());
-        account_infos.push(self.vault_registry.clone());
-        account_infos.push(self.admin.clone());
+        account_infos.push(self.epoch_snapshot.clone());
+        account_infos.push(self.ballot_box.clone());
+        account_infos.push(self.ncn_reward_router.clone());
+        account_infos.push(self.ncn_reward_receiver.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -319,33 +384,46 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `AdminRegisterStMint` via CPI.
+/// Instruction builder for `RouteNCNRewards` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[]` config
-///   1. `[]` ncn
-///   2. `[]` st_mint
-///   3. `[writable]` vault_registry
-///   4. `[writable, signer]` admin
+///   0. `[writable]` epoch_state
+///   1. `[]` config
+///   2. `[]` ncn
+///   3. `[]` epoch_snapshot
+///   4. `[]` ballot_box
+///   5. `[writable]` ncn_reward_router
+///   6. `[writable]` ncn_reward_receiver
 #[derive(Clone, Debug)]
-pub struct AdminRegisterStMintCpiBuilder<'a, 'b> {
-    instruction: Box<AdminRegisterStMintCpiBuilderInstruction<'a, 'b>>,
+pub struct RouteNCNRewardsCpiBuilder<'a, 'b> {
+    instruction: Box<RouteNCNRewardsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
+impl<'a, 'b> RouteNCNRewardsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(AdminRegisterStMintCpiBuilderInstruction {
+        let instruction = Box::new(RouteNCNRewardsCpiBuilderInstruction {
             __program: program,
+            epoch_state: None,
             config: None,
             ncn: None,
-            st_mint: None,
-            vault_registry: None,
-            admin: None,
-            weight: None,
+            epoch_snapshot: None,
+            ballot_box: None,
+            ncn_reward_router: None,
+            ncn_reward_receiver: None,
+            max_iterations: None,
+            epoch: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
+    }
+    #[inline(always)]
+    pub fn epoch_state(
+        &mut self,
+        epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.epoch_state = Some(epoch_state);
+        self
     }
     #[inline(always)]
     pub fn config(
@@ -361,30 +439,45 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn st_mint(
+    pub fn epoch_snapshot(
         &mut self,
-        st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+        epoch_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.st_mint = Some(st_mint);
+        self.instruction.epoch_snapshot = Some(epoch_snapshot);
         self
     }
     #[inline(always)]
-    pub fn vault_registry(
+    pub fn ballot_box(
         &mut self,
-        vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+        ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.vault_registry = Some(vault_registry);
+        self.instruction.ballot_box = Some(ballot_box);
         self
     }
     #[inline(always)]
-    pub fn admin(&mut self, admin: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.admin = Some(admin);
+    pub fn ncn_reward_router(
+        &mut self,
+        ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.ncn_reward_router = Some(ncn_reward_router);
         self
     }
-    /// `[optional argument]`
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.instruction.weight = Some(weight);
+    pub fn ncn_reward_receiver(
+        &mut self,
+        ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.ncn_reward_receiver = Some(ncn_reward_receiver);
+        self
+    }
+    #[inline(always)]
+    pub fn max_iterations(&mut self, max_iterations: u16) -> &mut Self {
+        self.instruction.max_iterations = Some(max_iterations);
+        self
+    }
+    #[inline(always)]
+    pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.instruction.epoch = Some(epoch);
         self
     }
     /// Add an additional account to the instruction.
@@ -428,24 +521,42 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = AdminRegisterStMintInstructionArgs {
-            weight: self.instruction.weight.clone(),
+        let args = RouteNCNRewardsInstructionArgs {
+            max_iterations: self
+                .instruction
+                .max_iterations
+                .clone()
+                .expect("max_iterations is not set"),
+            epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = AdminRegisterStMintCpi {
+        let instruction = RouteNCNRewardsCpi {
             __program: self.instruction.__program,
+
+            epoch_state: self
+                .instruction
+                .epoch_state
+                .expect("epoch_state is not set"),
 
             config: self.instruction.config.expect("config is not set"),
 
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            st_mint: self.instruction.st_mint.expect("st_mint is not set"),
-
-            vault_registry: self
+            epoch_snapshot: self
                 .instruction
-                .vault_registry
-                .expect("vault_registry is not set"),
+                .epoch_snapshot
+                .expect("epoch_snapshot is not set"),
 
-            admin: self.instruction.admin.expect("admin is not set"),
+            ballot_box: self.instruction.ballot_box.expect("ballot_box is not set"),
+
+            ncn_reward_router: self
+                .instruction
+                .ncn_reward_router
+                .expect("ncn_reward_router is not set"),
+
+            ncn_reward_receiver: self
+                .instruction
+                .ncn_reward_receiver
+                .expect("ncn_reward_receiver is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -456,14 +567,17 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct AdminRegisterStMintCpiBuilderInstruction<'a, 'b> {
+struct RouteNCNRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
+    epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    st_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weight: Option<u128>,
+    epoch_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ballot_box: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    max_iterations: Option<u16>,
+    epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

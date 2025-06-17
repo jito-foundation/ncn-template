@@ -10,6 +10,8 @@ import {
   combineCodec,
   getStructDecoder,
   getStructEncoder,
+  getU16Decoder,
+  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -20,31 +22,30 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
-  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
-  type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_TIE_BREAKER_DISCRIMINATOR = 21;
+export const ROUTE_N_C_N_REWARDS_DISCRIMINATOR = 16;
 
-export function getAdminSetTieBreakerDiscriminatorBytes() {
-  return getU8Encoder().encode(ADMIN_SET_TIE_BREAKER_DISCRIMINATOR);
+export function getRouteNCNRewardsDiscriminatorBytes() {
+  return getU8Encoder().encode(ROUTE_N_C_N_REWARDS_DISCRIMINATOR);
 }
 
-export type AdminSetTieBreakerInstruction<
+export type RouteNCNRewardsInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountEpochState extends string | IAccountMeta<string> = string,
   TAccountConfig extends string | IAccountMeta<string> = string,
-  TAccountBallotBox extends string | IAccountMeta<string> = string,
   TAccountNcn extends string | IAccountMeta<string> = string,
-  TAccountTieBreakerAdmin extends string | IAccountMeta<string> = string,
+  TAccountEpochSnapshot extends string | IAccountMeta<string> = string,
+  TAccountBallotBox extends string | IAccountMeta<string> = string,
+  TAccountNcnRewardRouter extends string | IAccountMeta<string> = string,
+  TAccountNcnRewardReceiver extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -56,100 +57,112 @@ export type AdminSetTieBreakerInstruction<
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
-      TAccountBallotBox extends string
-        ? WritableAccount<TAccountBallotBox>
-        : TAccountBallotBox,
       TAccountNcn extends string ? ReadonlyAccount<TAccountNcn> : TAccountNcn,
-      TAccountTieBreakerAdmin extends string
-        ? ReadonlySignerAccount<TAccountTieBreakerAdmin> &
-            IAccountSignerMeta<TAccountTieBreakerAdmin>
-        : TAccountTieBreakerAdmin,
+      TAccountEpochSnapshot extends string
+        ? ReadonlyAccount<TAccountEpochSnapshot>
+        : TAccountEpochSnapshot,
+      TAccountBallotBox extends string
+        ? ReadonlyAccount<TAccountBallotBox>
+        : TAccountBallotBox,
+      TAccountNcnRewardRouter extends string
+        ? WritableAccount<TAccountNcnRewardRouter>
+        : TAccountNcnRewardRouter,
+      TAccountNcnRewardReceiver extends string
+        ? WritableAccount<TAccountNcnRewardReceiver>
+        : TAccountNcnRewardReceiver,
       ...TRemainingAccounts,
     ]
   >;
 
-export type AdminSetTieBreakerInstructionData = {
+export type RouteNCNRewardsInstructionData = {
   discriminator: number;
-  weatherStatus: number;
+  maxIterations: number;
   epoch: bigint;
 };
 
-export type AdminSetTieBreakerInstructionDataArgs = {
-  weatherStatus: number;
+export type RouteNCNRewardsInstructionDataArgs = {
+  maxIterations: number;
   epoch: number | bigint;
 };
 
-export function getAdminSetTieBreakerInstructionDataEncoder(): Encoder<AdminSetTieBreakerInstructionDataArgs> {
+export function getRouteNCNRewardsInstructionDataEncoder(): Encoder<RouteNCNRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['weatherStatus', getU8Encoder()],
+      ['maxIterations', getU16Encoder()],
       ['epoch', getU64Encoder()],
     ]),
-    (value) => ({
-      ...value,
-      discriminator: ADMIN_SET_TIE_BREAKER_DISCRIMINATOR,
-    })
+    (value) => ({ ...value, discriminator: ROUTE_N_C_N_REWARDS_DISCRIMINATOR })
   );
 }
 
-export function getAdminSetTieBreakerInstructionDataDecoder(): Decoder<AdminSetTieBreakerInstructionData> {
+export function getRouteNCNRewardsInstructionDataDecoder(): Decoder<RouteNCNRewardsInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['weatherStatus', getU8Decoder()],
+    ['maxIterations', getU16Decoder()],
     ['epoch', getU64Decoder()],
   ]);
 }
 
-export function getAdminSetTieBreakerInstructionDataCodec(): Codec<
-  AdminSetTieBreakerInstructionDataArgs,
-  AdminSetTieBreakerInstructionData
+export function getRouteNCNRewardsInstructionDataCodec(): Codec<
+  RouteNCNRewardsInstructionDataArgs,
+  RouteNCNRewardsInstructionData
 > {
   return combineCodec(
-    getAdminSetTieBreakerInstructionDataEncoder(),
-    getAdminSetTieBreakerInstructionDataDecoder()
+    getRouteNCNRewardsInstructionDataEncoder(),
+    getRouteNCNRewardsInstructionDataDecoder()
   );
 }
 
-export type AdminSetTieBreakerInput<
+export type RouteNCNRewardsInput<
   TAccountEpochState extends string = string,
   TAccountConfig extends string = string,
-  TAccountBallotBox extends string = string,
   TAccountNcn extends string = string,
-  TAccountTieBreakerAdmin extends string = string,
+  TAccountEpochSnapshot extends string = string,
+  TAccountBallotBox extends string = string,
+  TAccountNcnRewardRouter extends string = string,
+  TAccountNcnRewardReceiver extends string = string,
 > = {
   epochState: Address<TAccountEpochState>;
   config: Address<TAccountConfig>;
-  ballotBox: Address<TAccountBallotBox>;
   ncn: Address<TAccountNcn>;
-  tieBreakerAdmin: TransactionSigner<TAccountTieBreakerAdmin>;
-  weatherStatus: AdminSetTieBreakerInstructionDataArgs['weatherStatus'];
-  epoch: AdminSetTieBreakerInstructionDataArgs['epoch'];
+  epochSnapshot: Address<TAccountEpochSnapshot>;
+  ballotBox: Address<TAccountBallotBox>;
+  ncnRewardRouter: Address<TAccountNcnRewardRouter>;
+  ncnRewardReceiver: Address<TAccountNcnRewardReceiver>;
+  maxIterations: RouteNCNRewardsInstructionDataArgs['maxIterations'];
+  epoch: RouteNCNRewardsInstructionDataArgs['epoch'];
 };
 
-export function getAdminSetTieBreakerInstruction<
+export function getRouteNCNRewardsInstruction<
   TAccountEpochState extends string,
   TAccountConfig extends string,
-  TAccountBallotBox extends string,
   TAccountNcn extends string,
-  TAccountTieBreakerAdmin extends string,
+  TAccountEpochSnapshot extends string,
+  TAccountBallotBox extends string,
+  TAccountNcnRewardRouter extends string,
+  TAccountNcnRewardReceiver extends string,
   TProgramAddress extends Address = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
 >(
-  input: AdminSetTieBreakerInput<
+  input: RouteNCNRewardsInput<
     TAccountEpochState,
     TAccountConfig,
-    TAccountBallotBox,
     TAccountNcn,
-    TAccountTieBreakerAdmin
+    TAccountEpochSnapshot,
+    TAccountBallotBox,
+    TAccountNcnRewardRouter,
+    TAccountNcnRewardReceiver
   >,
   config?: { programAddress?: TProgramAddress }
-): AdminSetTieBreakerInstruction<
+): RouteNCNRewardsInstruction<
   TProgramAddress,
   TAccountEpochState,
   TAccountConfig,
-  TAccountBallotBox,
   TAccountNcn,
-  TAccountTieBreakerAdmin
+  TAccountEpochSnapshot,
+  TAccountBallotBox,
+  TAccountNcnRewardRouter,
+  TAccountNcnRewardReceiver
 > {
   // Program address.
   const programAddress = config?.programAddress ?? NCN_PROGRAM_PROGRAM_ADDRESS;
@@ -158,11 +171,13 @@ export function getAdminSetTieBreakerInstruction<
   const originalAccounts = {
     epochState: { value: input.epochState ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
-    ballotBox: { value: input.ballotBox ?? null, isWritable: true },
     ncn: { value: input.ncn ?? null, isWritable: false },
-    tieBreakerAdmin: {
-      value: input.tieBreakerAdmin ?? null,
-      isWritable: false,
+    epochSnapshot: { value: input.epochSnapshot ?? null, isWritable: false },
+    ballotBox: { value: input.ballotBox ?? null, isWritable: false },
+    ncnRewardRouter: { value: input.ncnRewardRouter ?? null, isWritable: true },
+    ncnRewardReceiver: {
+      value: input.ncnRewardReceiver ?? null,
+      isWritable: true,
     },
   };
   const accounts = originalAccounts as Record<
@@ -178,27 +193,31 @@ export function getAdminSetTieBreakerInstruction<
     accounts: [
       getAccountMeta(accounts.epochState),
       getAccountMeta(accounts.config),
-      getAccountMeta(accounts.ballotBox),
       getAccountMeta(accounts.ncn),
-      getAccountMeta(accounts.tieBreakerAdmin),
+      getAccountMeta(accounts.epochSnapshot),
+      getAccountMeta(accounts.ballotBox),
+      getAccountMeta(accounts.ncnRewardRouter),
+      getAccountMeta(accounts.ncnRewardReceiver),
     ],
     programAddress,
-    data: getAdminSetTieBreakerInstructionDataEncoder().encode(
-      args as AdminSetTieBreakerInstructionDataArgs
+    data: getRouteNCNRewardsInstructionDataEncoder().encode(
+      args as RouteNCNRewardsInstructionDataArgs
     ),
-  } as AdminSetTieBreakerInstruction<
+  } as RouteNCNRewardsInstruction<
     TProgramAddress,
     TAccountEpochState,
     TAccountConfig,
-    TAccountBallotBox,
     TAccountNcn,
-    TAccountTieBreakerAdmin
+    TAccountEpochSnapshot,
+    TAccountBallotBox,
+    TAccountNcnRewardRouter,
+    TAccountNcnRewardReceiver
   >;
 
   return instruction;
 }
 
-export type ParsedAdminSetTieBreakerInstruction<
+export type ParsedRouteNCNRewardsInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -206,22 +225,24 @@ export type ParsedAdminSetTieBreakerInstruction<
   accounts: {
     epochState: TAccountMetas[0];
     config: TAccountMetas[1];
-    ballotBox: TAccountMetas[2];
-    ncn: TAccountMetas[3];
-    tieBreakerAdmin: TAccountMetas[4];
+    ncn: TAccountMetas[2];
+    epochSnapshot: TAccountMetas[3];
+    ballotBox: TAccountMetas[4];
+    ncnRewardRouter: TAccountMetas[5];
+    ncnRewardReceiver: TAccountMetas[6];
   };
-  data: AdminSetTieBreakerInstructionData;
+  data: RouteNCNRewardsInstructionData;
 };
 
-export function parseAdminSetTieBreakerInstruction<
+export function parseRouteNCNRewardsInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedAdminSetTieBreakerInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedRouteNCNRewardsInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -236,12 +257,12 @@ export function parseAdminSetTieBreakerInstruction<
     accounts: {
       epochState: getNextAccount(),
       config: getNextAccount(),
-      ballotBox: getNextAccount(),
       ncn: getNextAccount(),
-      tieBreakerAdmin: getNextAccount(),
+      epochSnapshot: getNextAccount(),
+      ballotBox: getNextAccount(),
+      ncnRewardRouter: getNextAccount(),
+      ncnRewardReceiver: getNextAccount(),
     },
-    data: getAdminSetTieBreakerInstructionDataDecoder().decode(
-      instruction.data
-    ),
+    data: getRouteNCNRewardsInstructionDataDecoder().decode(instruction.data),
   };
 }

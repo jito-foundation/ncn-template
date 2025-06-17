@@ -29,7 +29,7 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR = 16;
+export const CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR = 18;
 
 export function getCloseEpochAccountDiscriminatorBytes() {
   return getU8Encoder().encode(CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR);

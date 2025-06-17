@@ -64,6 +64,7 @@ export type EpochState = {
   votingProgress: Progress;
   totalDistributionProgress: Progress;
   ncnDistributionProgress: Progress;
+  jitoDaoDistributionProgress: Progress;
   operatorVaultDistributionProgress: Progress;
   isClosing: number;
 };
@@ -85,6 +86,7 @@ export type EpochStateArgs = {
   votingProgress: ProgressArgs;
   totalDistributionProgress: ProgressArgs;
   ncnDistributionProgress: ProgressArgs;
+  jitoDaoDistributionProgress: ProgressArgs;
   operatorVaultDistributionProgress: ProgressArgs;
   isClosing: number;
 };
@@ -110,6 +112,7 @@ export function getEpochStateEncoder(): Encoder<EpochStateArgs> {
     ['votingProgress', getProgressEncoder()],
     ['totalDistributionProgress', getProgressEncoder()],
     ['ncnDistributionProgress', getProgressEncoder()],
+    ['jitoDaoDistributionProgress', getProgressEncoder()],
     ['operatorVaultDistributionProgress', getProgressEncoder()],
     ['isClosing', getBoolEncoder()],
   ]);
@@ -136,6 +139,7 @@ export function getEpochStateDecoder(): Decoder<EpochState> {
     ['votingProgress', getProgressDecoder()],
     ['totalDistributionProgress', getProgressDecoder()],
     ['ncnDistributionProgress', getProgressDecoder()],
+    ['jitoDaoDistributionProgress', getProgressDecoder()],
     ['operatorVaultDistributionProgress', getProgressDecoder()],
     ['isClosing', getBoolDecoder()],
   ]);
