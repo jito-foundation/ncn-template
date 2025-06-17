@@ -258,13 +258,13 @@ pub struct EpochState {
     /// Progress on voting
     voting_progress: Progress,
 
-    /// Distribution progress
+    /// Total Distribution progress
     total_distribution_progress: Progress,
 
-    /// base distribution progress
+    /// NCN distribution progress
     ncn_distribution_progress: Progress,
 
-    /// base distribution progress
+    /// Jito distribution progress
     jito_dao_distribution_progress: Progress,
 
     /// Is closing

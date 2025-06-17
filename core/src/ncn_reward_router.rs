@@ -632,6 +632,21 @@ impl NCNRewardRouter {
         Ok(())
     }
 
+    /// Distributes ncn rewards and updates counters
+    /// Returns the amount of rewards distributed
+    pub fn distribute_ncn_fee_rewards(&mut self) -> Result<u64, NCNProgramError> {
+        let rewards = self.ncn_rewards();
+        self.ncn_rewards = PodU64::from(
+            rewards
+                .checked_sub(rewards)
+                .ok_or(NCNProgramError::ArithmeticUnderflowError)?,
+        );
+
+        self.decrement_rewards_processed(rewards)?;
+
+        Ok(rewards)
+    }
+
     pub fn jito_dao_rewards(&self) -> u64 {
         self.jito_dao_rewards.into()
     }

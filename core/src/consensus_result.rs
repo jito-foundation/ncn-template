@@ -1,6 +1,6 @@
 // Consensus Result Module
 //
-// This module implements the ConsensusResult account type, which stores the final outcome 
+// This module implements the ConsensusResult account type, which stores the final outcome
 // of a voting process for a particular epoch. Once consensus is reached in the BallotBox,
 // the winning result is recorded in this account.
 //

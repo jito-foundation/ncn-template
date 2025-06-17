@@ -9,13 +9,13 @@ use ncn_program_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
-        CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, InitializeBallotBoxBuilder,
-        InitializeConfigBuilder, InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
-        InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
-        InitializeVaultRegistryBuilder, InitializeWeightTableBuilder, ReallocBallotBoxBuilder,
-        ReallocNCNRewardRouterBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
-        RegisterVaultBuilder, RouteNCNRewardsBuilder, SetEpochWeightsBuilder,
-        SnapshotVaultOperatorDelegationBuilder,
+        CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, DistributeNCNRewardsBuilder,
+        InitializeBallotBoxBuilder, InitializeConfigBuilder, InitializeEpochSnapshotBuilder,
+        InitializeEpochStateBuilder, InitializeNCNRewardRouterBuilder,
+        InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
+        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocNCNRewardRouterBuilder,
+        ReallocVaultRegistryBuilder, ReallocWeightTableBuilder, RegisterVaultBuilder,
+        RouteNCNRewardsBuilder, SetEpochWeightsBuilder, SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -1585,7 +1585,6 @@ impl NCNProgramClient {
         &mut self,
         ncn: Pubkey,
         epoch: u64,
-        // pool_root: &PoolRoot,
     ) -> TestResult<()> {
         let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
 
@@ -1607,6 +1606,43 @@ impl NCNProgramClient {
             .ncn_reward_router(ncn_reward_router)
             .ncn_reward_receiver(ncn_reward_receiver)
             .jito_dao_fee_wallet(*jito_dao_fee_wallet)
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+
+        let transaction = Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        );
+
+        self.process_transaction(&transaction).await
+    }
+
+    pub async fn do_distribute_ncn_rewards(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
+
+        let (ncn_reward_router, _, _) =
+            NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let ncn_config_account = self.get_ncn_config(ncn).await?;
+        let ncn_fee_wallet = ncn_config_account.fee_config.ncn_fee_wallet();
+
+        let (ncn_reward_receiver, _, _) =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let ix = DistributeNCNRewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .config(ncn_config)
+            .ncn(ncn)
+            .ncn_reward_router(ncn_reward_router)
+            .ncn_reward_receiver(ncn_reward_receiver)
+            .ncn_fee_wallet(*ncn_fee_wallet)
             .system_program(system_program::id())
             .epoch(epoch)
             .instruction();

@@ -22,7 +22,7 @@ use solana_program::{
 /// - `epoch`: The target epoch
 ///
 /// ### Accounts:
-/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization 
+/// 1. `[]` epoch_marker: Marker account to prevent duplicate initialization
 /// 2. `[writable]` epoch_state: The epoch state account for the target epoch
 /// 3. `[]` config: NCN configuration account
 /// 4. `[]` ncn: The NCN account

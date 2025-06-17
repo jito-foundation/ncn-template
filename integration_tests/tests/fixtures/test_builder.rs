@@ -769,7 +769,7 @@ impl TestBuilder {
                     account.unwrap().lamports
                 };
 
-                println!("Distribute Base {}", rewards);
+                println!("Distributing {} of Jito DAO Rewards", rewards);
                 ncn_program_client
                     .do_distribute_jito_dao_rewards(ncn, epoch)
                     .await?;
@@ -787,17 +787,37 @@ impl TestBuilder {
             }
         }
 
-        // // NCN Rewards
-        // {
-        //     let rewards = ncn_reward_router.ncn_rewards().unwrap();
-        //
-        //     if rewards > 0 {
-        //         println!("Distribute Base {}", rewards);
-        //         ncn_program_client
-        //             .do_distribute_ncn_rewards(*group, ncn, epoch, pool_root)
-        //             .await?;
-        //     }
-        // }
+        // NCN Rewards
+        {
+            let rewards = ncn_reward_router.ncn_rewards();
+
+            if rewards > 0 {
+                let mut ncn_program_client = self.ncn_program_client();
+                let config = ncn_program_client.get_ncn_config(ncn).await?;
+                let ncn_fee_wallet = config.fee_config.ncn_fee_wallet();
+
+                let balance_before = {
+                    let account = self.get_account(ncn_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                println!("Distributing {} of NCN Rewards", rewards);
+                ncn_program_client
+                    .do_distribute_ncn_rewards(ncn, epoch)
+                    .await?;
+
+                let balance_after = {
+                    let account = self.get_account(ncn_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                assert_eq!(
+                    balance_after,
+                    balance_before + rewards,
+                    "NCN fee wallet balance should increase by the rewards amount"
+                );
+            }
+        }
 
         // // Operator Vault Rewards
         // {

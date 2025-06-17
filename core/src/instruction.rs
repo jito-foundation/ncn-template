@@ -257,6 +257,19 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
+    /// Distributes NCN rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "ncn_reward_router")]
+    #[account(4, writable, name = "ncn_reward_receiver")]
+    #[account(5, writable, name = "ncn_fee_wallet")]
+    #[account(6, name = "system_program")]
+    DistributeNCNRewards{
+        epoch: u64,
+    },
+
+
     /// Close an epoch account
     #[account(0, writable, name = "epoch_marker")]
     #[account(1, writable, name = "epoch_state")]

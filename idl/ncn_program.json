@@ -913,6 +913,56 @@
       }
     },
     {
+      "name": "DistributeNCNRewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncnFeeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 18
+      }
+    },
+    {
       "name": "CloseEpochAccount",
       "accounts": [
         {
@@ -971,7 +1021,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 18
+        "value": 19
       }
     },
     {
@@ -1021,7 +1071,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 20
       }
     },
     {
@@ -1058,7 +1108,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 21
       }
     },
     {
@@ -1102,7 +1152,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 22
       }
     },
     {
@@ -1145,7 +1195,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 22
+        "value": 23
       }
     },
     {
@@ -1187,7 +1237,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 23
+        "value": 24
       }
     },
     {
@@ -1228,7 +1278,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 24
+        "value": 25
       }
     }
   ],
