@@ -688,7 +688,8 @@ impl fmt::Display for BallotBox {
                writeln!(f, "  Operator:                     {}", vote.operator())?;
                writeln!(f, "    Slot Voted:                 {}", vote.slot_voted())?;
                writeln!(f, "    Ballot Index:               {}", vote.ballot_index())?;
-               writeln!(f, "    Stake Weights:")?;
+               writeln!(f, "    Stake Weights:              {}", vote.stake_weights().stake_weight())?;
+               writeln!(f, "  ------------------------------------   ")?;
            }
        }
 
