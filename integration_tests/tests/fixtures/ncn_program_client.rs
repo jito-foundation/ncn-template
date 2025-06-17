@@ -11,10 +11,10 @@ use ncn_program_client::{
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
         CloseEpochAccountBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
-        InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder,
-        InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocVaultRegistryBuilder,
-        ReallocWeightTableBuilder, RegisterVaultBuilder, SetEpochWeightsBuilder,
-        SnapshotVaultOperatorDelegationBuilder,
+        InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
+        InitializeVaultRegistryBuilder, InitializeWeightTableBuilder, ReallocBallotBoxBuilder,
+        ReallocNCNRewardRouterBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
+        RegisterVaultBuilder, SetEpochWeightsBuilder, SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -28,6 +28,7 @@ use ncn_program_core::{
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     error::NCNProgramError,
+    ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
     vault_registry::VaultRegistry,
     weight_table::WeightTable,
 };
@@ -39,6 +40,7 @@ use solana_program_test::{BanksClient, ProgramTestBanksClientExt};
 use solana_sdk::{
     commitment_config::CommitmentLevel,
     compute_budget::ComputeBudgetInstruction,
+    hash::Hash,
     msg,
     signature::{Keypair, Signer},
     system_program,
@@ -106,6 +108,16 @@ impl NCNProgramClient {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_best_latest_blockhash(&mut self) -> TestResult<Hash> {
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        let new_blockhash = self
+            .banks_client
+            .get_new_latest_blockhash(&blockhash)
+            .await?;
+
+        Ok(new_blockhash)
     }
 
     /// Fetches the EpochMarker account for a given NCN and epoch.
@@ -1227,6 +1239,41 @@ impl NCNProgramClient {
             config,
             account_to_close,
             account_payer,
+            None,
+            None,
+            epoch,
+        )
+        .await
+    }
+
+    pub async fn do_close_router_epoch_account(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        account_to_close: Pubkey,
+        receiver_to_close: Pubkey,
+    ) -> TestResult<()> {
+        let (epoch_marker, _, _) =
+            EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
+
+        let (config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
+
+        let config_account = self.get_ncn_config(ncn).await?;
+        let ncn_fee_wallet = *config_account.fee_config.ncn_fee_wallet();
+
+        self.close_epoch_account(
+            epoch_marker,
+            epoch_state,
+            ncn,
+            config,
+            account_to_close,
+            account_payer,
+            Some(receiver_to_close),
+            Some(ncn_fee_wallet),
             epoch,
         )
         .await
@@ -1242,6 +1289,10 @@ impl NCNProgramClient {
         config: Pubkey,
         account_to_close: Pubkey,
         account_payer: Pubkey,
+
+        receiver_to_close: Option<Pubkey>,
+        ncn_fee_wallet: Option<Pubkey>,
+
         epoch: u64,
     ) -> TestResult<()> {
         let mut ix = CloseEpochAccountBuilder::new();
@@ -1254,6 +1305,14 @@ impl NCNProgramClient {
             .ncn(ncn)
             .system_program(system_program::id())
             .epoch(epoch);
+
+        if let Some(receiver_to_close) = receiver_to_close {
+            ix.receiver_to_close(Some(receiver_to_close));
+        }
+
+        if let Some(ncn_fee_wallet) = ncn_fee_wallet {
+            ix.ncn_fee_wallet(Some(ncn_fee_wallet));
+        }
 
         let ix = ix.instruction();
 
@@ -1310,6 +1369,131 @@ impl NCNProgramClient {
         ))
         .await
     }
+
+    pub async fn get_ncn_reward_router(
+        &mut self,
+        ncn: Pubkey,
+        ncn_epoch: u64,
+    ) -> TestResult<NCNRewardRouter> {
+        let address = NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, ncn_epoch).0;
+
+        let raw_account = self.banks_client.get_account(address).await?.unwrap();
+
+        let account =
+            NCNRewardRouter::try_from_slice_unchecked(raw_account.data.as_slice()).unwrap();
+        Ok(*account)
+    }
+
+    pub async fn do_full_initialize_ncn_reward_router(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.do_initialize_ncn_reward_router(ncn, epoch).await?;
+        let num_reallocs =
+            (NCNRewardRouter::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+        self.do_realloc_ncn_reward_router(ncn, epoch, num_reallocs)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn do_initialize_ncn_reward_router(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let (ncn_reward_router, _, _) =
+            NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let (ncn_reward_receiver, _, _) =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        self.initialize_ncn_reward_router(ncn, ncn_reward_router, ncn_reward_receiver, epoch)
+            .await
+    }
+
+    pub async fn initialize_ncn_reward_router(
+        &mut self,
+        ncn: Pubkey,
+        ncn_reward_router: Pubkey,
+        ncn_reward_receiver: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let (epoch_marker, _, _) =
+            EpochMarker::find_program_address(&ncn_program::id(), &ncn, epoch);
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
+
+        let ix = InitializeNCNRewardRouterBuilder::new()
+            .epoch_marker(epoch_marker)
+            .epoch_state(epoch_state)
+            .ncn(ncn)
+            .ncn_reward_router(ncn_reward_router)
+            .ncn_reward_receiver(ncn_reward_receiver)
+            .account_payer(account_payer)
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+        .await
+    }
+
+    pub async fn do_realloc_ncn_reward_router(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
+        let ncn_reward_router =
+            NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        self.realloc_ncn_reward_router(ncn_config, ncn_reward_router, ncn, epoch, num_reallocations)
+            .await
+    }
+
+    pub async fn realloc_ncn_reward_router(
+        &mut self,
+        ncn_config: Pubkey,
+        ncn_reward_router: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
+
+        let ix = ReallocNCNRewardRouterBuilder::new()
+            .epoch_state(epoch_state)
+            .config(ncn_config)
+            .ncn_reward_router(ncn_reward_router)
+            .ncn(ncn)
+            .epoch(epoch)
+            .account_payer(account_payer)
+            .system_program(system_program::id())
+            .instruction();
+
+        let ixs = vec![ix; num_reallocations as usize];
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+        .await
+    }
+
 }
 
 /// Asserts that a TestResult contains a specific NCNProgramError.

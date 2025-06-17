@@ -9,6 +9,7 @@ use ncn_program_core::{
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     error::NCNProgramError,
+    ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -40,8 +41,9 @@ pub fn process_close_epoch_account(
 ) -> ProgramResult {
     msg!("Processing close epoch account for epoch: {}", epoch);
 
+    let (required_accounts, optional_accounts) = accounts.split_at(7);
     let [epoch_marker, epoch_state, config, ncn, account_to_close, account_payer, system_program] =
-        accounts
+        required_accounts
     else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
@@ -174,6 +176,47 @@ pub fn process_close_epoch_account(
                     BallotBox::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing ballot box");
                     epoch_state_account.close_ballot_box();
+                }
+
+                NCNRewardRouter::DISCRIMINATOR => {
+                    msg!("Account is an NCN Rewards Router, loading to close");
+                    NCNRewardRouter::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
+                    msg!("Closing NCN Rewards Router");
+                    let [ncn_fee_wallet, base_reward_receiver] = optional_accounts else {
+                        msg!("Base reward receiver account is missing");
+                        return Err(NCNProgramError::CannotCloseAccountNoEnoughAccounts.into());
+                    };
+
+                    // Check correct NCN fee wallet
+                    {
+                        if config_account
+                            .fee_config
+                            .ncn_fee_wallet()
+                            .ne(ncn_fee_wallet.key)
+                        {
+                            return Err(NCNProgramError::InvalidNCNFeeWallet.into());
+                        }
+                    }
+
+                    msg!("Account is an NCN Rewards Receiver, loading to close");
+                    NCNRewardReceiver::load(
+                        program_id,
+                        base_reward_receiver,
+                        ncn.key,
+                        epoch,
+                        true,
+                    )?;
+                    NCNRewardReceiver::close(
+                        program_id,
+                        ncn.key,
+                        epoch,
+                        base_reward_receiver,
+                        ncn_fee_wallet,
+                        account_payer,
+                    )?;
+                    msg!("Closing NCN Rewards Receiver");
+
+                    epoch_state_account.close_ncn_reward_router();
                 }
                 _ => {
                     msg!("Error: Invalid account discriminator: {}", discriminator);

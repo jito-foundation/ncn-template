@@ -929,7 +929,7 @@ impl NCNRewardReceiver {
         ncn: &Pubkey,
         epoch: u64,
         ncn_reward_receiver: &'a AccountInfo<'info>,
-        dao_wallet: &'a AccountInfo<'info>,
+        ncn_fee_wallet: &'a AccountInfo<'info>,
         account_payer: &'a AccountInfo<'info>,
     ) -> ProgramResult {
         let min_rent = Rent::get()?.minimum_balance(0);
@@ -942,7 +942,7 @@ impl NCNRewardReceiver {
                 ncn,
                 epoch,
                 ncn_reward_receiver,
-                dao_wallet,
+                ncn_fee_wallet,
                 delta_lamports,
             )?;
         }

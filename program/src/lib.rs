@@ -10,10 +10,12 @@ mod close_epoch_account;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
+mod initialize_ncn_reward_router;
 mod initialize_operator_snapshot;
 mod initialize_vault_registry;
 mod initialize_weight_table;
 mod realloc_ballot_box;
+mod realloc_ncn_reward_router;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
@@ -37,16 +39,20 @@ use crate::{
     admin_set_parameters::process_admin_set_parameters,
     admin_set_st_mint::process_admin_set_st_mint,
     admin_set_tie_breaker::process_admin_set_tie_breaker,
-    admin_set_weight::process_admin_set_weight, cast_vote::process_cast_vote,
+    admin_set_weight::process_admin_set_weight,
+    cast_vote::process_cast_vote,
     close_epoch_account::process_close_epoch_account,
     initialize_ballot_box::process_initialize_ballot_box,
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
+    initialize_ncn_reward_router::process_initialize_ncn_reward_router,
     initialize_operator_snapshot::process_initialize_operator_snapshot,
     initialize_vault_registry::process_initialize_vault_registry,
     initialize_weight_table::process_initialize_weight_table,
     realloc_ballot_box::process_realloc_ballot_box,
+    realloc_ncn_reward_router::process_realloc_ncn_reward_router,
     realloc_vault_registry::process_realloc_vault_registry,
-    realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
+    realloc_weight_table::process_realloc_weight_table,
+    register_vault::process_register_vault,
     set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
@@ -217,5 +223,21 @@ pub fn process_instruction(
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
         }
+        
+
+
+        // ---------------------------------------------------- //
+        //                ROUTE AND DISTRIBUTE                  //
+        // ---------------------------------------------------- //
+
+        NCNProgramInstruction::InitializeNCNRewardRouter { epoch } => {
+            msg!("Instruction: InitializeNCNRewardRouter");
+            process_initialize_ncn_reward_router(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::ReallocNCNRewardRouter { epoch } => {
+            msg!("Instruction: ReallocNCNRewardRouter");
+            process_realloc_ncn_reward_router(program_id, accounts, epoch)
+        }
+
     }
 }

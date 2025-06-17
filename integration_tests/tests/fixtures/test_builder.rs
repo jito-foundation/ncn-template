@@ -2,10 +2,12 @@ use std::fmt::{Debug, Formatter};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use ncn_program_core::{
+    account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     constants::WEIGHT,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
+    ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{clock::Clock, native_token::sol_to_lamports, pubkey::Pubkey};
@@ -687,6 +689,29 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the base reward router and ncn reward routers for the TestNcn for the current epoch.
+    pub async fn add_routers_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+
+        ncn_program_client
+            .do_full_initialize_ncn_reward_router(ncn, epoch)
+            .await?;
+
+        // for operator_root in test_ncn.operators.iter() {
+        //     let operator = operator_root.operator_pubkey;
+        //
+        //     ncn_program_client
+        //         .do_initialize_operator_vault_reward_router(ncn, operator, epoch)
+        //         .await?;
+        // }
+
+        Ok(())
+    }
+
     /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
     /// for a given epoch after the required cooldown period has passed.
     /// Asserts that the accounts are actually closed (deleted).
@@ -696,10 +721,23 @@ impl TestBuilder {
     ) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
 
+        const EXTRA_SOL_TO_AIRDROP: f64 = 0.25;
+
         let epoch_to_close = self.clock().await.epoch;
         let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
 
         let config_account = ncn_program_client.get_ncn_config(ncn).await?;
+
+        let ncn_fees_wallet = *config_account.fee_config.ncn_fee_wallet();
+
+        let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
+        let rent = self.context.banks_client.get_rent().await?;
+
+        let lamports_per_signature: u64 = if ncn_fees_wallet.eq(&self.context.payer.pubkey()) {
+            5000
+        } else {
+            0
+        };
 
         // Wait until we can close the accounts
         {
@@ -711,6 +749,67 @@ impl TestBuilder {
         }
 
         // Close Accounts in reverse order of creation
+
+        // NCN Reward Router
+        {
+            let (ncn_reward_router, _, _) =
+                NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
+
+            let (ncn_reward_receiver, _, _) =
+                NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
+
+            ncn_program_client
+                .airdrop(&ncn_reward_receiver, EXTRA_SOL_TO_AIRDROP)
+                .await?;
+
+            let dao_wallet_balance_before = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_before = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            ncn_program_client
+                .do_close_router_epoch_account(
+                    ncn,
+                    epoch_to_close,
+                    ncn_reward_router,
+                    ncn_reward_receiver,
+                )
+                .await?;
+
+            let dao_wallet_balance_after = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_after = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            let router_rent = rent.minimum_balance(NCNRewardRouter::SIZE);
+            let receiver_rent = rent.minimum_balance(0);
+            assert_eq!(
+                account_payer_balance_before + router_rent + receiver_rent,
+                account_payer_balance_after
+            );
+
+            assert_eq!(
+                dao_wallet_balance_before + sol_to_lamports(EXTRA_SOL_TO_AIRDROP)
+                    - lamports_per_signature,
+                dao_wallet_balance_after
+            );
+
+            let result = self.get_account(&ncn_reward_router).await?;
+            assert!(result.is_none());
+
+            let result = self.get_account(&ncn_reward_receiver).await?;
+            assert!(result.is_none());
+        }
 
         // Ballot Box
         {
