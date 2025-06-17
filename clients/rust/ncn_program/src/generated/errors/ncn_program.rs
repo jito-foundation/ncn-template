@@ -268,18 +268,21 @@ pub enum NcnProgramError {
     /// 8779 - Cannot close account - No receiver provided
     #[error("Cannot close account - No receiver provided")]
     CannotCloseAccountNoReceiverProvided = 0x224B,
-    /// 8780 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
+    /// 8780 - Cannot close account - No enough accounts
+    #[error("Cannot close account - No enough accounts")]
+    CannotCloseAccountNoEnoughAccounts = 0x224C,
+    /// 8781 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
     #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
-    CannotCloseEpochStateAccount = 0x224C,
-    /// 8781 - Invalid DAO wallet
-    #[error("Invalid DAO wallet")]
-    InvalidDaoWallet = 0x224D,
-    /// 8782 - Epoch is closing down
+    CannotCloseEpochStateAccount = 0x224D,
+    /// 8782 - Invalid NCN Fee wallet
+    #[error("Invalid NCN Fee wallet")]
+    InvalidNCNFeeWallet = 0x224E,
+    /// 8783 - Epoch is closing down
     #[error("Epoch is closing down")]
-    EpochIsClosingDown = 0x224E,
-    /// 8783 - Marker exists
+    EpochIsClosingDown = 0x224F,
+    /// 8784 - Marker exists
     #[error("Marker exists")]
-    MarkerExists = 0x224F,
+    MarkerExists = 0x2250,
 }
 
 impl solana_program::program_error::PrintProgramError for NcnProgramError {
