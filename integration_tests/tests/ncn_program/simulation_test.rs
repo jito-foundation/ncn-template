@@ -316,6 +316,8 @@ mod tests {
             );
         }
 
+        fixture.add_routers_for_test_ncn(&test_ncn).await?;
+
         // 8. Close epoch accounts but keep consensus result
         let epoch_before_closing_account = fixture.clock().await.epoch;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;

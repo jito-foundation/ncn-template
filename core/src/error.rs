@@ -177,10 +177,12 @@ pub enum NCNProgramError {
     CannotCloseAccountNotEnoughEpochs,
     #[error("Cannot close account - No receiver provided")]
     CannotCloseAccountNoReceiverProvided,
+    #[error("Cannot close account - No enough accounts")]
+    CannotCloseAccountNoEnoughAccounts,
     #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
     CannotCloseEpochStateAccount,
-    #[error("Invalid DAO wallet")]
-    InvalidDaoWallet,
+    #[error("Invalid NCN Fee wallet")]
+    InvalidNCNFeeWallet,
     #[error("Epoch is closing down")]
     EpochIsClosingDown,
     #[error("Marker exists")]
