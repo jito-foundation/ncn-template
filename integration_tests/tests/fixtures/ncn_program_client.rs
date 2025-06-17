@@ -14,7 +14,8 @@ use ncn_program_client::{
         InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
         InitializeVaultRegistryBuilder, InitializeWeightTableBuilder, ReallocBallotBoxBuilder,
         ReallocNCNRewardRouterBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
-        RegisterVaultBuilder, SetEpochWeightsBuilder, SnapshotVaultOperatorDelegationBuilder,
+        RegisterVaultBuilder, RouteNCNRewardsBuilder, SetEpochWeightsBuilder,
+        SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -238,6 +239,10 @@ impl NCNProgramClient {
         self.airdrop(&account_payer, 100.0).await?;
 
         let ncn_admin_pubkey = ncn_admin.pubkey();
+
+        let ncn_fee_wallet = Keypair::new();
+        self.airdrop(&ncn_fee_wallet.pubkey(), 0.1).await?;
+
         self.initialize_config(
             ncn,
             ncn_admin,
@@ -245,7 +250,7 @@ impl NCNProgramClient {
             3,
             10,
             10000,
-            &ncn_admin_pubkey,
+            &ncn_fee_wallet.pubkey(),
             400,
         )
         .await
@@ -1494,6 +1499,82 @@ impl NCNProgramClient {
         .await
     }
 
+    pub async fn do_route_ncn_rewards(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
+        let (epoch_snapshot, _, _) =
+            EpochSnapshot::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let (ballot_box, _, _) = BallotBox::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let (ncn_reward_router, _, _) =
+            NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let (ncn_reward_receiver, _, _) =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        //Pretty close to max
+        let max_iterations: u16 = NCNRewardRouter::MAX_ROUTE_BASE_ITERATIONS;
+
+        let mut still_routing = true;
+        while still_routing {
+            self.route_ncn_rewards(
+                ncn,
+                epoch_snapshot,
+                ballot_box,
+                ncn_reward_router,
+                ncn_reward_receiver,
+                max_iterations,
+                epoch,
+            )
+            .await?;
+
+            let ncn_reward_router_account = self.get_ncn_reward_router(ncn, epoch).await?;
+
+            still_routing = ncn_reward_router_account.still_routing();
+        }
+
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn route_ncn_rewards(
+        &mut self,
+        ncn: Pubkey,
+        epoch_snapshot: Pubkey,
+        ballot_box: Pubkey,
+        ncn_reward_router: Pubkey,
+        ncn_reward_receiver: Pubkey,
+        max_iterations: u16,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
+
+        let ix = RouteNCNRewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .config(config)
+            .ncn(ncn)
+            .epoch_snapshot(epoch_snapshot)
+            .ballot_box(ballot_box)
+            .ncn_reward_router(ncn_reward_router)
+            .ncn_reward_receiver(ncn_reward_receiver)
+            .max_iterations(max_iterations)
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.get_best_latest_blockhash().await?;
+        let tx = &Transaction::new_signed_with_payer(
+            &[
+                ComputeBudgetInstruction::set_compute_unit_limit(1_400_000),
+                ix,
+            ],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        );
+
+        self.process_transaction(tx).await
+    }
 }
 
 /// Asserts that a TestResult contains a specific NCNProgramError.

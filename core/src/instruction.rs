@@ -232,6 +232,19 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
+    /// Routes NCN reward router
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "epoch_snapshot")]
+    #[account(4, name = "ballot_box")]
+    #[account(5, writable, name = "ncn_reward_router")]
+    #[account(6, writable, name = "ncn_reward_receiver")]
+    RouteNCNRewards{
+        max_iterations: u16,
+        epoch: u64,
+    },
+
     /// Close an epoch account
     #[account(0, writable, name = "epoch_marker")]
     #[account(1, writable, name = "epoch_state")]
