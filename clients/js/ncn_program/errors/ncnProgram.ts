@@ -186,14 +186,16 @@ export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x2249; //
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x224a; // 8778
 /** CannotCloseAccountNoReceiverProvided: Cannot close account - No receiver provided */
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x224b; // 8779
+/** CannotCloseAccountNoEnoughAccounts: Cannot close account - No enough accounts */
+export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS = 0x224c; // 8780
 /** CannotCloseEpochStateAccount: Cannot close epoch state account - Epoch state needs all other accounts to be closed first */
-export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224c; // 8780
-/** InvalidDaoWallet: Invalid DAO wallet */
-export const NCN_PROGRAM_ERROR__INVALID_DAO_WALLET = 0x224d; // 8781
+export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224d; // 8781
+/** InvalidNCNFeeWallet: Invalid NCN Fee wallet */
+export const NCN_PROGRAM_ERROR__INVALID_N_C_N_FEE_WALLET = 0x224e; // 8782
 /** EpochIsClosingDown: Epoch is closing down */
-export const NCN_PROGRAM_ERROR__EPOCH_IS_CLOSING_DOWN = 0x224e; // 8782
+export const NCN_PROGRAM_ERROR__EPOCH_IS_CLOSING_DOWN = 0x224f; // 8783
 /** MarkerExists: Marker exists */
-export const NCN_PROGRAM_ERROR__MARKER_EXISTS = 0x224f; // 8783
+export const NCN_PROGRAM_ERROR__MARKER_EXISTS = 0x2250; // 8784
 
 export type NcnProgramError =
   | typeof NCN_PROGRAM_ERROR__ACCOUNT_ALREADY_INITIALIZED
@@ -206,6 +208,7 @@ export type NcnProgramError =
   | typeof NCN_PROGRAM_ERROR__BALLOT_TALLY_NOT_FOUND_FULL
   | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT
   | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED
+  | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS
   | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED
   | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS
   | typeof NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT
@@ -236,12 +239,12 @@ export type NcnProgramError =
   | typeof NCN_PROGRAM_ERROR__INVALID_ACCOUNT_STATUS
   | typeof NCN_PROGRAM_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR
   | typeof NCN_PROGRAM_ERROR__INVALID_BASE_FEE_GROUP
-  | typeof NCN_PROGRAM_ERROR__INVALID_DAO_WALLET
   | typeof NCN_PROGRAM_ERROR__INVALID_EPOCHS_BEFORE_CLOSE
   | typeof NCN_PROGRAM_ERROR__INVALID_EPOCHS_BEFORE_STALL
   | typeof NCN_PROGRAM_ERROR__INVALID_MERKLE_PROOF
   | typeof NCN_PROGRAM_ERROR__INVALID_MINT_FOR_WEIGHT_TABLE
   | typeof NCN_PROGRAM_ERROR__INVALID_NCN_FEE_GROUP
+  | typeof NCN_PROGRAM_ERROR__INVALID_N_C_N_FEE_WALLET
   | typeof NCN_PROGRAM_ERROR__INVALID_OPERATOR_VOTER
   | typeof NCN_PROGRAM_ERROR__INVALID_SLOTS_AFTER_CONSENSUS
   | typeof NCN_PROGRAM_ERROR__MARKER_EXISTS
@@ -300,6 +303,7 @@ if (process.env.NODE_ENV !== 'production') {
     [NCN_PROGRAM_ERROR__BALLOT_TALLY_NOT_FOUND_FULL]: `Ballot tally not found`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT]: `Cannot close account`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED]: `Cannot close account - Already closed`,
+    [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS]: `Cannot close account - No enough accounts`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED]: `Cannot close account - No receiver provided`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS]: `Cannot close account - Not enough epochs have passed since consensus reached`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT]: `Cannot close epoch state account - Epoch state needs all other accounts to be closed first`,
@@ -330,12 +334,12 @@ if (process.env.NODE_ENV !== 'production') {
     [NCN_PROGRAM_ERROR__INVALID_ACCOUNT_STATUS]: `Invalid Account Status`,
     [NCN_PROGRAM_ERROR__INVALID_ACCOUNT_TO_CLOSE_DISCRIMINATOR]: `Invalid account_to_close Discriminator`,
     [NCN_PROGRAM_ERROR__INVALID_BASE_FEE_GROUP]: `Not a valid base fee group`,
-    [NCN_PROGRAM_ERROR__INVALID_DAO_WALLET]: `Invalid DAO wallet`,
     [NCN_PROGRAM_ERROR__INVALID_EPOCHS_BEFORE_CLOSE]: `Invalid epochs before accounts can close`,
     [NCN_PROGRAM_ERROR__INVALID_EPOCHS_BEFORE_STALL]: `Invalid epochs before stall`,
     [NCN_PROGRAM_ERROR__INVALID_MERKLE_PROOF]: `Invalid merkle proof`,
     [NCN_PROGRAM_ERROR__INVALID_MINT_FOR_WEIGHT_TABLE]: `Invalid mint for weight table`,
     [NCN_PROGRAM_ERROR__INVALID_NCN_FEE_GROUP]: `Not a valid NCN fee group`,
+    [NCN_PROGRAM_ERROR__INVALID_N_C_N_FEE_WALLET]: `Invalid NCN Fee wallet`,
     [NCN_PROGRAM_ERROR__INVALID_OPERATOR_VOTER]: `Operator voter needs to sign its vote`,
     [NCN_PROGRAM_ERROR__INVALID_SLOTS_AFTER_CONSENSUS]: `Invalid slots after consensus`,
     [NCN_PROGRAM_ERROR__MARKER_EXISTS]: `Marker exists`,

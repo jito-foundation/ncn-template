@@ -714,6 +714,101 @@
       }
     },
     {
+      "name": "InitializeNCNRewardRouter",
+      "accounts": [
+        {
+          "name": "epochMarker",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "epochState",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accountPayer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 14
+      }
+    },
+    {
+      "name": "ReallocNCNRewardRouter",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncnRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "accountPayer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 15
+      }
+    },
+    {
       "name": "CloseEpochAccount",
       "accounts": [
         {
@@ -750,6 +845,18 @@
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "ncnFeeWallet",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "receiverToClose",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
         }
       ],
       "args": [
@@ -760,7 +867,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 14
+        "value": 16
       }
     },
     {
@@ -810,7 +917,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 15
+        "value": 17
       }
     },
     {
@@ -847,7 +954,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 16
+        "value": 18
       }
     },
     {
@@ -891,7 +998,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 17
+        "value": 19
       }
     },
     {
@@ -934,7 +1041,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 18
+        "value": 20
       }
     },
     {
@@ -976,7 +1083,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 21
       }
     },
     {
@@ -1017,7 +1124,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 22
       }
     }
   ],
@@ -1466,6 +1573,24 @@
             }
           },
           {
+            "name": "totalDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "ncnDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "operatorVaultDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
             "name": "isClosing",
             "type": {
               "defined": "PodBool"
@@ -1883,6 +2008,10 @@
           },
           {
             "name": "ballotBox",
+            "type": "u8"
+          },
+          {
+            "name": "ncnRewardRouter",
             "type": "u8"
           }
         ]
@@ -2572,21 +2701,26 @@
     },
     {
       "code": 8780,
+      "name": "CannotCloseAccountNoEnoughAccounts",
+      "msg": "Cannot close account - No enough accounts"
+    },
+    {
+      "code": 8781,
       "name": "CannotCloseEpochStateAccount",
       "msg": "Cannot close epoch state account - Epoch state needs all other accounts to be closed first"
     },
     {
-      "code": 8781,
-      "name": "InvalidDaoWallet",
-      "msg": "Invalid DAO wallet"
+      "code": 8782,
+      "name": "InvalidNCNFeeWallet",
+      "msg": "Invalid NCN Fee wallet"
     },
     {
-      "code": 8782,
+      "code": 8783,
       "name": "EpochIsClosingDown",
       "msg": "Epoch is closing down"
     },
     {
-      "code": 8783,
+      "code": 8784,
       "name": "MarkerExists",
       "msg": "Marker exists"
     }

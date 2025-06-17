@@ -62,6 +62,9 @@ export type EpochState = {
   epochSnapshotProgress: Progress;
   operatorSnapshotProgress: Array<Progress>;
   votingProgress: Progress;
+  totalDistributionProgress: Progress;
+  ncnDistributionProgress: Progress;
+  operatorVaultDistributionProgress: Progress;
   isClosing: number;
 };
 
@@ -80,6 +83,9 @@ export type EpochStateArgs = {
   epochSnapshotProgress: ProgressArgs;
   operatorSnapshotProgress: Array<ProgressArgs>;
   votingProgress: ProgressArgs;
+  totalDistributionProgress: ProgressArgs;
+  ncnDistributionProgress: ProgressArgs;
+  operatorVaultDistributionProgress: ProgressArgs;
   isClosing: number;
 };
 
@@ -102,6 +108,9 @@ export function getEpochStateEncoder(): Encoder<EpochStateArgs> {
       getArrayEncoder(getProgressEncoder(), { size: 256 }),
     ],
     ['votingProgress', getProgressEncoder()],
+    ['totalDistributionProgress', getProgressEncoder()],
+    ['ncnDistributionProgress', getProgressEncoder()],
+    ['operatorVaultDistributionProgress', getProgressEncoder()],
     ['isClosing', getBoolEncoder()],
   ]);
 }
@@ -125,6 +134,9 @@ export function getEpochStateDecoder(): Decoder<EpochState> {
       getArrayDecoder(getProgressDecoder(), { size: 256 }),
     ],
     ['votingProgress', getProgressDecoder()],
+    ['totalDistributionProgress', getProgressDecoder()],
+    ['ncnDistributionProgress', getProgressDecoder()],
+    ['operatorVaultDistributionProgress', getProgressDecoder()],
     ['isClosing', getBoolDecoder()],
   ]);
 }

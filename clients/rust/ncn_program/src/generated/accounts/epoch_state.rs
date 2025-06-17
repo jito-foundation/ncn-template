@@ -33,6 +33,9 @@ pub struct EpochState {
     #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     pub operator_snapshot_progress: [Progress; 256],
     pub voting_progress: Progress,
+    pub total_distribution_progress: Progress,
+    pub ncn_distribution_progress: Progress,
+    pub operator_vault_distribution_progress: Progress,
     pub is_closing: bool,
 }
 
