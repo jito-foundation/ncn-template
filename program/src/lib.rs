@@ -19,6 +19,7 @@ mod realloc_ncn_reward_router;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
+mod route_ncn_rewards;
 mod set_epoch_weights;
 mod snapshot_vault_operator_delegation;
 
@@ -53,6 +54,7 @@ use crate::{
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table,
     register_vault::process_register_vault,
+    route_ncn_rewards::process_route_ncn_rewards,
     set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
@@ -223,13 +225,10 @@ pub fn process_instruction(
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
         }
-        
-
 
         // ---------------------------------------------------- //
         //                ROUTE AND DISTRIBUTE                  //
         // ---------------------------------------------------- //
-
         NCNProgramInstruction::InitializeNCNRewardRouter { epoch } => {
             msg!("Instruction: InitializeNCNRewardRouter");
             process_initialize_ncn_reward_router(program_id, accounts, epoch)
@@ -238,6 +237,13 @@ pub fn process_instruction(
             msg!("Instruction: ReallocNCNRewardRouter");
             process_realloc_ncn_reward_router(program_id, accounts, epoch)
         }
+        NCNProgramInstruction::RouteNCNRewards {
+            max_iterations,
+            epoch,
+        } => {
+            msg!("Instruction: RouteNCNRewards");
+            process_route_ncn_rewards(program_id, accounts, max_iterations, epoch)
+        } //
 
     }
 }

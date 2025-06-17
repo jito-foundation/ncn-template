@@ -712,6 +712,87 @@ impl TestBuilder {
         Ok(())
     }
 
+    // 13 - Route NCN rewards
+    pub async fn route_in_ncn_rewards_for_test_ncn(
+        &mut self,
+        test_ncn: &TestNcn,
+        rewards: u64,
+        pool_root: &PoolRoot,
+    ) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+        let epoch = self.clock().await.epoch;
+
+        let valid_slots_after_consensus = {
+            let config = ncn_program_client.get_ncn_config(ncn).await?;
+            config.valid_slots_after_consensus()
+        };
+
+        self.warp_slot_incremental(valid_slots_after_consensus + 1)
+            .await?;
+
+        let ncn_reward_receiver =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let sol_rewards = lamports_to_sol(rewards);
+
+        // send rewards to the base reward router
+        println!("Airdropping {} SOL to base reward receiver", sol_rewards);
+        ncn_program_client
+            .airdrop(&ncn_reward_receiver, sol_rewards)
+            .await?;
+
+        // route rewards
+        println!("Route");
+        ncn_program_client.do_route_ncn_rewards(ncn, epoch).await?;
+        // Should be able to route twice
+        ncn_program_client.do_route_ncn_rewards(ncn, epoch).await?;
+
+        let ncn_reward_router = ncn_program_client.get_ncn_reward_router(ncn, epoch).await?;
+
+        msg!("NCN Reward Router: {}", ncn_reward_router);
+
+        // // Base Rewards
+        // for group in BaseFeeGroup::all_groups().iter() {
+        //     let rewards = ncn_reward_router.base_fee_group_reward(*group).unwrap();
+        //
+        //     if rewards == 0 {
+        //         continue;
+        //     }
+        //     println!("Distribute Base {}", rewards);
+        //     ncn_program_client
+        //         .do_distribute_ncn_rewards(*group, ncn, epoch, pool_root)
+        //         .await?;
+        // }
+        //
+        // // Ncn
+        // for operator_root in test_ncn.operators.iter() {
+        //     let operator = operator_root.operator_pubkey;
+        //
+        //     let operator_route = ncn_reward_router.ncn_fee_group_reward_route(&operator);
+        //
+        //     if let Ok(operator_route) = operator_route {
+        //         for group in NcnFeeGroup::all_groups().iter() {
+        //             let rewards = operator_route.rewards(*group).unwrap();
+        //
+        //             if rewards == 0 {
+        //                 continue;
+        //             }
+        //
+        //             println!("Distribute Ncn Reward {}", rewards);
+        //             ncn_program_client
+        //                 .do_distribute_base_ncn_reward_route(*group, operator, ncn, epoch)
+        //                 .await?;
+        //         }
+        //     }
+        // }
+
+        println!("Done");
+
+        Ok(())
+    }
+
     /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
     /// for a given epoch after the required cooldown period has passed.
     /// Asserts that the accounts are actually closed (deleted).

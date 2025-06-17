@@ -284,6 +284,17 @@ mod tests {
             );
         }
 
+        fixture.add_routers_for_test_ncn(&test_ncn).await?;
+        let ncn_reward_router = ncn_program_client
+            .get_ncn_reward_router(ncn_pubkey, fixture.clock().await.epoch)
+            .await?;
+
+        msg!("NCN Reward Router: {}", ncn_reward_router);
+
+        fixture
+            .route_in_ncn_rewards_for_test_ncn(&test_ncn, 100_000, &pool_root)
+            .await?;
+
         // 7. Fetch and verify the consensus_result account
         {
             let epoch = fixture.clock().await.epoch;
@@ -316,7 +327,6 @@ mod tests {
             );
         }
 
-        fixture.add_routers_for_test_ncn(&test_ncn).await?;
 
         // 8. Close epoch accounts but keep consensus result
         let epoch_before_closing_account = fixture.clock().await.epoch;
