@@ -8,6 +8,7 @@ mod admin_set_weight;
 mod cast_vote;
 mod close_epoch_account;
 mod distribute_jito_dao_rewards;
+mod distribute_ncn_rewards;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
@@ -45,6 +46,7 @@ use crate::{
     cast_vote::process_cast_vote,
     close_epoch_account::process_close_epoch_account,
     distribute_jito_dao_rewards::process_distribute_jito_dao_rewards,
+    distribute_ncn_rewards::process_distribute_ncn_rewards,
     initialize_ballot_box::process_initialize_ballot_box,
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
     initialize_ncn_reward_router::process_initialize_ncn_reward_router,
@@ -250,6 +252,10 @@ pub fn process_instruction(
         NCNProgramInstruction::DistributeJitoDAORewards { epoch } => {
             msg!("Instruction: DistributeJitoDAORewards");
             process_distribute_jito_dao_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeNCNRewards { epoch } => {
+            msg!("Instruction: DistributeNCNRewards");
+            process_distribute_ncn_rewards(program_id, accounts, epoch)
         } //
 
     }

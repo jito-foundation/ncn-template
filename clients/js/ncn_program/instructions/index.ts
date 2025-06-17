@@ -15,6 +15,7 @@ export * from './adminSetWeight';
 export * from './castVote';
 export * from './closeEpochAccount';
 export * from './distributeJitoDAORewards';
+export * from './distributeNCNRewards';
 export * from './initializeBallotBox';
 export * from './initializeConfig';
 export * from './initializeEpochSnapshot';
