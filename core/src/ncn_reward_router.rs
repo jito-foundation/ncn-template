@@ -638,7 +638,7 @@ impl NCNRewardRouter {
 
     /// Distributes Jito DAO rewards and updates counters
     /// Returns the amount of rewards distributed
-    pub fn distribute_base_fee_group_rewards(&mut self) -> Result<u64, NCNProgramError> {
+    pub fn distribute_jito_dao_fee_rewards(&mut self) -> Result<u64, NCNProgramError> {
         let rewards = self.jito_dao_rewards();
         self.jito_dao_rewards = PodU64::from(
             rewards

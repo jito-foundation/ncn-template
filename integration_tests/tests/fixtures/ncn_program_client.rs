@@ -9,8 +9,8 @@ use ncn_program_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
-        CloseEpochAccountBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
-        InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
+        CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, InitializeBallotBoxBuilder,
+        InitializeConfigBuilder, InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
         InitializeVaultRegistryBuilder, InitializeWeightTableBuilder, ReallocBallotBoxBuilder,
         ReallocNCNRewardRouterBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder,
@@ -30,6 +30,7 @@ use ncn_program_core::{
     epoch_state::EpochState,
     error::NCNProgramError,
     ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
+    fees::FeeConfig,
     vault_registry::VaultRegistry,
     weight_table::WeightTable,
 };
@@ -242,6 +243,10 @@ impl NCNProgramClient {
 
         let ncn_fee_wallet = Keypair::new();
         self.airdrop(&ncn_fee_wallet.pubkey(), 0.1).await?;
+
+        // Airdroping some SOL to Jito DAO fee wallet to get it started.
+        let jito_fee_wallet = FeeConfig::JITO_DAO_FEE_WALLET;
+        self.airdrop(&jito_fee_wallet, 0.1).await?;
 
         self.initialize_config(
             ncn,
@@ -1575,6 +1580,49 @@ impl NCNProgramClient {
 
         self.process_transaction(tx).await
     }
+
+    pub async fn do_distribute_jito_dao_rewards(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        // pool_root: &PoolRoot,
+    ) -> TestResult<()> {
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let (ncn_config, _, _) = NcnConfig::find_program_address(&ncn_program::id(), &ncn);
+
+        let (ncn_reward_router, _, _) =
+            NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let ncn_config_account = self.get_ncn_config(ncn).await?;
+        let jito_dao_fee_wallet = ncn_config_account.fee_config.jito_dao_fee_wallet();
+
+        let (ncn_reward_receiver, _, _) =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch);
+
+        let ix = DistributeJitoDAORewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .config(ncn_config)
+            .ncn(ncn)
+            .ncn_reward_router(ncn_reward_router)
+            .ncn_reward_receiver(ncn_reward_receiver)
+            .jito_dao_fee_wallet(*jito_dao_fee_wallet)
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+
+        let transaction = Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        );
+
+        self.process_transaction(&transaction).await
+    }
+
 }
 
 /// Asserts that a TestResult contains a specific NCNProgramError.

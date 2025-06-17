@@ -9,32 +9,40 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct AdminRegisterStMint {
+pub struct DistributeJitoDAORewards {
+    pub epoch_state: solana_program::pubkey::Pubkey,
+
     pub config: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub st_mint: solana_program::pubkey::Pubkey,
+    pub ncn_reward_router: solana_program::pubkey::Pubkey,
 
-    pub vault_registry: solana_program::pubkey::Pubkey,
+    pub ncn_reward_receiver: solana_program::pubkey::Pubkey,
 
-    pub admin: solana_program::pubkey::Pubkey,
+    pub jito_dao_fee_wallet: solana_program::pubkey::Pubkey,
+
+    pub system_program: solana_program::pubkey::Pubkey,
 }
 
-impl AdminRegisterStMint {
+impl DistributeJitoDAORewards {
     pub fn instruction(
         &self,
-        args: AdminRegisterStMintInstructionArgs,
+        args: DistributeJitoDAORewardsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: AdminRegisterStMintInstructionArgs,
+        args: DistributeJitoDAORewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.epoch_state,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.config,
             false,
@@ -42,19 +50,24 @@ impl AdminRegisterStMint {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.ncn_reward_router,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.ncn_reward_receiver,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.jito_dao_fee_wallet,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.st_mint,
+            self.system_program,
             false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.vault_registry,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.admin, true,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = AdminRegisterStMintInstructionData::new()
+        let mut data = DistributeJitoDAORewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = args.try_to_vec().unwrap();
@@ -69,17 +82,17 @@ impl AdminRegisterStMint {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct AdminRegisterStMintInstructionData {
+pub struct DistributeJitoDAORewardsInstructionData {
     discriminator: u8,
 }
 
-impl AdminRegisterStMintInstructionData {
+impl DistributeJitoDAORewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 23 }
+        Self { discriminator: 17 }
     }
 }
 
-impl Default for AdminRegisterStMintInstructionData {
+impl Default for DistributeJitoDAORewardsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -87,33 +100,42 @@ impl Default for AdminRegisterStMintInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AdminRegisterStMintInstructionArgs {
-    pub weight: Option<u128>,
+pub struct DistributeJitoDAORewardsInstructionArgs {
+    pub epoch: u64,
 }
 
-/// Instruction builder for `AdminRegisterStMint`.
+/// Instruction builder for `DistributeJitoDAORewards`.
 ///
 /// ### Accounts:
 ///
-///   0. `[]` config
-///   1. `[]` ncn
-///   2. `[]` st_mint
-///   3. `[writable]` vault_registry
-///   4. `[writable, signer]` admin
+///   0. `[writable]` epoch_state
+///   1. `[]` config
+///   2. `[]` ncn
+///   3. `[writable]` ncn_reward_router
+///   4. `[writable]` ncn_reward_receiver
+///   5. `[writable]` jito_dao_fee_wallet
+///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct AdminRegisterStMintBuilder {
+pub struct DistributeJitoDAORewardsBuilder {
+    epoch_state: Option<solana_program::pubkey::Pubkey>,
     config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    st_mint: Option<solana_program::pubkey::Pubkey>,
-    vault_registry: Option<solana_program::pubkey::Pubkey>,
-    admin: Option<solana_program::pubkey::Pubkey>,
-    weight: Option<u128>,
+    ncn_reward_router: Option<solana_program::pubkey::Pubkey>,
+    ncn_reward_receiver: Option<solana_program::pubkey::Pubkey>,
+    jito_dao_fee_wallet: Option<solana_program::pubkey::Pubkey>,
+    system_program: Option<solana_program::pubkey::Pubkey>,
+    epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl AdminRegisterStMintBuilder {
+impl DistributeJitoDAORewardsBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+    #[inline(always)]
+    pub fn epoch_state(&mut self, epoch_state: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.epoch_state = Some(epoch_state);
+        self
     }
     #[inline(always)]
     pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
@@ -126,24 +148,38 @@ impl AdminRegisterStMintBuilder {
         self
     }
     #[inline(always)]
-    pub fn st_mint(&mut self, st_mint: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.st_mint = Some(st_mint);
+    pub fn ncn_reward_router(
+        &mut self,
+        ncn_reward_router: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.ncn_reward_router = Some(ncn_reward_router);
         self
     }
     #[inline(always)]
-    pub fn vault_registry(&mut self, vault_registry: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.vault_registry = Some(vault_registry);
+    pub fn ncn_reward_receiver(
+        &mut self,
+        ncn_reward_receiver: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.ncn_reward_receiver = Some(ncn_reward_receiver);
         self
     }
     #[inline(always)]
-    pub fn admin(&mut self, admin: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.admin = Some(admin);
+    pub fn jito_dao_fee_wallet(
+        &mut self,
+        jito_dao_fee_wallet: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.jito_dao_fee_wallet = Some(jito_dao_fee_wallet);
         self
     }
-    /// `[optional argument]`
+    /// `[optional account, default to '11111111111111111111111111111111']`
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.weight = Some(weight);
+    pub fn system_program(&mut self, system_program: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.system_program = Some(system_program);
+        self
+    }
+    #[inline(always)]
+    pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.epoch = Some(epoch);
         self
     }
     /// Add an additional account to the instruction.
@@ -166,65 +202,85 @@ impl AdminRegisterStMintBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = AdminRegisterStMint {
+        let accounts = DistributeJitoDAORewards {
+            epoch_state: self.epoch_state.expect("epoch_state is not set"),
             config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            st_mint: self.st_mint.expect("st_mint is not set"),
-            vault_registry: self.vault_registry.expect("vault_registry is not set"),
-            admin: self.admin.expect("admin is not set"),
+            ncn_reward_router: self
+                .ncn_reward_router
+                .expect("ncn_reward_router is not set"),
+            ncn_reward_receiver: self
+                .ncn_reward_receiver
+                .expect("ncn_reward_receiver is not set"),
+            jito_dao_fee_wallet: self
+                .jito_dao_fee_wallet
+                .expect("jito_dao_fee_wallet is not set"),
+            system_program: self
+                .system_program
+                .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
-        let args = AdminRegisterStMintInstructionArgs {
-            weight: self.weight.clone(),
+        let args = DistributeJitoDAORewardsInstructionArgs {
+            epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
-/// `admin_register_st_mint` CPI accounts.
-pub struct AdminRegisterStMintCpiAccounts<'a, 'b> {
+/// `distribute_jito_d_a_o_rewards` CPI accounts.
+pub struct DistributeJitoDAORewardsCpiAccounts<'a, 'b> {
+    pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `admin_register_st_mint` CPI instruction.
-pub struct AdminRegisterStMintCpi<'a, 'b> {
+/// `distribute_jito_d_a_o_rewards` CPI instruction.
+pub struct DistributeJitoDAORewardsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
+    pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: AdminRegisterStMintInstructionArgs,
+    pub __args: DistributeJitoDAORewardsInstructionArgs,
 }
 
-impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
+impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: AdminRegisterStMintCpiAccounts<'a, 'b>,
-        args: AdminRegisterStMintInstructionArgs,
+        accounts: DistributeJitoDAORewardsCpiAccounts<'a, 'b>,
+        args: DistributeJitoDAORewardsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
+            epoch_state: accounts.epoch_state,
             config: accounts.config,
             ncn: accounts.ncn,
-            st_mint: accounts.st_mint,
-            vault_registry: accounts.vault_registry,
-            admin: accounts.admin,
+            ncn_reward_router: accounts.ncn_reward_router,
+            ncn_reward_receiver: accounts.ncn_reward_receiver,
+            jito_dao_fee_wallet: accounts.jito_dao_fee_wallet,
+            system_program: accounts.system_program,
             __args: args,
         }
     }
@@ -261,7 +317,11 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.epoch_state.key,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.config.key,
             false,
@@ -270,17 +330,21 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             *self.ncn.key,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.ncn_reward_router.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.ncn_reward_receiver.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.jito_dao_fee_wallet.key,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.st_mint.key,
+            *self.system_program.key,
             false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.vault_registry.key,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.admin.key,
-            true,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -289,7 +353,7 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = AdminRegisterStMintInstructionData::new()
+        let mut data = DistributeJitoDAORewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
@@ -300,13 +364,15 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
+        account_infos.push(self.epoch_state.clone());
         account_infos.push(self.config.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.st_mint.clone());
-        account_infos.push(self.vault_registry.clone());
-        account_infos.push(self.admin.clone());
+        account_infos.push(self.ncn_reward_router.clone());
+        account_infos.push(self.ncn_reward_receiver.clone());
+        account_infos.push(self.jito_dao_fee_wallet.clone());
+        account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -319,33 +385,45 @@ impl<'a, 'b> AdminRegisterStMintCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `AdminRegisterStMint` via CPI.
+/// Instruction builder for `DistributeJitoDAORewards` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[]` config
-///   1. `[]` ncn
-///   2. `[]` st_mint
-///   3. `[writable]` vault_registry
-///   4. `[writable, signer]` admin
+///   0. `[writable]` epoch_state
+///   1. `[]` config
+///   2. `[]` ncn
+///   3. `[writable]` ncn_reward_router
+///   4. `[writable]` ncn_reward_receiver
+///   5. `[writable]` jito_dao_fee_wallet
+///   6. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct AdminRegisterStMintCpiBuilder<'a, 'b> {
-    instruction: Box<AdminRegisterStMintCpiBuilderInstruction<'a, 'b>>,
+pub struct DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
+    instruction: Box<DistributeJitoDAORewardsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
+impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(AdminRegisterStMintCpiBuilderInstruction {
+        let instruction = Box::new(DistributeJitoDAORewardsCpiBuilderInstruction {
             __program: program,
+            epoch_state: None,
             config: None,
             ncn: None,
-            st_mint: None,
-            vault_registry: None,
-            admin: None,
-            weight: None,
+            ncn_reward_router: None,
+            ncn_reward_receiver: None,
+            jito_dao_fee_wallet: None,
+            system_program: None,
+            epoch: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
+    }
+    #[inline(always)]
+    pub fn epoch_state(
+        &mut self,
+        epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.epoch_state = Some(epoch_state);
+        self
     }
     #[inline(always)]
     pub fn config(
@@ -361,30 +439,40 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn st_mint(
+    pub fn ncn_reward_router(
         &mut self,
-        st_mint: &'b solana_program::account_info::AccountInfo<'a>,
+        ncn_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.st_mint = Some(st_mint);
+        self.instruction.ncn_reward_router = Some(ncn_reward_router);
         self
     }
     #[inline(always)]
-    pub fn vault_registry(
+    pub fn ncn_reward_receiver(
         &mut self,
-        vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+        ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.vault_registry = Some(vault_registry);
+        self.instruction.ncn_reward_receiver = Some(ncn_reward_receiver);
         self
     }
     #[inline(always)]
-    pub fn admin(&mut self, admin: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.admin = Some(admin);
+    pub fn jito_dao_fee_wallet(
+        &mut self,
+        jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.jito_dao_fee_wallet = Some(jito_dao_fee_wallet);
         self
     }
-    /// `[optional argument]`
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.instruction.weight = Some(weight);
+    pub fn system_program(
+        &mut self,
+        system_program: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.system_program = Some(system_program);
+        self
+    }
+    #[inline(always)]
+    pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.instruction.epoch = Some(epoch);
         self
     }
     /// Add an additional account to the instruction.
@@ -428,24 +516,40 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = AdminRegisterStMintInstructionArgs {
-            weight: self.instruction.weight.clone(),
+        let args = DistributeJitoDAORewardsInstructionArgs {
+            epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = AdminRegisterStMintCpi {
+        let instruction = DistributeJitoDAORewardsCpi {
             __program: self.instruction.__program,
+
+            epoch_state: self
+                .instruction
+                .epoch_state
+                .expect("epoch_state is not set"),
 
             config: self.instruction.config.expect("config is not set"),
 
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            st_mint: self.instruction.st_mint.expect("st_mint is not set"),
-
-            vault_registry: self
+            ncn_reward_router: self
                 .instruction
-                .vault_registry
-                .expect("vault_registry is not set"),
+                .ncn_reward_router
+                .expect("ncn_reward_router is not set"),
 
-            admin: self.instruction.admin.expect("admin is not set"),
+            ncn_reward_receiver: self
+                .instruction
+                .ncn_reward_receiver
+                .expect("ncn_reward_receiver is not set"),
+
+            jito_dao_fee_wallet: self
+                .instruction
+                .jito_dao_fee_wallet
+                .expect("jito_dao_fee_wallet is not set"),
+
+            system_program: self
+                .instruction
+                .system_program
+                .expect("system_program is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -456,14 +560,16 @@ impl<'a, 'b> AdminRegisterStMintCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct AdminRegisterStMintCpiBuilderInstruction<'a, 'b> {
+struct DistributeJitoDAORewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
+    epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    st_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weight: Option<u128>,
+    ncn_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    jito_dao_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,
