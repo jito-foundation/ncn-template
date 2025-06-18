@@ -282,6 +282,20 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
+    /// Distributes base ncn reward routes
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, writable, name = "ncn_reward_router")]
+    #[account(5, writable, name = "ncn_reward_receiver")]
+    #[account(6, name = "operator_vault_reward_router")]
+    #[account(7, writable, name = "operator_vault_reward_receiver")]
+    #[account(8, name = "system_program")]
+    DistributeOperatorVaultRewardRoute{
+        epoch: u64,
+    },
+
 
 
     /// Close an epoch account

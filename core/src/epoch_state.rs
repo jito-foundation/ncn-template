@@ -274,7 +274,10 @@ pub struct EpochState {
     jito_dao_distribution_progress: Progress,
 
     /// Operator Vault distribution progress
-    operator_vault_distribution_progress: [Progress; 256],
+    operator_vault_distribution_progress: Progress,
+
+    /// Operator Vault distribution progress
+    operator_vault_routes_distribution_progress: [Progress; 256],
 
     /// Is closing
     is_closing: PodBool,
@@ -306,7 +309,8 @@ impl EpochState {
             total_distribution_progress: Progress::default(),
             ncn_distribution_progress: Progress::default(),
             jito_dao_distribution_progress: Progress::default(),
-            operator_vault_distribution_progress: [Progress::default(); MAX_OPERATORS],
+            operator_vault_distribution_progress: Progress::default(),
+            operator_vault_routes_distribution_progress: [Progress::default(); MAX_OPERATORS],
             is_closing: PodBool::from(false),
         }
     }
@@ -490,8 +494,15 @@ impl EpochState {
         self.jito_dao_distribution_progress
     }
 
-    pub const fn operator_vault_distribution_progress(&self, operator_index: usize) -> Progress {
-        self.operator_vault_distribution_progress[operator_index]
+    pub const fn operator_vault_distribution_progress(&self) -> Progress {
+        self.operator_vault_distribution_progress
+    }
+
+    pub const fn operator_vault_distribution_progress_route(
+        &self,
+        operator_index: usize,
+    ) -> Progress {
+        self.operator_vault_routes_distribution_progress[operator_index]
     }
     // ------------ UPDATERS ------------
     pub fn update_realloc_epoch_state(&mut self) {
@@ -589,12 +600,13 @@ impl EpochState {
             .set_ncn_reward_router(AccountStatus::CreatedWithReceiver);
         self.ncn_distribution_progress = Progress::new(0);
         self.jito_dao_distribution_progress = Progress::new(0);
+        self.operator_vault_distribution_progress = Progress::new(0);
     }
 
     pub fn update_realloc_operator_vault_reward_router(&mut self, operator_index: usize) {
         self.account_status
             .set_operator_vault_reward_router(operator_index, AccountStatus::CreatedWithReceiver);
-        self.operator_vault_distribution_progress[operator_index] = Progress::new(0);
+        self.operator_vault_routes_distribution_progress[operator_index] = Progress::new(0);
     }
 
     pub fn update_route_total_rewards(&mut self, total_rewards: u64) {
@@ -608,6 +620,10 @@ impl EpochState {
     pub fn update_route_jito_dao_rewards(&mut self, jito_dao_rewards: u64) {
         self.jito_dao_distribution_progress
             .set_total(jito_dao_rewards);
+    }
+
+    pub fn update_operator_vault_rewards(&mut self, rewards: u64) {
+        self.operator_vault_distribution_progress.set_total(rewards);
     }
 
     pub fn update_distribute_ncn_rewards(&mut self, rewards: u64) {
@@ -625,16 +641,20 @@ impl EpochState {
         operator_index: usize,
         total_rewards: u64,
     ) {
-        self.operator_vault_distribution_progress[operator_index].set_total(total_rewards);
+        self.operator_vault_routes_distribution_progress[operator_index].set_total(total_rewards);
     }
 
-    pub fn update_distribute_operator_vault_rewards(
+    pub fn update_distribute_operator_vault_rewards(&mut self, rewards: u64) {
+        let _ = self.operator_vault_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_distribute_operator_vault_route_rewards(
         &mut self,
         operator_index: usize,
         rewards: u64,
     ) {
         let _ = self.total_distribution_progress.increment(rewards);
-        let _ = self.operator_vault_distribution_progress[operator_index].increment(rewards);
+        let _ = self.operator_vault_routes_distribution_progress[operator_index].increment(rewards);
     }
 
     // ---------- CLOSERS ----------

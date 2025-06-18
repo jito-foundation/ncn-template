@@ -203,6 +203,15 @@ impl NCNRewardRouter {
         &self.operator_vault_reward_routes
     }
 
+    /// Gets the operator vault reward route
+    pub fn operator_vault_reward_route(&self, operator: &Pubkey) -> OperatorVaultRewardRoute {
+        *self
+            .operator_vault_reward_routes
+            .iter()
+            .find(|route| route.operator == *operator)
+            .unwrap_or(&OperatorVaultRewardRoute::default())
+    }
+
     /// Gets the last rewards amount being processed during partial routing
     pub fn last_rewards_to_process(&self) -> u64 {
         self.last_rewards_to_process.into()
