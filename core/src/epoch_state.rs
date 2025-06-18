@@ -37,6 +37,7 @@ pub struct EpochAccountStatus {
     operator_snapshot: [u8; 256],
     ballot_box: u8,
     ncn_reward_router: u8,
+    operator_vault_reward_router: [u8; 256],
 }
 
 impl Default for EpochAccountStatus {
@@ -48,6 +49,7 @@ impl Default for EpochAccountStatus {
             operator_snapshot: [0; MAX_OPERATORS],
             ncn_reward_router: 0,
             ballot_box: 0,
+            operator_vault_reward_router: [0; MAX_OPERATORS],
         }
     }
 }
@@ -111,6 +113,10 @@ impl EpochAccountStatus {
 
     pub fn set_ncn_reward_router(&mut self, status: AccountStatus) {
         self.ncn_reward_router = status as u8;
+    }
+
+    pub fn set_operator_vault_reward_router(&mut self, index: usize, status: AccountStatus) {
+        self.operator_vault_reward_router[index] = status as u8;
     }
 
     pub fn are_all_closed(&self) -> bool {
@@ -267,6 +273,9 @@ pub struct EpochState {
     /// Jito distribution progress
     jito_dao_distribution_progress: Progress,
 
+    /// Operator Vault distribution progress
+    operator_vault_distribution_progress: [Progress; 256],
+
     /// Is closing
     is_closing: PodBool,
 }
@@ -297,6 +306,7 @@ impl EpochState {
             total_distribution_progress: Progress::default(),
             ncn_distribution_progress: Progress::default(),
             jito_dao_distribution_progress: Progress::default(),
+            operator_vault_distribution_progress: [Progress::default(); MAX_OPERATORS],
             is_closing: PodBool::from(false),
         }
     }
@@ -392,7 +402,6 @@ impl EpochState {
         Self::load(program_id, account, ncn, epoch, expect_writable)
     }
 
-    // ------------ HELPER FUNCTIONS ------------
     // ------------ GETTERS ------------
 
     pub const fn ncn(&self) -> &Pubkey {
@@ -469,6 +478,21 @@ impl EpochState {
         self.voting_progress
     }
 
+    pub const fn total_distribution_progress(&self) -> Progress {
+        self.total_distribution_progress
+    }
+
+    pub const fn ncn_distribution_progress(&self) -> Progress {
+        self.ncn_distribution_progress
+    }
+
+    pub const fn jito_dao_distribution_progress(&self) -> Progress {
+        self.jito_dao_distribution_progress
+    }
+
+    pub const fn operator_vault_distribution_progress(&self, operator_index: usize) -> Progress {
+        self.operator_vault_distribution_progress[operator_index]
+    }
     // ------------ UPDATERS ------------
     pub fn update_realloc_epoch_state(&mut self) {
         self.account_status.set_epoch_state(AccountStatus::Created);
@@ -567,27 +591,50 @@ impl EpochState {
         self.jito_dao_distribution_progress = Progress::new(0);
     }
 
-    pub fn update_route_ncn_rewards(&mut self, total_rewards: u64) {
+    pub fn update_realloc_operator_vault_reward_router(&mut self, operator_index: usize) {
+        self.account_status
+            .set_operator_vault_reward_router(operator_index, AccountStatus::CreatedWithReceiver);
+        self.operator_vault_distribution_progress[operator_index] = Progress::new(0);
+    }
+
+    pub fn update_route_total_rewards(&mut self, total_rewards: u64) {
         self.total_distribution_progress.set_total(total_rewards);
-        self.ncn_distribution_progress.set_total(total_rewards);
     }
 
-    pub fn update_distribute_ncn_rewards(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
-        self.total_distribution_progress.increment(rewards)?;
-        self.ncn_distribution_progress.increment(rewards)
+    pub fn update_route_ncn_rewards(&mut self, ncn_rewards: u64) {
+        self.ncn_distribution_progress.set_total(ncn_rewards);
     }
 
-    pub fn update_route_jito_dao_rewards(&mut self, total_rewards: u64) {
-        self.total_distribution_progress.set_total(total_rewards);
-        self.jito_dao_distribution_progress.set_total(total_rewards);
+    pub fn update_route_jito_dao_rewards(&mut self, jito_dao_rewards: u64) {
+        self.jito_dao_distribution_progress
+            .set_total(jito_dao_rewards);
     }
 
-    pub fn update_distribute_jito_dao_rewards(
+    pub fn update_distribute_ncn_rewards(&mut self, rewards: u64) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.ncn_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_distribute_jito_dao_rewards(&mut self, rewards: u64) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.jito_dao_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_route_operator_vault_rewards(
         &mut self,
+        operator_index: usize,
+        total_rewards: u64,
+    ) {
+        self.operator_vault_distribution_progress[operator_index].set_total(total_rewards);
+    }
+
+    pub fn update_distribute_operator_vault_rewards(
+        &mut self,
+        operator_index: usize,
         rewards: u64,
-    ) -> Result<(), NCNProgramError> {
-        self.total_distribution_progress.increment(rewards)?;
-        self.jito_dao_distribution_progress.increment(rewards)
+    ) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.operator_vault_distribution_progress[operator_index].increment(rewards);
     }
 
     // ---------- CLOSERS ----------
