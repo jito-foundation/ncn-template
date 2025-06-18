@@ -32,5 +32,6 @@ export * from './reallocVaultRegistry';
 export * from './reallocWeightTable';
 export * from './registerVault';
 export * from './routeNCNRewards';
+export * from './routeOperatorVaultRewards';
 export * from './setEpochWeights';
 export * from './snapshotVaultOperatorDelegation';

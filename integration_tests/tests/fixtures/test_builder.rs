@@ -842,6 +842,60 @@ impl TestBuilder {
         Ok(())
     }
 
+    // 14 - Route Operator Vault Rewards
+    pub async fn route_in_operator_vault_rewards_for_test_ncn(
+        &mut self,
+        test_ncn: &TestNcn,
+    ) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+        let epoch = self.clock().await.epoch;
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+
+            ncn_program_client
+                .do_route_operator_vault_rewards(ncn, operator, epoch)
+                .await?;
+            // Should be able to route twice
+            ncn_program_client
+                .do_route_operator_vault_rewards(ncn, operator, epoch)
+                .await?;
+
+            let operator_vault_reward_router = ncn_program_client
+                .get_operator_vault_reward_router(operator, ncn, epoch)
+                .await?;
+
+            let operator_rewards = operator_vault_reward_router.operator_rewards();
+            // if operator_rewards > 0 {
+            //     ncn_program_client
+            //         .do_distribute_ncn_operator_rewards(operator, ncn, epoch)
+            //         .await?;
+            // }
+
+            // for vault_root in test_ncn.vaults.iter() {
+            //     let vault = vault_root.vault_pubkey;
+            //
+            //     let vault_reward_route = operator_vault_reward_router.vault_reward_route(&vault);
+            //
+            //     if let Ok(vault_reward_route) = vault_reward_route {
+            //         let vault_rewards = vault_reward_route.rewards();
+            //
+            //         if vault_rewards > 0 {
+            //             ncn_program_client
+            //                 .do_distribute_ncn_vault_rewards(
+            //                     *group, vault, operator, ncn, epoch, pool_root,
+            //                 )
+            //                 .await?;
+            //         }
+            //     }
+            // }
+        }
+
+        Ok(())
+    }
+
     /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
     /// for a given epoch after the required cooldown period has passed.
     /// Asserts that the accounts are actually closed (deleted).

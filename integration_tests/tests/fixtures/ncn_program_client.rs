@@ -17,7 +17,8 @@ use ncn_program_client::{
         InitializeOperatorVaultRewardRouterBuilder, InitializeVaultRegistryBuilder,
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocNCNRewardRouterBuilder,
         ReallocVaultRegistryBuilder, ReallocWeightTableBuilder, RegisterVaultBuilder,
-        RouteNCNRewardsBuilder, SetEpochWeightsBuilder, SnapshotVaultOperatorDelegationBuilder,
+        RouteNCNRewardsBuilder, RouteOperatorVaultRewardsBuilder, SetEpochWeightsBuilder,
+        SnapshotVaultOperatorDelegationBuilder,
     },
     types::ConfigAdminRole,
 };
@@ -1853,6 +1854,93 @@ impl NCNProgramClient {
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
             &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+        .await
+    }
+
+    pub async fn do_route_operator_vault_rewards(
+        &mut self,
+        ncn: Pubkey,
+        operator: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let (operator_snapshot, _, _) =
+            OperatorSnapshot::find_program_address(&ncn_program::id(), &operator, &ncn, epoch);
+
+        let (operator_vault_reward_router, _, _) = OperatorVaultRewardRouter::find_program_address(
+            &ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        );
+
+        let (operator_vault_reward_receiver, _, _) =
+            OperatorVaultRewardReceiver::find_program_address(
+                &ncn_program::id(),
+                &operator,
+                &ncn,
+                epoch,
+            );
+
+        let max_iterations: u16 = OperatorVaultRewardRouter::MAX_ROUTE_NCN_ITERATIONS;
+        let mut still_routing = true;
+
+        while still_routing {
+            self.route_operator_vault_rewards(
+                ncn,
+                operator,
+                operator_snapshot,
+                operator_vault_reward_router,
+                operator_vault_reward_receiver,
+                max_iterations,
+                epoch,
+            )
+            .await?;
+
+            let ncn_reward_router_account = self
+                .get_operator_vault_reward_router(operator, ncn, epoch)
+                .await?;
+
+            still_routing = ncn_reward_router_account.still_routing();
+        }
+
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn route_operator_vault_rewards(
+        &mut self,
+        ncn: Pubkey,
+        operator: Pubkey,
+        operator_snapshot: Pubkey,
+        operator_vault_reward_router: Pubkey,
+        operator_vault_reward_receiver: Pubkey,
+        max_iterations: u16,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let ix = RouteOperatorVaultRewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .ncn(ncn)
+            .operator(operator)
+            .operator_snapshot(operator_snapshot)
+            .operator_vault_reward_router(operator_vault_reward_router)
+            .operator_vault_reward_receiver(operator_vault_reward_receiver)
+            .max_iterations(max_iterations)
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.get_best_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[
+                // TODO: should make this instruction much more efficient
+                ComputeBudgetInstruction::set_compute_unit_limit(1_400_000),
+                ix,
+            ],
             Some(&self.payer.pubkey()),
             &[&self.payer],
             blockhash,

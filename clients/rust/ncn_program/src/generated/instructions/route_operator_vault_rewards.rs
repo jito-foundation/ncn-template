@@ -7,33 +7,36 @@
 
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
-use solana_program::pubkey::Pubkey;
 
 /// Accounts.
-pub struct AdminSetWeight {
+pub struct RouteOperatorVaultRewards {
     pub epoch_state: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub weight_table: solana_program::pubkey::Pubkey,
+    pub operator: solana_program::pubkey::Pubkey,
 
-    pub weight_table_admin: solana_program::pubkey::Pubkey,
+    pub operator_snapshot: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_router: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
 }
 
-impl AdminSetWeight {
+impl RouteOperatorVaultRewards {
     pub fn instruction(
         &self,
-        args: AdminSetWeightInstructionArgs,
+        args: RouteOperatorVaultRewardsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: AdminSetWeightInstructionArgs,
+        args: RouteOperatorVaultRewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.epoch_state,
             false,
@@ -41,16 +44,26 @@ impl AdminSetWeight {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.weight_table,
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.operator,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.weight_table_admin,
-            true,
+            self.operator_snapshot,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_vault_reward_router,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_vault_reward_receiver,
+            false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = AdminSetWeightInstructionData::new().try_to_vec().unwrap();
+        let mut data = RouteOperatorVaultRewardsInstructionData::new()
+            .try_to_vec()
+            .unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -63,17 +76,17 @@ impl AdminSetWeight {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct AdminSetWeightInstructionData {
+pub struct RouteOperatorVaultRewardsInstructionData {
     discriminator: u8,
 }
 
-impl AdminSetWeightInstructionData {
+impl RouteOperatorVaultRewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 26 }
+        Self { discriminator: 21 }
     }
 }
 
-impl Default for AdminSetWeightInstructionData {
+impl Default for RouteOperatorVaultRewardsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -81,33 +94,35 @@ impl Default for AdminSetWeightInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AdminSetWeightInstructionArgs {
-    pub st_mint: Pubkey,
-    pub weight: u128,
+pub struct RouteOperatorVaultRewardsInstructionArgs {
+    pub max_iterations: u16,
     pub epoch: u64,
 }
 
-/// Instruction builder for `AdminSetWeight`.
+/// Instruction builder for `RouteOperatorVaultRewards`.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
 ///   1. `[]` ncn
-///   2. `[writable]` weight_table
-///   3. `[signer]` weight_table_admin
+///   2. `[]` operator
+///   3. `[]` operator_snapshot
+///   4. `[writable]` operator_vault_reward_router
+///   5. `[writable]` operator_vault_reward_receiver
 #[derive(Clone, Debug, Default)]
-pub struct AdminSetWeightBuilder {
+pub struct RouteOperatorVaultRewardsBuilder {
     epoch_state: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    weight_table: Option<solana_program::pubkey::Pubkey>,
-    weight_table_admin: Option<solana_program::pubkey::Pubkey>,
-    st_mint: Option<Pubkey>,
-    weight: Option<u128>,
+    operator: Option<solana_program::pubkey::Pubkey>,
+    operator_snapshot: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_router: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_receiver: Option<solana_program::pubkey::Pubkey>,
+    max_iterations: Option<u16>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl AdminSetWeightBuilder {
+impl RouteOperatorVaultRewardsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -122,26 +137,37 @@ impl AdminSetWeightBuilder {
         self
     }
     #[inline(always)]
-    pub fn weight_table(&mut self, weight_table: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.weight_table = Some(weight_table);
+    pub fn operator(&mut self, operator: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.operator = Some(operator);
         self
     }
     #[inline(always)]
-    pub fn weight_table_admin(
+    pub fn operator_snapshot(
         &mut self,
-        weight_table_admin: solana_program::pubkey::Pubkey,
+        operator_snapshot: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
-        self.weight_table_admin = Some(weight_table_admin);
+        self.operator_snapshot = Some(operator_snapshot);
         self
     }
     #[inline(always)]
-    pub fn st_mint(&mut self, st_mint: Pubkey) -> &mut Self {
-        self.st_mint = Some(st_mint);
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_router = Some(operator_vault_reward_router);
         self
     }
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.weight = Some(weight);
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
+        self
+    }
+    #[inline(always)]
+    pub fn max_iterations(&mut self, max_iterations: u16) -> &mut Self {
+        self.max_iterations = Some(max_iterations);
         self
     }
     #[inline(always)]
@@ -169,17 +195,25 @@ impl AdminSetWeightBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = AdminSetWeight {
+        let accounts = RouteOperatorVaultRewards {
             epoch_state: self.epoch_state.expect("epoch_state is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            weight_table: self.weight_table.expect("weight_table is not set"),
-            weight_table_admin: self
-                .weight_table_admin
-                .expect("weight_table_admin is not set"),
+            operator: self.operator.expect("operator is not set"),
+            operator_snapshot: self
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+            operator_vault_reward_router: self
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+            operator_vault_reward_receiver: self
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
         };
-        let args = AdminSetWeightInstructionArgs {
-            st_mint: self.st_mint.clone().expect("st_mint is not set"),
-            weight: self.weight.clone().expect("weight is not set"),
+        let args = RouteOperatorVaultRewardsInstructionArgs {
+            max_iterations: self
+                .max_iterations
+                .clone()
+                .expect("max_iterations is not set"),
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -187,19 +221,23 @@ impl AdminSetWeightBuilder {
     }
 }
 
-/// `admin_set_weight` CPI accounts.
-pub struct AdminSetWeightCpiAccounts<'a, 'b> {
+/// `route_operator_vault_rewards` CPI accounts.
+pub struct RouteOperatorVaultRewardsCpiAccounts<'a, 'b> {
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub weight_table: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub weight_table_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `admin_set_weight` CPI instruction.
-pub struct AdminSetWeightCpi<'a, 'b> {
+/// `route_operator_vault_rewards` CPI instruction.
+pub struct RouteOperatorVaultRewardsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -207,25 +245,31 @@ pub struct AdminSetWeightCpi<'a, 'b> {
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub weight_table: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub weight_table_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: AdminSetWeightInstructionArgs,
+    pub __args: RouteOperatorVaultRewardsInstructionArgs,
 }
 
-impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
+impl<'a, 'b> RouteOperatorVaultRewardsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: AdminSetWeightCpiAccounts<'a, 'b>,
-        args: AdminSetWeightInstructionArgs,
+        accounts: RouteOperatorVaultRewardsCpiAccounts<'a, 'b>,
+        args: RouteOperatorVaultRewardsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
             epoch_state: accounts.epoch_state,
             ncn: accounts.ncn,
-            weight_table: accounts.weight_table,
-            weight_table_admin: accounts.weight_table_admin,
+            operator: accounts.operator,
+            operator_snapshot: accounts.operator_snapshot,
+            operator_vault_reward_router: accounts.operator_vault_reward_router,
+            operator_vault_reward_receiver: accounts.operator_vault_reward_receiver,
             __args: args,
         }
     }
@@ -262,7 +306,7 @@ impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.epoch_state.key,
             false,
@@ -271,13 +315,21 @@ impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
             *self.ncn.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.weight_table.key,
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.operator.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.weight_table_admin.key,
-            true,
+            *self.operator_snapshot.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_vault_reward_router.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_vault_reward_receiver.key,
+            false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -286,7 +338,9 @@ impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = AdminSetWeightInstructionData::new().try_to_vec().unwrap();
+        let mut data = RouteOperatorVaultRewardsInstructionData::new()
+            .try_to_vec()
+            .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -295,12 +349,14 @@ impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(4 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_state.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.weight_table.clone());
-        account_infos.push(self.weight_table_admin.clone());
+        account_infos.push(self.operator.clone());
+        account_infos.push(self.operator_snapshot.clone());
+        account_infos.push(self.operator_vault_reward_router.clone());
+        account_infos.push(self.operator_vault_reward_receiver.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -313,29 +369,32 @@ impl<'a, 'b> AdminSetWeightCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `AdminSetWeight` via CPI.
+/// Instruction builder for `RouteOperatorVaultRewards` via CPI.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
 ///   1. `[]` ncn
-///   2. `[writable]` weight_table
-///   3. `[signer]` weight_table_admin
+///   2. `[]` operator
+///   3. `[]` operator_snapshot
+///   4. `[writable]` operator_vault_reward_router
+///   5. `[writable]` operator_vault_reward_receiver
 #[derive(Clone, Debug)]
-pub struct AdminSetWeightCpiBuilder<'a, 'b> {
-    instruction: Box<AdminSetWeightCpiBuilderInstruction<'a, 'b>>,
+pub struct RouteOperatorVaultRewardsCpiBuilder<'a, 'b> {
+    instruction: Box<RouteOperatorVaultRewardsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> AdminSetWeightCpiBuilder<'a, 'b> {
+impl<'a, 'b> RouteOperatorVaultRewardsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(AdminSetWeightCpiBuilderInstruction {
+        let instruction = Box::new(RouteOperatorVaultRewardsCpiBuilderInstruction {
             __program: program,
             epoch_state: None,
             ncn: None,
-            weight_table: None,
-            weight_table_admin: None,
-            st_mint: None,
-            weight: None,
+            operator: None,
+            operator_snapshot: None,
+            operator_vault_reward_router: None,
+            operator_vault_reward_receiver: None,
+            max_iterations: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -355,29 +414,40 @@ impl<'a, 'b> AdminSetWeightCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn weight_table(
+    pub fn operator(
         &mut self,
-        weight_table: &'b solana_program::account_info::AccountInfo<'a>,
+        operator: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.weight_table = Some(weight_table);
+        self.instruction.operator = Some(operator);
         self
     }
     #[inline(always)]
-    pub fn weight_table_admin(
+    pub fn operator_snapshot(
         &mut self,
-        weight_table_admin: &'b solana_program::account_info::AccountInfo<'a>,
+        operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.weight_table_admin = Some(weight_table_admin);
+        self.instruction.operator_snapshot = Some(operator_snapshot);
         self
     }
     #[inline(always)]
-    pub fn st_mint(&mut self, st_mint: Pubkey) -> &mut Self {
-        self.instruction.st_mint = Some(st_mint);
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_router = Some(operator_vault_reward_router);
         self
     }
     #[inline(always)]
-    pub fn weight(&mut self, weight: u128) -> &mut Self {
-        self.instruction.weight = Some(weight);
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
+        self
+    }
+    #[inline(always)]
+    pub fn max_iterations(&mut self, max_iterations: u16) -> &mut Self {
+        self.instruction.max_iterations = Some(max_iterations);
         self
     }
     #[inline(always)]
@@ -426,16 +496,15 @@ impl<'a, 'b> AdminSetWeightCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = AdminSetWeightInstructionArgs {
-            st_mint: self
+        let args = RouteOperatorVaultRewardsInstructionArgs {
+            max_iterations: self
                 .instruction
-                .st_mint
+                .max_iterations
                 .clone()
-                .expect("st_mint is not set"),
-            weight: self.instruction.weight.clone().expect("weight is not set"),
+                .expect("max_iterations is not set"),
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = AdminSetWeightCpi {
+        let instruction = RouteOperatorVaultRewardsCpi {
             __program: self.instruction.__program,
 
             epoch_state: self
@@ -445,15 +514,22 @@ impl<'a, 'b> AdminSetWeightCpiBuilder<'a, 'b> {
 
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            weight_table: self
-                .instruction
-                .weight_table
-                .expect("weight_table is not set"),
+            operator: self.instruction.operator.expect("operator is not set"),
 
-            weight_table_admin: self
+            operator_snapshot: self
                 .instruction
-                .weight_table_admin
-                .expect("weight_table_admin is not set"),
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+
+            operator_vault_reward_router: self
+                .instruction
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+
+            operator_vault_reward_receiver: self
+                .instruction
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -464,14 +540,15 @@ impl<'a, 'b> AdminSetWeightCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct AdminSetWeightCpiBuilderInstruction<'a, 'b> {
+struct RouteOperatorVaultRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weight_table: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weight_table_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    st_mint: Option<Pubkey>,
-    weight: Option<u128>,
+    operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    max_iterations: Option<u16>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
