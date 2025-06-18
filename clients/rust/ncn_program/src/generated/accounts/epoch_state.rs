@@ -36,7 +36,8 @@ pub struct EpochState {
     pub total_distribution_progress: Progress,
     pub ncn_distribution_progress: Progress,
     pub jito_dao_distribution_progress: Progress,
-    pub operator_vault_distribution_progress: Progress,
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
+    pub operator_vault_distribution_progress: [Progress; 256],
     pub is_closing: bool,
 }
 

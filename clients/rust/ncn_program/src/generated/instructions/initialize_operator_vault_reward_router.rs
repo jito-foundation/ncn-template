@@ -9,41 +9,41 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct CloseEpochAccount {
+pub struct InitializeOperatorVaultRewardRouter {
     pub epoch_marker: solana_program::pubkey::Pubkey,
 
     pub epoch_state: solana_program::pubkey::Pubkey,
 
-    pub config: solana_program::pubkey::Pubkey,
-
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub account_to_close: solana_program::pubkey::Pubkey,
+    pub operator: solana_program::pubkey::Pubkey,
+
+    pub operator_snapshot: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_router: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
 
     pub account_payer: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
-
-    pub ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
-
-    pub receiver_to_close: Option<solana_program::pubkey::Pubkey>,
 }
 
-impl CloseEpochAccount {
+impl InitializeOperatorVaultRewardRouter {
     pub fn instruction(
         &self,
-        args: CloseEpochAccountInstructionArgs,
+        args: InitializeOperatorVaultRewardRouterInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: CloseEpochAccountInstructionArgs,
+        args: InitializeOperatorVaultRewardRouterInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.epoch_marker,
             false,
         ));
@@ -52,14 +52,22 @@ impl CloseEpochAccount {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.config,
+            self.ncn, false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.operator,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.ncn, false,
+            self.operator_snapshot,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.account_to_close,
+            self.operator_vault_reward_router,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_vault_reward_receiver,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -70,30 +78,8 @@ impl CloseEpochAccount {
             self.system_program,
             false,
         ));
-        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                ncn_fee_wallet,
-                false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::NCN_PROGRAM_ID,
-                false,
-            ));
-        }
-        if let Some(receiver_to_close) = self.receiver_to_close {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                receiver_to_close,
-                false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::NCN_PROGRAM_ID,
-                false,
-            ));
-        }
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = CloseEpochAccountInstructionData::new()
+        let mut data = InitializeOperatorVaultRewardRouterInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = args.try_to_vec().unwrap();
@@ -108,17 +94,17 @@ impl CloseEpochAccount {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct CloseEpochAccountInstructionData {
+pub struct InitializeOperatorVaultRewardRouterInstructionData {
     discriminator: u8,
 }
 
-impl CloseEpochAccountInstructionData {
+impl InitializeOperatorVaultRewardRouterInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 20 }
+        Self { discriminator: 19 }
     }
 }
 
-impl Default for CloseEpochAccountInstructionData {
+impl Default for InitializeOperatorVaultRewardRouterInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -126,39 +112,39 @@ impl Default for CloseEpochAccountInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CloseEpochAccountInstructionArgs {
+pub struct InitializeOperatorVaultRewardRouterInstructionArgs {
     pub epoch: u64,
 }
 
-/// Instruction builder for `CloseEpochAccount`.
+/// Instruction builder for `InitializeOperatorVaultRewardRouter`.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable]` epoch_marker
+///   0. `[]` epoch_marker
 ///   1. `[writable]` epoch_state
-///   2. `[]` config
-///   3. `[]` ncn
-///   4. `[writable]` account_to_close
-///   5. `[writable]` account_payer
-///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
-///   7. `[writable, optional]` ncn_fee_wallet
-///   8. `[writable, optional]` receiver_to_close
+///   2. `[]` ncn
+///   3. `[]` operator
+///   4. `[]` operator_snapshot
+///   5. `[writable]` operator_vault_reward_router
+///   6. `[writable]` operator_vault_reward_receiver
+///   7. `[writable]` account_payer
+///   8. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct CloseEpochAccountBuilder {
+pub struct InitializeOperatorVaultRewardRouterBuilder {
     epoch_marker: Option<solana_program::pubkey::Pubkey>,
     epoch_state: Option<solana_program::pubkey::Pubkey>,
-    config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    account_to_close: Option<solana_program::pubkey::Pubkey>,
+    operator: Option<solana_program::pubkey::Pubkey>,
+    operator_snapshot: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_router: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_receiver: Option<solana_program::pubkey::Pubkey>,
     account_payer: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
-    ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
-    receiver_to_close: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl CloseEpochAccountBuilder {
+impl InitializeOperatorVaultRewardRouterBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -173,21 +159,37 @@ impl CloseEpochAccountBuilder {
         self
     }
     #[inline(always)]
-    pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.config = Some(config);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
         self.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn account_to_close(
+    pub fn operator(&mut self, operator: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.operator = Some(operator);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_snapshot(
         &mut self,
-        account_to_close: solana_program::pubkey::Pubkey,
+        operator_snapshot: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
-        self.account_to_close = Some(account_to_close);
+        self.operator_snapshot = Some(operator_snapshot);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_router = Some(operator_vault_reward_router);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
         self
     }
     #[inline(always)]
@@ -199,24 +201,6 @@ impl CloseEpochAccountBuilder {
     #[inline(always)]
     pub fn system_program(&mut self, system_program: solana_program::pubkey::Pubkey) -> &mut Self {
         self.system_program = Some(system_program);
-        self
-    }
-    /// `[optional account]`
-    #[inline(always)]
-    pub fn ncn_fee_wallet(
-        &mut self,
-        ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
-    ) -> &mut Self {
-        self.ncn_fee_wallet = ncn_fee_wallet;
-        self
-    }
-    /// `[optional account]`
-    #[inline(always)]
-    pub fn receiver_to_close(
-        &mut self,
-        receiver_to_close: Option<solana_program::pubkey::Pubkey>,
-    ) -> &mut Self {
-        self.receiver_to_close = receiver_to_close;
         self
     }
     #[inline(always)]
@@ -244,20 +228,26 @@ impl CloseEpochAccountBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = CloseEpochAccount {
+        let accounts = InitializeOperatorVaultRewardRouter {
             epoch_marker: self.epoch_marker.expect("epoch_marker is not set"),
             epoch_state: self.epoch_state.expect("epoch_state is not set"),
-            config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            account_to_close: self.account_to_close.expect("account_to_close is not set"),
+            operator: self.operator.expect("operator is not set"),
+            operator_snapshot: self
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+            operator_vault_reward_router: self
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+            operator_vault_reward_receiver: self
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
             account_payer: self.account_payer.expect("account_payer is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
-            ncn_fee_wallet: self.ncn_fee_wallet,
-            receiver_to_close: self.receiver_to_close,
         };
-        let args = CloseEpochAccountInstructionArgs {
+        let args = InitializeOperatorVaultRewardRouterInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -265,29 +255,29 @@ impl CloseEpochAccountBuilder {
     }
 }
 
-/// `close_epoch_account` CPI accounts.
-pub struct CloseEpochAccountCpiAccounts<'a, 'b> {
+/// `initialize_operator_vault_reward_router` CPI accounts.
+pub struct InitializeOperatorVaultRewardRouterCpiAccounts<'a, 'b> {
     pub epoch_marker: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub config: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub account_to_close: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-
-    pub receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
 }
 
-/// `close_epoch_account` CPI instruction.
-pub struct CloseEpochAccountCpi<'a, 'b> {
+/// `initialize_operator_vault_reward_router` CPI instruction.
+pub struct InitializeOperatorVaultRewardRouterCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -295,40 +285,40 @@ pub struct CloseEpochAccountCpi<'a, 'b> {
 
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub config: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub account_to_close: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-
-    pub receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// The arguments for the instruction.
-    pub __args: CloseEpochAccountInstructionArgs,
+    pub __args: InitializeOperatorVaultRewardRouterInstructionArgs,
 }
 
-impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
+impl<'a, 'b> InitializeOperatorVaultRewardRouterCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: CloseEpochAccountCpiAccounts<'a, 'b>,
-        args: CloseEpochAccountInstructionArgs,
+        accounts: InitializeOperatorVaultRewardRouterCpiAccounts<'a, 'b>,
+        args: InitializeOperatorVaultRewardRouterInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
             epoch_marker: accounts.epoch_marker,
             epoch_state: accounts.epoch_state,
-            config: accounts.config,
             ncn: accounts.ncn,
-            account_to_close: accounts.account_to_close,
+            operator: accounts.operator,
+            operator_snapshot: accounts.operator_snapshot,
+            operator_vault_reward_router: accounts.operator_vault_reward_router,
+            operator_vault_reward_receiver: accounts.operator_vault_reward_receiver,
             account_payer: accounts.account_payer,
             system_program: accounts.system_program,
-            ncn_fee_wallet: accounts.ncn_fee_wallet,
-            receiver_to_close: accounts.receiver_to_close,
             __args: args,
         }
     }
@@ -366,7 +356,7 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
         )],
     ) -> solana_program::entrypoint::ProgramResult {
         let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.epoch_marker.key,
             false,
         ));
@@ -375,15 +365,23 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.config.key,
-            false,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.ncn.key,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.operator.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.operator_snapshot.key,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.account_to_close.key,
+            *self.operator_vault_reward_router.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_vault_reward_receiver.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -394,28 +392,6 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             *self.system_program.key,
             false,
         ));
-        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                *ncn_fee_wallet.key,
-                false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::NCN_PROGRAM_ID,
-                false,
-            ));
-        }
-        if let Some(receiver_to_close) = self.receiver_to_close {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                *receiver_to_close.key,
-                false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::NCN_PROGRAM_ID,
-                false,
-            ));
-        }
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -423,7 +399,7 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = CloseEpochAccountInstructionData::new()
+        let mut data = InitializeOperatorVaultRewardRouterInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
@@ -438,17 +414,13 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_marker.clone());
         account_infos.push(self.epoch_state.clone());
-        account_infos.push(self.config.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.account_to_close.clone());
+        account_infos.push(self.operator.clone());
+        account_infos.push(self.operator_snapshot.clone());
+        account_infos.push(self.operator_vault_reward_router.clone());
+        account_infos.push(self.operator_vault_reward_receiver.clone());
         account_infos.push(self.account_payer.clone());
         account_infos.push(self.system_program.clone());
-        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
-            account_infos.push(ncn_fee_wallet.clone());
-        }
-        if let Some(receiver_to_close) = self.receiver_to_close {
-            account_infos.push(receiver_to_close.clone());
-        }
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -461,37 +433,37 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `CloseEpochAccount` via CPI.
+/// Instruction builder for `InitializeOperatorVaultRewardRouter` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable]` epoch_marker
+///   0. `[]` epoch_marker
 ///   1. `[writable]` epoch_state
-///   2. `[]` config
-///   3. `[]` ncn
-///   4. `[writable]` account_to_close
-///   5. `[writable]` account_payer
-///   6. `[]` system_program
-///   7. `[writable, optional]` ncn_fee_wallet
-///   8. `[writable, optional]` receiver_to_close
+///   2. `[]` ncn
+///   3. `[]` operator
+///   4. `[]` operator_snapshot
+///   5. `[writable]` operator_vault_reward_router
+///   6. `[writable]` operator_vault_reward_receiver
+///   7. `[writable]` account_payer
+///   8. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct CloseEpochAccountCpiBuilder<'a, 'b> {
-    instruction: Box<CloseEpochAccountCpiBuilderInstruction<'a, 'b>>,
+pub struct InitializeOperatorVaultRewardRouterCpiBuilder<'a, 'b> {
+    instruction: Box<InitializeOperatorVaultRewardRouterCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
+impl<'a, 'b> InitializeOperatorVaultRewardRouterCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(CloseEpochAccountCpiBuilderInstruction {
+        let instruction = Box::new(InitializeOperatorVaultRewardRouterCpiBuilderInstruction {
             __program: program,
             epoch_marker: None,
             epoch_state: None,
-            config: None,
             ncn: None,
-            account_to_close: None,
+            operator: None,
+            operator_snapshot: None,
+            operator_vault_reward_router: None,
+            operator_vault_reward_receiver: None,
             account_payer: None,
             system_program: None,
-            ncn_fee_wallet: None,
-            receiver_to_close: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -514,24 +486,40 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn config(
-        &mut self,
-        config: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.config = Some(config);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn account_to_close(
+    pub fn operator(
         &mut self,
-        account_to_close: &'b solana_program::account_info::AccountInfo<'a>,
+        operator: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.account_to_close = Some(account_to_close);
+        self.instruction.operator = Some(operator);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_snapshot(
+        &mut self,
+        operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_snapshot = Some(operator_snapshot);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_router = Some(operator_vault_reward_router);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
         self
     }
     #[inline(always)]
@@ -548,24 +536,6 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
         system_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.system_program = Some(system_program);
-        self
-    }
-    /// `[optional account]`
-    #[inline(always)]
-    pub fn ncn_fee_wallet(
-        &mut self,
-        ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ) -> &mut Self {
-        self.instruction.ncn_fee_wallet = ncn_fee_wallet;
-        self
-    }
-    /// `[optional account]`
-    #[inline(always)]
-    pub fn receiver_to_close(
-        &mut self,
-        receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ) -> &mut Self {
-        self.instruction.receiver_to_close = receiver_to_close;
         self
     }
     #[inline(always)]
@@ -614,10 +584,10 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = CloseEpochAccountInstructionArgs {
+        let args = InitializeOperatorVaultRewardRouterInstructionArgs {
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = CloseEpochAccountCpi {
+        let instruction = InitializeOperatorVaultRewardRouterCpi {
             __program: self.instruction.__program,
 
             epoch_marker: self
@@ -630,14 +600,24 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
                 .epoch_state
                 .expect("epoch_state is not set"),
 
-            config: self.instruction.config.expect("config is not set"),
-
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            account_to_close: self
+            operator: self.instruction.operator.expect("operator is not set"),
+
+            operator_snapshot: self
                 .instruction
-                .account_to_close
-                .expect("account_to_close is not set"),
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+
+            operator_vault_reward_router: self
+                .instruction
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+
+            operator_vault_reward_receiver: self
+                .instruction
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
 
             account_payer: self
                 .instruction
@@ -648,10 +628,6 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
                 .instruction
                 .system_program
                 .expect("system_program is not set"),
-
-            ncn_fee_wallet: self.instruction.ncn_fee_wallet,
-
-            receiver_to_close: self.instruction.receiver_to_close,
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -662,17 +638,17 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct CloseEpochAccountCpiBuilderInstruction<'a, 'b> {
+struct InitializeOperatorVaultRewardRouterCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     epoch_marker: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    account_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     account_payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

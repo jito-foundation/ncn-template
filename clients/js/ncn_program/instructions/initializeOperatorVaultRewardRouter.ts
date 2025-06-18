@@ -29,166 +29,186 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR = 20;
+export const INITIALIZE_OPERATOR_VAULT_REWARD_ROUTER_DISCRIMINATOR = 19;
 
-export function getCloseEpochAccountDiscriminatorBytes() {
-  return getU8Encoder().encode(CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR);
+export function getInitializeOperatorVaultRewardRouterDiscriminatorBytes() {
+  return getU8Encoder().encode(
+    INITIALIZE_OPERATOR_VAULT_REWARD_ROUTER_DISCRIMINATOR
+  );
 }
 
-export type CloseEpochAccountInstruction<
+export type InitializeOperatorVaultRewardRouterInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountEpochMarker extends string | IAccountMeta<string> = string,
   TAccountEpochState extends string | IAccountMeta<string> = string,
-  TAccountConfig extends string | IAccountMeta<string> = string,
   TAccountNcn extends string | IAccountMeta<string> = string,
-  TAccountAccountToClose extends string | IAccountMeta<string> = string,
+  TAccountOperator extends string | IAccountMeta<string> = string,
+  TAccountOperatorSnapshot extends string | IAccountMeta<string> = string,
+  TAccountOperatorVaultRewardRouter extends
+    | string
+    | IAccountMeta<string> = string,
+  TAccountOperatorVaultRewardReceiver extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountAccountPayer extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
-  TAccountNcnFeeWallet extends string | IAccountMeta<string> = string,
-  TAccountReceiverToClose extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
   IInstructionWithAccounts<
     [
       TAccountEpochMarker extends string
-        ? WritableAccount<TAccountEpochMarker>
+        ? ReadonlyAccount<TAccountEpochMarker>
         : TAccountEpochMarker,
       TAccountEpochState extends string
         ? WritableAccount<TAccountEpochState>
         : TAccountEpochState,
-      TAccountConfig extends string
-        ? ReadonlyAccount<TAccountConfig>
-        : TAccountConfig,
       TAccountNcn extends string ? ReadonlyAccount<TAccountNcn> : TAccountNcn,
-      TAccountAccountToClose extends string
-        ? WritableAccount<TAccountAccountToClose>
-        : TAccountAccountToClose,
+      TAccountOperator extends string
+        ? ReadonlyAccount<TAccountOperator>
+        : TAccountOperator,
+      TAccountOperatorSnapshot extends string
+        ? ReadonlyAccount<TAccountOperatorSnapshot>
+        : TAccountOperatorSnapshot,
+      TAccountOperatorVaultRewardRouter extends string
+        ? WritableAccount<TAccountOperatorVaultRewardRouter>
+        : TAccountOperatorVaultRewardRouter,
+      TAccountOperatorVaultRewardReceiver extends string
+        ? WritableAccount<TAccountOperatorVaultRewardReceiver>
+        : TAccountOperatorVaultRewardReceiver,
       TAccountAccountPayer extends string
         ? WritableAccount<TAccountAccountPayer>
         : TAccountAccountPayer,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
-      TAccountNcnFeeWallet extends string
-        ? WritableAccount<TAccountNcnFeeWallet>
-        : TAccountNcnFeeWallet,
-      TAccountReceiverToClose extends string
-        ? WritableAccount<TAccountReceiverToClose>
-        : TAccountReceiverToClose,
       ...TRemainingAccounts,
     ]
   >;
 
-export type CloseEpochAccountInstructionData = {
+export type InitializeOperatorVaultRewardRouterInstructionData = {
   discriminator: number;
   epoch: bigint;
 };
 
-export type CloseEpochAccountInstructionDataArgs = { epoch: number | bigint };
+export type InitializeOperatorVaultRewardRouterInstructionDataArgs = {
+  epoch: number | bigint;
+};
 
-export function getCloseEpochAccountInstructionDataEncoder(): Encoder<CloseEpochAccountInstructionDataArgs> {
+export function getInitializeOperatorVaultRewardRouterInstructionDataEncoder(): Encoder<InitializeOperatorVaultRewardRouterInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
       ['epoch', getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR })
+    (value) => ({
+      ...value,
+      discriminator: INITIALIZE_OPERATOR_VAULT_REWARD_ROUTER_DISCRIMINATOR,
+    })
   );
 }
 
-export function getCloseEpochAccountInstructionDataDecoder(): Decoder<CloseEpochAccountInstructionData> {
+export function getInitializeOperatorVaultRewardRouterInstructionDataDecoder(): Decoder<InitializeOperatorVaultRewardRouterInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['epoch', getU64Decoder()],
   ]);
 }
 
-export function getCloseEpochAccountInstructionDataCodec(): Codec<
-  CloseEpochAccountInstructionDataArgs,
-  CloseEpochAccountInstructionData
+export function getInitializeOperatorVaultRewardRouterInstructionDataCodec(): Codec<
+  InitializeOperatorVaultRewardRouterInstructionDataArgs,
+  InitializeOperatorVaultRewardRouterInstructionData
 > {
   return combineCodec(
-    getCloseEpochAccountInstructionDataEncoder(),
-    getCloseEpochAccountInstructionDataDecoder()
+    getInitializeOperatorVaultRewardRouterInstructionDataEncoder(),
+    getInitializeOperatorVaultRewardRouterInstructionDataDecoder()
   );
 }
 
-export type CloseEpochAccountInput<
+export type InitializeOperatorVaultRewardRouterInput<
   TAccountEpochMarker extends string = string,
   TAccountEpochState extends string = string,
-  TAccountConfig extends string = string,
   TAccountNcn extends string = string,
-  TAccountAccountToClose extends string = string,
+  TAccountOperator extends string = string,
+  TAccountOperatorSnapshot extends string = string,
+  TAccountOperatorVaultRewardRouter extends string = string,
+  TAccountOperatorVaultRewardReceiver extends string = string,
   TAccountAccountPayer extends string = string,
   TAccountSystemProgram extends string = string,
-  TAccountNcnFeeWallet extends string = string,
-  TAccountReceiverToClose extends string = string,
 > = {
   epochMarker: Address<TAccountEpochMarker>;
   epochState: Address<TAccountEpochState>;
-  config: Address<TAccountConfig>;
   ncn: Address<TAccountNcn>;
-  accountToClose: Address<TAccountAccountToClose>;
+  operator: Address<TAccountOperator>;
+  operatorSnapshot: Address<TAccountOperatorSnapshot>;
+  operatorVaultRewardRouter: Address<TAccountOperatorVaultRewardRouter>;
+  operatorVaultRewardReceiver: Address<TAccountOperatorVaultRewardReceiver>;
   accountPayer: Address<TAccountAccountPayer>;
   systemProgram?: Address<TAccountSystemProgram>;
-  ncnFeeWallet?: Address<TAccountNcnFeeWallet>;
-  receiverToClose?: Address<TAccountReceiverToClose>;
-  epoch: CloseEpochAccountInstructionDataArgs['epoch'];
+  epoch: InitializeOperatorVaultRewardRouterInstructionDataArgs['epoch'];
 };
 
-export function getCloseEpochAccountInstruction<
+export function getInitializeOperatorVaultRewardRouterInstruction<
   TAccountEpochMarker extends string,
   TAccountEpochState extends string,
-  TAccountConfig extends string,
   TAccountNcn extends string,
-  TAccountAccountToClose extends string,
+  TAccountOperator extends string,
+  TAccountOperatorSnapshot extends string,
+  TAccountOperatorVaultRewardRouter extends string,
+  TAccountOperatorVaultRewardReceiver extends string,
   TAccountAccountPayer extends string,
   TAccountSystemProgram extends string,
-  TAccountNcnFeeWallet extends string,
-  TAccountReceiverToClose extends string,
   TProgramAddress extends Address = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
 >(
-  input: CloseEpochAccountInput<
+  input: InitializeOperatorVaultRewardRouterInput<
     TAccountEpochMarker,
     TAccountEpochState,
-    TAccountConfig,
     TAccountNcn,
-    TAccountAccountToClose,
+    TAccountOperator,
+    TAccountOperatorSnapshot,
+    TAccountOperatorVaultRewardRouter,
+    TAccountOperatorVaultRewardReceiver,
     TAccountAccountPayer,
-    TAccountSystemProgram,
-    TAccountNcnFeeWallet,
-    TAccountReceiverToClose
+    TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
-): CloseEpochAccountInstruction<
+): InitializeOperatorVaultRewardRouterInstruction<
   TProgramAddress,
   TAccountEpochMarker,
   TAccountEpochState,
-  TAccountConfig,
   TAccountNcn,
-  TAccountAccountToClose,
+  TAccountOperator,
+  TAccountOperatorSnapshot,
+  TAccountOperatorVaultRewardRouter,
+  TAccountOperatorVaultRewardReceiver,
   TAccountAccountPayer,
-  TAccountSystemProgram,
-  TAccountNcnFeeWallet,
-  TAccountReceiverToClose
+  TAccountSystemProgram
 > {
   // Program address.
   const programAddress = config?.programAddress ?? NCN_PROGRAM_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
-    epochMarker: { value: input.epochMarker ?? null, isWritable: true },
+    epochMarker: { value: input.epochMarker ?? null, isWritable: false },
     epochState: { value: input.epochState ?? null, isWritable: true },
-    config: { value: input.config ?? null, isWritable: false },
     ncn: { value: input.ncn ?? null, isWritable: false },
-    accountToClose: { value: input.accountToClose ?? null, isWritable: true },
+    operator: { value: input.operator ?? null, isWritable: false },
+    operatorSnapshot: {
+      value: input.operatorSnapshot ?? null,
+      isWritable: false,
+    },
+    operatorVaultRewardRouter: {
+      value: input.operatorVaultRewardRouter ?? null,
+      isWritable: true,
+    },
+    operatorVaultRewardReceiver: {
+      value: input.operatorVaultRewardReceiver ?? null,
+      isWritable: true,
+    },
     accountPayer: { value: input.accountPayer ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    ncnFeeWallet: { value: input.ncnFeeWallet ?? null, isWritable: true },
-    receiverToClose: { value: input.receiverToClose ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -209,35 +229,35 @@ export function getCloseEpochAccountInstruction<
     accounts: [
       getAccountMeta(accounts.epochMarker),
       getAccountMeta(accounts.epochState),
-      getAccountMeta(accounts.config),
       getAccountMeta(accounts.ncn),
-      getAccountMeta(accounts.accountToClose),
+      getAccountMeta(accounts.operator),
+      getAccountMeta(accounts.operatorSnapshot),
+      getAccountMeta(accounts.operatorVaultRewardRouter),
+      getAccountMeta(accounts.operatorVaultRewardReceiver),
       getAccountMeta(accounts.accountPayer),
       getAccountMeta(accounts.systemProgram),
-      getAccountMeta(accounts.ncnFeeWallet),
-      getAccountMeta(accounts.receiverToClose),
     ],
     programAddress,
-    data: getCloseEpochAccountInstructionDataEncoder().encode(
-      args as CloseEpochAccountInstructionDataArgs
+    data: getInitializeOperatorVaultRewardRouterInstructionDataEncoder().encode(
+      args as InitializeOperatorVaultRewardRouterInstructionDataArgs
     ),
-  } as CloseEpochAccountInstruction<
+  } as InitializeOperatorVaultRewardRouterInstruction<
     TProgramAddress,
     TAccountEpochMarker,
     TAccountEpochState,
-    TAccountConfig,
     TAccountNcn,
-    TAccountAccountToClose,
+    TAccountOperator,
+    TAccountOperatorSnapshot,
+    TAccountOperatorVaultRewardRouter,
+    TAccountOperatorVaultRewardReceiver,
     TAccountAccountPayer,
-    TAccountSystemProgram,
-    TAccountNcnFeeWallet,
-    TAccountReceiverToClose
+    TAccountSystemProgram
   >;
 
   return instruction;
 }
 
-export type ParsedCloseEpochAccountInstruction<
+export type ParsedInitializeOperatorVaultRewardRouterInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -245,25 +265,28 @@ export type ParsedCloseEpochAccountInstruction<
   accounts: {
     epochMarker: TAccountMetas[0];
     epochState: TAccountMetas[1];
-    config: TAccountMetas[2];
-    ncn: TAccountMetas[3];
-    accountToClose: TAccountMetas[4];
-    accountPayer: TAccountMetas[5];
-    systemProgram: TAccountMetas[6];
-    ncnFeeWallet?: TAccountMetas[7] | undefined;
-    receiverToClose?: TAccountMetas[8] | undefined;
+    ncn: TAccountMetas[2];
+    operator: TAccountMetas[3];
+    operatorSnapshot: TAccountMetas[4];
+    operatorVaultRewardRouter: TAccountMetas[5];
+    operatorVaultRewardReceiver: TAccountMetas[6];
+    accountPayer: TAccountMetas[7];
+    systemProgram: TAccountMetas[8];
   };
-  data: CloseEpochAccountInstructionData;
+  data: InitializeOperatorVaultRewardRouterInstructionData;
 };
 
-export function parseCloseEpochAccountInstruction<
+export function parseInitializeOperatorVaultRewardRouterInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedCloseEpochAccountInstruction<TProgram, TAccountMetas> {
+): ParsedInitializeOperatorVaultRewardRouterInstruction<
+  TProgram,
+  TAccountMetas
+> {
   if (instruction.accounts.length < 9) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
@@ -274,25 +297,21 @@ export function parseCloseEpochAccountInstruction<
     accountIndex += 1;
     return accountMeta;
   };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === NCN_PROGRAM_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
       epochMarker: getNextAccount(),
       epochState: getNextAccount(),
-      config: getNextAccount(),
       ncn: getNextAccount(),
-      accountToClose: getNextAccount(),
+      operator: getNextAccount(),
+      operatorSnapshot: getNextAccount(),
+      operatorVaultRewardRouter: getNextAccount(),
+      operatorVaultRewardReceiver: getNextAccount(),
       accountPayer: getNextAccount(),
       systemProgram: getNextAccount(),
-      ncnFeeWallet: getNextOptionalAccount(),
-      receiverToClose: getNextOptionalAccount(),
     },
-    data: getCloseEpochAccountInstructionDataDecoder().decode(instruction.data),
+    data: getInitializeOperatorVaultRewardRouterInstructionDataDecoder().decode(
+      instruction.data
+    ),
   };
 }

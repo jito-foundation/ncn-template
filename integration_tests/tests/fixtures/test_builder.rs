@@ -703,13 +703,13 @@ impl TestBuilder {
             .do_full_initialize_ncn_reward_router(ncn, epoch)
             .await?;
 
-        // for operator_root in test_ncn.operators.iter() {
-        //     let operator = operator_root.operator_pubkey;
-        //
-        //     ncn_program_client
-        //         .do_initialize_operator_vault_reward_router(ncn, operator, epoch)
-        //         .await?;
-        // }
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+
+            ncn_program_client
+                .do_initialize_operator_vault_reward_router(ncn, operator, epoch)
+                .await?;
+        }
 
         Ok(())
     }
