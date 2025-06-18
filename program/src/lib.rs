@@ -14,6 +14,7 @@ mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
 mod initialize_ncn_reward_router;
 mod initialize_operator_snapshot;
+mod initialize_operator_vault_reward_router;
 mod initialize_vault_registry;
 mod initialize_weight_table;
 mod realloc_ballot_box;
@@ -51,6 +52,7 @@ use crate::{
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
     initialize_ncn_reward_router::process_initialize_ncn_reward_router,
     initialize_operator_snapshot::process_initialize_operator_snapshot,
+    initialize_operator_vault_reward_router::process_initialize_operator_vault_reward_router,
     initialize_vault_registry::process_initialize_vault_registry,
     initialize_weight_table::process_initialize_weight_table,
     realloc_ballot_box::process_realloc_ballot_box,
@@ -256,6 +258,10 @@ pub fn process_instruction(
         NCNProgramInstruction::DistributeNCNRewards { epoch } => {
             msg!("Instruction: DistributeNCNRewards");
             process_distribute_ncn_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::InitializeOperatorVaultRewardRouter { epoch } => {
+            msg!("Instruction: InitializeOperatorVaultRewardRouter");
+            process_initialize_operator_vault_reward_router(program_id, accounts, epoch)
         } //
 
     }

@@ -22,6 +22,7 @@ export * from './initializeEpochSnapshot';
 export * from './initializeEpochState';
 export * from './initializeNCNRewardRouter';
 export * from './initializeOperatorSnapshot';
+export * from './initializeOperatorVaultRewardRouter';
 export * from './initializeVaultRegistry';
 export * from './initializeWeightTable';
 export * from './reallocBallotBox';

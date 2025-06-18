@@ -269,6 +269,20 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
+    #[account(0, name = "epoch_marker")]
+    #[account(1, writable, name = "epoch_state")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, name = "operator_snapshot")]
+    #[account(5, writable, name = "operator_vault_reward_router")]
+    #[account(6, writable, name = "operator_vault_reward_receiver")]
+    #[account(7, writable, name = "account_payer")]
+    #[account(8, name = "system_program")]
+    InitializeOperatorVaultRewardRouter{
+        epoch: u64,
+    },
+
+
 
     /// Close an epoch account
     #[account(0, writable, name = "epoch_marker")]

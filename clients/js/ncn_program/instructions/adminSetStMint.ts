@@ -38,7 +38,7 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 25;
+export const ADMIN_SET_ST_MINT_DISCRIMINATOR = 26;
 
 export function getAdminSetStMintDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_SET_ST_MINT_DISCRIMINATOR);

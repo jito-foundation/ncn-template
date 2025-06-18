@@ -963,6 +963,66 @@
       }
     },
     {
+      "name": "InitializeOperatorVaultRewardRouter",
+      "accounts": [
+        {
+          "name": "epochMarker",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operator",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operatorSnapshot",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accountPayer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 19
+      }
+    },
+    {
       "name": "CloseEpochAccount",
       "accounts": [
         {
@@ -1021,7 +1081,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 19
+        "value": 20
       }
     },
     {
@@ -1071,7 +1131,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 20
+        "value": 21
       }
     },
     {
@@ -1108,7 +1168,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 22
       }
     },
     {
@@ -1152,7 +1212,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 22
+        "value": 23
       }
     },
     {
@@ -1195,7 +1255,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 23
+        "value": 24
       }
     },
     {
@@ -1237,7 +1297,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 24
+        "value": 25
       }
     },
     {
@@ -1278,7 +1338,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 25
+        "value": 26
       }
     }
   ],
@@ -1747,7 +1807,12 @@
           {
             "name": "operatorVaultDistributionProgress",
             "type": {
-              "defined": "Progress"
+              "array": [
+                {
+                  "defined": "Progress"
+                },
+                256
+              ]
             }
           },
           {
@@ -2173,6 +2238,15 @@
           {
             "name": "ncnRewardRouter",
             "type": "u8"
+          },
+          {
+            "name": "operatorVaultRewardRouter",
+            "type": {
+              "array": [
+                "u8",
+                256
+              ]
+            }
           }
         ]
       }
@@ -2298,20 +2372,6 @@
       }
     },
     {
-      "name": "StakeWeights",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "stakeWeight",
-            "type": {
-              "defined": "PodU128"
-            }
-          }
-        ]
-      }
-    },
-    {
       "name": "VaultRewardRoute",
       "type": {
         "kind": "struct",
@@ -2324,6 +2384,20 @@
             "name": "rewards",
             "type": {
               "defined": "PodU64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeWeights",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stakeWeight",
+            "type": {
+              "defined": "PodU128"
             }
           }
         ]
