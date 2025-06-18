@@ -669,6 +669,11 @@ impl EpochState {
             .set_ncn_reward_router(AccountStatus::Closed);
     }
 
+    pub fn close_operator_vault_reward_router(&mut self, ncn_operator_index: usize) {
+        self.account_status
+            .set_operator_vault_reward_router(ncn_operator_index, AccountStatus::Closed)
+    }
+
     // ------------ STATE ------------
     pub fn can_start_routing(
         &self,
