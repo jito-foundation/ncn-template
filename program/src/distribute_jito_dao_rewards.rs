@@ -88,7 +88,7 @@ pub fn process_distribute_jito_dao_rewards(
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
-        epoch_state_account.update_distribute_jito_dao_rewards(rewards)?;
+        epoch_state_account.update_distribute_jito_dao_rewards(rewards);
         msg!(
             "Updated epoch state with distributed Jito DAO rewards: {} lamports",
             rewards
