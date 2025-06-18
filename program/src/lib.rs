@@ -9,6 +9,7 @@ mod cast_vote;
 mod close_epoch_account;
 mod distribute_jito_dao_rewards;
 mod distribute_ncn_rewards;
+mod distribute_operator_vault_reward_route;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
@@ -43,11 +44,11 @@ use crate::{
     admin_set_parameters::process_admin_set_parameters,
     admin_set_st_mint::process_admin_set_st_mint,
     admin_set_tie_breaker::process_admin_set_tie_breaker,
-    admin_set_weight::process_admin_set_weight,
-    cast_vote::process_cast_vote,
+    admin_set_weight::process_admin_set_weight, cast_vote::process_cast_vote,
     close_epoch_account::process_close_epoch_account,
     distribute_jito_dao_rewards::process_distribute_jito_dao_rewards,
     distribute_ncn_rewards::process_distribute_ncn_rewards,
+    distribute_operator_vault_reward_route::process_distribute_operator_vault_reward_route,
     initialize_ballot_box::process_initialize_ballot_box,
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
     initialize_ncn_reward_router::process_initialize_ncn_reward_router,
@@ -58,10 +59,8 @@ use crate::{
     realloc_ballot_box::process_realloc_ballot_box,
     realloc_ncn_reward_router::process_realloc_ncn_reward_router,
     realloc_vault_registry::process_realloc_vault_registry,
-    realloc_weight_table::process_realloc_weight_table,
-    register_vault::process_register_vault,
-    route_ncn_rewards::process_route_ncn_rewards,
-    set_epoch_weights::process_set_epoch_weights,
+    realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
+    route_ncn_rewards::process_route_ncn_rewards, set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
@@ -262,7 +261,10 @@ pub fn process_instruction(
         NCNProgramInstruction::InitializeOperatorVaultRewardRouter { epoch } => {
             msg!("Instruction: InitializeOperatorVaultRewardRouter");
             process_initialize_operator_vault_reward_router(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeOperatorVaultRewardRoute { epoch } => {
+            msg!("Instruction: DistributeOperatorVaultRewardRoute");
+            process_distribute_operator_vault_reward_route(program_id, accounts, epoch)
         } //
-
     }
 }

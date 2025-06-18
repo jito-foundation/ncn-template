@@ -17,7 +17,6 @@ use solana_sdk::{
     account::Account,
     clock::DEFAULT_SLOTS_PER_EPOCH,
     epoch_schedule::EpochSchedule,
-    msg,
     native_token::lamports_to_sol,
     signature::{Keypair, Signer},
 };
@@ -753,8 +752,6 @@ impl TestBuilder {
 
         let ncn_reward_router = ncn_program_client.get_ncn_reward_router(ncn, epoch).await?;
 
-        msg!("NCN Reward Router: {}", ncn_reward_router);
-
         // Rewards Distribution
         // 1. Jito Rewards Distribution
         {
@@ -820,29 +817,25 @@ impl TestBuilder {
             }
         }
 
-        // // Operator Vault Rewards
-        // {
-        //     for operator_root in test_ncn.operators.iter() {
-        //         let operator = operator_root.operator_pubkey;
-        //
-        //         let operator_route = ncn_reward_router.ncn_fee_group_reward_route(&operator);
-        //
-        //         if let Ok(operator_route) = operator_route {
-        //             for group in NcnFeeGroup::all_groups().iter() {
-        //                 let rewards = operator_route.rewards(*group).unwrap();
-        //
-        //                 if rewards == 0 {
-        //                     continue;
-        //                 }
-        //
-        //                 println!("Distribute Ncn Reward {}", rewards);
-        //                 ncn_program_client
-        //                     .do_distribute_base_ncn_reward_route(*group, operator, ncn, epoch)
-        //                     .await?;
-        //             }
-        //         }
-        //     }
-        // }
+        // Operator Vault Rewards
+        {
+            for operator_root in test_ncn.operators.iter() {
+                let operator = operator_root.operator_pubkey;
+
+                let operator_route = ncn_reward_router.operator_vault_reward_route(&operator);
+
+                let rewards = operator_route.rewards().unwrap_or(0);
+
+                if rewards == 0 {
+                    continue;
+                }
+
+                println!("Distribute Ncn Reward {}", rewards);
+                ncn_program_client
+                    .do_distribute_operator_vault_reward_route(operator, ncn, epoch)
+                    .await?;
+            }
+        }
 
         println!("Done");
 

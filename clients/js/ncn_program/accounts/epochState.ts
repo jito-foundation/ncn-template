@@ -65,7 +65,8 @@ export type EpochState = {
   totalDistributionProgress: Progress;
   ncnDistributionProgress: Progress;
   jitoDaoDistributionProgress: Progress;
-  operatorVaultDistributionProgress: Array<Progress>;
+  operatorVaultDistributionProgress: Progress;
+  operatorVaultRoutesDistributionProgress: Array<Progress>;
   isClosing: number;
 };
 
@@ -87,7 +88,8 @@ export type EpochStateArgs = {
   totalDistributionProgress: ProgressArgs;
   ncnDistributionProgress: ProgressArgs;
   jitoDaoDistributionProgress: ProgressArgs;
-  operatorVaultDistributionProgress: Array<ProgressArgs>;
+  operatorVaultDistributionProgress: ProgressArgs;
+  operatorVaultRoutesDistributionProgress: Array<ProgressArgs>;
   isClosing: number;
 };
 
@@ -113,8 +115,9 @@ export function getEpochStateEncoder(): Encoder<EpochStateArgs> {
     ['totalDistributionProgress', getProgressEncoder()],
     ['ncnDistributionProgress', getProgressEncoder()],
     ['jitoDaoDistributionProgress', getProgressEncoder()],
+    ['operatorVaultDistributionProgress', getProgressEncoder()],
     [
-      'operatorVaultDistributionProgress',
+      'operatorVaultRoutesDistributionProgress',
       getArrayEncoder(getProgressEncoder(), { size: 256 }),
     ],
     ['isClosing', getBoolEncoder()],
@@ -143,8 +146,9 @@ export function getEpochStateDecoder(): Decoder<EpochState> {
     ['totalDistributionProgress', getProgressDecoder()],
     ['ncnDistributionProgress', getProgressDecoder()],
     ['jitoDaoDistributionProgress', getProgressDecoder()],
+    ['operatorVaultDistributionProgress', getProgressDecoder()],
     [
-      'operatorVaultDistributionProgress',
+      'operatorVaultRoutesDistributionProgress',
       getArrayDecoder(getProgressDecoder(), { size: 256 }),
     ],
     ['isClosing', getBoolDecoder()],

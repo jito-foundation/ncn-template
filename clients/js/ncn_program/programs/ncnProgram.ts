@@ -23,6 +23,7 @@ import {
   type ParsedCloseEpochAccountInstruction,
   type ParsedDistributeJitoDAORewardsInstruction,
   type ParsedDistributeNCNRewardsInstruction,
+  type ParsedDistributeOperatorVaultRewardRouteInstruction,
   type ParsedInitializeBallotBoxInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeEpochSnapshotInstruction,
@@ -80,6 +81,7 @@ export enum NcnProgramInstruction {
   DistributeJitoDAORewards,
   DistributeNCNRewards,
   InitializeOperatorVaultRewardRouter,
+  DistributeOperatorVaultRewardRoute,
   CloseEpochAccount,
   AdminSetParameters,
   AdminSetNewAdmin,
@@ -154,24 +156,27 @@ export function identifyNcnProgramInstruction(
     return NcnProgramInstruction.InitializeOperatorVaultRewardRouter;
   }
   if (containsBytes(data, getU8Encoder().encode(20), 0)) {
-    return NcnProgramInstruction.CloseEpochAccount;
+    return NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
   }
   if (containsBytes(data, getU8Encoder().encode(21), 0)) {
-    return NcnProgramInstruction.AdminSetParameters;
+    return NcnProgramInstruction.CloseEpochAccount;
   }
   if (containsBytes(data, getU8Encoder().encode(22), 0)) {
-    return NcnProgramInstruction.AdminSetNewAdmin;
+    return NcnProgramInstruction.AdminSetParameters;
   }
   if (containsBytes(data, getU8Encoder().encode(23), 0)) {
-    return NcnProgramInstruction.AdminSetTieBreaker;
+    return NcnProgramInstruction.AdminSetNewAdmin;
   }
   if (containsBytes(data, getU8Encoder().encode(24), 0)) {
-    return NcnProgramInstruction.AdminSetWeight;
+    return NcnProgramInstruction.AdminSetTieBreaker;
   }
   if (containsBytes(data, getU8Encoder().encode(25), 0)) {
-    return NcnProgramInstruction.AdminRegisterStMint;
+    return NcnProgramInstruction.AdminSetWeight;
   }
   if (containsBytes(data, getU8Encoder().encode(26), 0)) {
+    return NcnProgramInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(27), 0)) {
     return NcnProgramInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -242,6 +247,9 @@ export type ParsedNcnProgramInstruction<
   | ({
       instructionType: NcnProgramInstruction.InitializeOperatorVaultRewardRouter;
     } & ParsedInitializeOperatorVaultRewardRouterInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
+    } & ParsedDistributeOperatorVaultRewardRouteInstruction<TProgram>)
   | ({
       instructionType: NcnProgramInstruction.CloseEpochAccount;
     } & ParsedCloseEpochAccountInstruction<TProgram>)
