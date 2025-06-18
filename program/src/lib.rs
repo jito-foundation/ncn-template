@@ -24,6 +24,7 @@ mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
 mod route_ncn_rewards;
+mod route_operator_vault_rewards;
 mod set_epoch_weights;
 mod snapshot_vault_operator_delegation;
 
@@ -59,8 +60,11 @@ use crate::{
     realloc_ballot_box::process_realloc_ballot_box,
     realloc_ncn_reward_router::process_realloc_ncn_reward_router,
     realloc_vault_registry::process_realloc_vault_registry,
-    realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
-    route_ncn_rewards::process_route_ncn_rewards, set_epoch_weights::process_set_epoch_weights,
+    realloc_weight_table::process_realloc_weight_table,
+    register_vault::process_register_vault,
+    route_ncn_rewards::process_route_ncn_rewards,
+    route_operator_vault_rewards::process_route_operator_vault_rewards,
+    set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
@@ -249,7 +253,6 @@ pub fn process_instruction(
             msg!("Instruction: RouteNCNRewards");
             process_route_ncn_rewards(program_id, accounts, max_iterations, epoch)
         }
-
         NCNProgramInstruction::DistributeJitoDAORewards { epoch } => {
             msg!("Instruction: DistributeJitoDAORewards");
             process_distribute_jito_dao_rewards(program_id, accounts, epoch)
@@ -265,6 +268,13 @@ pub fn process_instruction(
         NCNProgramInstruction::DistributeOperatorVaultRewardRoute { epoch } => {
             msg!("Instruction: DistributeOperatorVaultRewardRoute");
             process_distribute_operator_vault_reward_route(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::RouteOperatorVaultRewards {
+            max_iterations,
+            epoch,
+        } => {
+            msg!("Instruction: RouteOperatorVaultRewards");
+            process_route_operator_vault_rewards(program_id, accounts, max_iterations, epoch)
         } //
     }
 }

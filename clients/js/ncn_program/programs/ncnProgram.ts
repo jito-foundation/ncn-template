@@ -39,6 +39,7 @@ import {
   type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
   type ParsedRouteNCNRewardsInstruction,
+  type ParsedRouteOperatorVaultRewardsInstruction,
   type ParsedSetEpochWeightsInstruction,
   type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
@@ -82,6 +83,7 @@ export enum NcnProgramInstruction {
   DistributeNCNRewards,
   InitializeOperatorVaultRewardRouter,
   DistributeOperatorVaultRewardRoute,
+  RouteOperatorVaultRewards,
   CloseEpochAccount,
   AdminSetParameters,
   AdminSetNewAdmin,
@@ -159,24 +161,27 @@ export function identifyNcnProgramInstruction(
     return NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
   }
   if (containsBytes(data, getU8Encoder().encode(21), 0)) {
-    return NcnProgramInstruction.CloseEpochAccount;
+    return NcnProgramInstruction.RouteOperatorVaultRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(22), 0)) {
-    return NcnProgramInstruction.AdminSetParameters;
+    return NcnProgramInstruction.CloseEpochAccount;
   }
   if (containsBytes(data, getU8Encoder().encode(23), 0)) {
-    return NcnProgramInstruction.AdminSetNewAdmin;
+    return NcnProgramInstruction.AdminSetParameters;
   }
   if (containsBytes(data, getU8Encoder().encode(24), 0)) {
-    return NcnProgramInstruction.AdminSetTieBreaker;
+    return NcnProgramInstruction.AdminSetNewAdmin;
   }
   if (containsBytes(data, getU8Encoder().encode(25), 0)) {
-    return NcnProgramInstruction.AdminSetWeight;
+    return NcnProgramInstruction.AdminSetTieBreaker;
   }
   if (containsBytes(data, getU8Encoder().encode(26), 0)) {
-    return NcnProgramInstruction.AdminRegisterStMint;
+    return NcnProgramInstruction.AdminSetWeight;
   }
   if (containsBytes(data, getU8Encoder().encode(27), 0)) {
+    return NcnProgramInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(28), 0)) {
     return NcnProgramInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -250,6 +255,9 @@ export type ParsedNcnProgramInstruction<
   | ({
       instructionType: NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
     } & ParsedDistributeOperatorVaultRewardRouteInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.RouteOperatorVaultRewards;
+    } & ParsedRouteOperatorVaultRewardsInstruction<TProgram>)
   | ({
       instructionType: NcnProgramInstruction.CloseEpochAccount;
     } & ParsedCloseEpochAccountInstruction<TProgram>)

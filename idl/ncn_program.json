@@ -1083,6 +1083,55 @@
       }
     },
     {
+      "name": "RouteOperatorVaultRewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operator",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operatorSnapshot",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "maxIterations",
+          "type": "u16"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 21
+      }
+    },
+    {
       "name": "CloseEpochAccount",
       "accounts": [
         {
@@ -1141,7 +1190,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 21
+        "value": 22
       }
     },
     {
@@ -1191,7 +1240,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 22
+        "value": 23
       }
     },
     {
@@ -1228,7 +1277,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 23
+        "value": 24
       }
     },
     {
@@ -1272,7 +1321,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 24
+        "value": 25
       }
     },
     {
@@ -1315,7 +1364,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 25
+        "value": 26
       }
     },
     {
@@ -1357,7 +1406,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 26
+        "value": 27
       }
     },
     {
@@ -1398,7 +1447,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 27
+        "value": 28
       }
     }
   ],

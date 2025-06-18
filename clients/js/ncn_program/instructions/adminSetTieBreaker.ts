@@ -32,7 +32,7 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_TIE_BREAKER_DISCRIMINATOR = 24;
+export const ADMIN_SET_TIE_BREAKER_DISCRIMINATOR = 25;
 
 export function getAdminSetTieBreakerDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_SET_TIE_BREAKER_DISCRIMINATOR);

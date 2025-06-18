@@ -292,9 +292,9 @@ mod tests {
                 .route_in_ncn_rewards_for_test_ncn(&test_ncn, REWARD_AMOUNT)
                 .await?;
 
-            // fixture
-            //     .route_in_ncn_rewards_for_test_ncn(&test_ncn, &pool_root)
-            //     .await?;
+            fixture
+                .route_in_operator_vault_rewards_for_test_ncn(&test_ncn)
+                .await?;
         }
 
         // 8. Fetch and verify the consensus_result account
