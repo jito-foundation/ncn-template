@@ -10,6 +10,7 @@ use ncn_program_core::{
     epoch_state::EpochState,
     error::NCNProgramError,
     ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
+    operator_vault_reward_router::{OperatorVaultRewardReceiver, OperatorVaultRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{
@@ -182,8 +183,8 @@ pub fn process_close_epoch_account(
                     msg!("Account is an NCN Rewards Router, loading to close");
                     NCNRewardRouter::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing NCN Rewards Router");
-                    let [ncn_fee_wallet, base_reward_receiver] = optional_accounts else {
-                        msg!("Base reward receiver account is missing");
+                    let [ncn_fee_wallet, ncn_reward_receiver] = optional_accounts else {
+                        msg!("Optional Accounts are not enough");
                         return Err(NCNProgramError::CannotCloseAccountNoEnoughAccounts.into());
                     };
 
@@ -199,24 +200,99 @@ pub fn process_close_epoch_account(
                     }
 
                     msg!("Account is an NCN Rewards Receiver, loading to close");
-                    NCNRewardReceiver::load(
-                        program_id,
-                        base_reward_receiver,
-                        ncn.key,
-                        epoch,
-                        true,
-                    )?;
+                    NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
                     NCNRewardReceiver::close(
                         program_id,
                         ncn.key,
                         epoch,
-                        base_reward_receiver,
+                        ncn_reward_receiver,
                         ncn_fee_wallet,
                         account_payer,
                     )?;
                     msg!("Closing NCN Rewards Receiver");
 
                     epoch_state_account.close_ncn_reward_router();
+                }
+
+                OperatorVaultRewardRouter::DISCRIMINATOR => {
+                    msg!("Account is an Operator Vault Rewards Router, loading to close");
+                    msg!(
+                        "Loading OperatorVaultRewardRouter for operator and epoch {}...",
+                        epoch
+                    );
+                    OperatorVaultRewardRouter::load_to_close(
+                        program_id,
+                        account_to_close,
+                        ncn.key,
+                        epoch,
+                    )?;
+                    msg!("Successfully loaded OperatorVaultRewardRouter");
+
+                    msg!("Closing Operator Vault Rewards Router");
+                    let [ncn_fee_wallet, operator_vault_reward_receiver] = optional_accounts else {
+                        msg!("Optional Accounts are not enough");
+                        return Err(NCNProgramError::CannotCloseAccountNoEnoughAccounts.into());
+                    };
+                    msg!("Optional accounts validated successfully");
+
+                    // Check correct NCN fee wallet
+                    {
+                        msg!("Verifying NCN fee wallet...");
+                        if config_account
+                            .fee_config
+                            .ncn_fee_wallet()
+                            .ne(ncn_fee_wallet.key)
+                        {
+                            msg!("Invalid NCN fee wallet provided");
+                            return Err(NCNProgramError::InvalidNCNFeeWallet.into());
+                        }
+                        msg!("NCN fee wallet verified successfully");
+                    }
+
+                    msg!("Loading operator vault reward router data...");
+                    let account_to_close_data = account_to_close.try_borrow_data()?;
+                    let operator_vault_reward_router =
+                        OperatorVaultRewardRouter::try_from_slice_unchecked(
+                            &account_to_close_data,
+                        )?;
+                    msg!("Successfully loaded operator vault reward router data");
+
+                    let operator_vault_operator_index =
+                        operator_vault_reward_router.ncn_operator_index() as usize;
+                    let operator = operator_vault_reward_router.operator();
+                    msg!(
+                        "Operator index: {}, Operator: {}",
+                        operator_vault_operator_index,
+                        operator
+                    );
+
+                    msg!("Loading OperatorVaultRewardReceiver...");
+                    OperatorVaultRewardReceiver::load(
+                        program_id,
+                        operator_vault_reward_receiver,
+                        operator,
+                        ncn.key,
+                        epoch,
+                        true,
+                    )?;
+                    msg!("Successfully loaded OperatorVaultRewardReceiver");
+
+                    msg!("Closing OperatorVaultRewardReceiver...");
+                    OperatorVaultRewardReceiver::close(
+                        program_id,
+                        operator,
+                        ncn.key,
+                        epoch,
+                        operator_vault_reward_receiver,
+                        ncn_fee_wallet,
+                        account_payer,
+                    )?;
+                    msg!("Successfully closed OperatorVaultRewardReceiver");
+
+                    msg!("Closing operator vault reward router in epoch state...");
+                    epoch_state_account
+                        .close_operator_vault_reward_router(operator_vault_operator_index);
+                    msg!("Successfully closed operator vault reward router in epoch state");
                 }
                 _ => {
                     msg!("Error: Invalid account discriminator: {}", discriminator);

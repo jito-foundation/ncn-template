@@ -8,6 +8,7 @@ use ncn_program_core::{
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
     ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
+    operator_vault_reward_router::{OperatorVaultRewardReceiver, OperatorVaultRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{clock::Clock, native_token::sol_to_lamports, pubkey::Pubkey};
@@ -886,6 +887,79 @@ impl TestBuilder {
 
         // Close Accounts in reverse order of creation
 
+        // NCN Reward Routers
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+            let (operator_vault_reward_router, _, _) =
+                OperatorVaultRewardRouter::find_program_address(
+                    &ncn_program::id(),
+                    &operator,
+                    &ncn,
+                    epoch_to_close,
+                );
+
+            let (operator_vault_reward_receiver, _, _) =
+                OperatorVaultRewardReceiver::find_program_address(
+                    &ncn_program::id(),
+                    &operator,
+                    &ncn,
+                    epoch_to_close,
+                );
+
+            ncn_program_client
+                .airdrop(&operator_vault_reward_receiver, EXTRA_SOL_TO_AIRDROP)
+                .await?;
+
+            let ncn_fee_wallet_balance_before = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_before = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            ncn_program_client
+                .do_close_router_epoch_account(
+                    ncn,
+                    epoch_to_close,
+                    operator_vault_reward_router,
+                    operator_vault_reward_receiver,
+                )
+                .await?;
+
+            let ncn_fee_wallet_balance_after = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_after = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            let router_rent = rent.minimum_balance(OperatorVaultRewardRouter::SIZE);
+            let receiver_rent = rent.minimum_balance(0);
+            assert_eq!(
+                account_payer_balance_before + router_rent + receiver_rent,
+                account_payer_balance_after
+            );
+
+            // DAO wallet is also the payer wallet
+            assert!(
+                ncn_fee_wallet_balance_before - lamports_per_signature
+                    < ncn_fee_wallet_balance_after
+            );
+
+            let result = self.get_account(&operator_vault_reward_router).await?;
+            assert!(result.is_none());
+
+            let result = self.get_account(&operator_vault_reward_receiver).await?;
+            assert!(result.is_none());
+        }
+
         // NCN Reward Router
         {
             let (ncn_reward_router, _, _) =
@@ -898,7 +972,7 @@ impl TestBuilder {
                 .airdrop(&ncn_reward_receiver, EXTRA_SOL_TO_AIRDROP)
                 .await?;
 
-            let dao_wallet_balance_before = {
+            let ncn_fee_wallet_balance_before = {
                 let account = self.get_account(&ncn_fees_wallet).await?;
                 account.unwrap().lamports
             };
@@ -917,7 +991,7 @@ impl TestBuilder {
                 )
                 .await?;
 
-            let dao_wallet_balance_after = {
+            let ncn_fee_wallet_balance_after = {
                 let account = self.get_account(&ncn_fees_wallet).await?;
                 account.unwrap().lamports
             };
@@ -935,9 +1009,9 @@ impl TestBuilder {
             );
 
             assert_eq!(
-                dao_wallet_balance_before + sol_to_lamports(EXTRA_SOL_TO_AIRDROP)
+                ncn_fee_wallet_balance_before + sol_to_lamports(EXTRA_SOL_TO_AIRDROP)
                     - lamports_per_signature,
-                dao_wallet_balance_after
+                ncn_fee_wallet_balance_after
             );
 
             let result = self.get_account(&ncn_reward_router).await?;
