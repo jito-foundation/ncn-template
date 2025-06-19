@@ -9,6 +9,10 @@ license = { workspace = true }
 edition = { workspace = true }
 readme = { workspace = true }
 
+[[bin]]
+name = "ncn-program-cli"
+path = "src/bin/main.rs"
+
 [dependencies]
 anchor-lang = { workspace = true }
 anyhow = { workspace = true }
@@ -28,14 +32,14 @@ jito-restaking-client = { workspace = true }
 jito-restaking-core = { workspace = true }
 jito-restaking-program = { workspace = true }
 jito-restaking-sdk = { workspace = true }
-ncn-program-client = { workspace = true }
-ncn-program-core = { workspace = true }
-ncn-program = { workspace = true }
 jito-vault-client = { workspace = true }
 jito-vault-core = { workspace = true }
 jito-vault-program = { workspace = true }
 jito-vault-sdk = { workspace = true }
 log = { workspace = true }
+ncn-program = { workspace = true }
+ncn-program-client = { workspace = true }
+ncn-program-core = { workspace = true }
 solana-account-decoder = { workspace = true }
 solana-client = { workspace = true }
 solana-metrics = { workspace = true }
@@ -50,7 +54,3 @@ tokio = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
-
-[[bin]]
-name = "ncn-program-cli"
-path = "src/bin/main.rs"
