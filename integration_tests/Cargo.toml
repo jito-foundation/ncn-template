@@ -9,6 +9,13 @@ license = { workspace = true }
 edition = { workspace = true }
 readme = { workspace = true }
 
+[dependencies]
+log = "0.4.21"
+ncn-program = { workspace = true }
+ncn-program-client = { workspace = true }
+ncn-program-core = { workspace = true }
+rand = "0.9.1"
+
 [dev-dependencies]
 anchor-lang = { workspace = true }
 borsh = { workspace = true }
@@ -18,11 +25,11 @@ jito-jsm-core = { workspace = true }
 jito-restaking-core = { workspace = true }
 jito-restaking-program = { workspace = true }
 jito-restaking-sdk = { workspace = true }
-ncn-program-core = { workspace = true }
-ncn-program = { workspace = true }
 jito-vault-core = { workspace = true }
 jito-vault-program = { workspace = true }
 jito-vault-sdk = { workspace = true }
+ncn-program = { workspace = true }
+ncn-program-core = { workspace = true }
 shank = { workspace = true }
 solana-program = { workspace = true }
 solana-program-test = { workspace = true }
@@ -32,11 +39,4 @@ spl-associated-token-account = { workspace = true }
 spl-token = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-
-[dependencies]
-ncn-program-core = { workspace = true }
-ncn-program = { workspace = true }
-ncn-program-client = { workspace = true }
-rand = "0.9.1"
-log = "0.4.21"
 
