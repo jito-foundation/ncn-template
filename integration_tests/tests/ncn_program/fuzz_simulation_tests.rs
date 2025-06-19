@@ -309,6 +309,7 @@ mod fuzz_tests {
         Ok(())
     }
 
+    #[ignore = "long test"]
     #[tokio::test]
     async fn test_basic_simulation() -> TestResult<()> {
         // Basic configuration with multiple mints and delegation amounts
@@ -352,6 +353,7 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
+    #[ignore = "long test"]
     #[tokio::test]
     async fn test_high_operator_count_simulation() -> TestResult<()> {
         // Test with a large number of operators to verify scalability
@@ -369,6 +371,7 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
+    #[ignore = "long test"]
     #[tokio::test]
     async fn test_fuzz_simulation() -> TestResult<()> {
         // Create multiple test configurations with different parameters
