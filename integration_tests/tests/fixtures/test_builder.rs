@@ -894,6 +894,17 @@ impl TestBuilder {
         Ok(())
     }
 
+    pub async fn reward_test_ncn(&mut self, test_ncn: &TestNcn, rewards: u64) -> TestResult<()> {
+        self.add_routers_for_test_ncn(test_ncn).await?;
+        self.route_in_ncn_rewards_for_test_ncn(test_ncn, rewards)
+            .await?;
+
+        self.route_in_operator_vault_rewards_for_test_ncn(test_ncn)
+            .await?;
+
+        Ok(())
+    }
+
     /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
     /// for a given epoch after the required cooldown period has passed.
     /// Asserts that the accounts are actually closed (deleted).

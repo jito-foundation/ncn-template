@@ -47,6 +47,7 @@ mod tests {
 
         fixture.snapshot_test_ncn(&test_ncn).await?;
         fixture.vote_test_ncn(&test_ncn).await?;
+        fixture.reward_test_ncn(&test_ncn, 10_000).await?;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
         let epoch_marker = ncn_program_client.get_epoch_marker(ncn, epoch).await?;
@@ -221,6 +222,7 @@ mod tests {
         {
             fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
             fixture.cast_votes_for_test_ncn(&test_ncn).await?;
+
             let epoch_state = ncn_program_client.get_epoch_state(ncn, epoch).await?;
 
             let clock = fixture.clock().await;
