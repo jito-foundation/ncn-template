@@ -9,7 +9,6 @@ mod tests {
     };
     use ncn_program_core::weight_table::WeightTable;
     use ncn_program_core::{epoch_state::EpochState, error::NCNProgramError};
-    use solana_sdk::msg;
 
     use crate::fixtures::TestResult;
     use crate::fixtures::{

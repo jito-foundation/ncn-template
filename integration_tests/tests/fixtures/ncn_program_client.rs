@@ -266,6 +266,7 @@ impl NCNProgramClient {
     }
 
     /// Sends a transaction to initialize the NCN config account.
+    #[allow(clippy::too_many_arguments)]
     pub async fn initialize_config(
         &mut self,
         ncn: Pubkey,
@@ -1421,6 +1422,7 @@ impl NCNProgramClient {
         Ok(*account)
     }
 
+    #[allow(dead_code)]
     pub async fn log_all_operator_vault_reward_routers(
         &mut self,
         operators: Vec<Pubkey>,

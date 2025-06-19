@@ -3,9 +3,7 @@ mod fuzz_tests {
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
     use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
     use ncn_program_core::{ballot_box::WeatherStatus, constants::WEIGHT};
-    use solana_sdk::{
-        msg, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
-    };
+    use solana_sdk::{msg, native_token::sol_to_lamports, signature::Keypair, signer::Signer};
 
     // Struct to configure mint token parameters for simulation
     struct MintConfig {
@@ -101,7 +99,7 @@ mod fuzz_tests {
         // 2.d. Vaults delegate stakes to operators
         // Each vault delegates different amounts to different operators based on the delegation amounts array
         {
-            for (_, operator_root) in test_ncn.operators.iter().enumerate() {
+            for operator_root in test_ncn.operators.iter() {
                 for (vault_index, vault_root) in test_ncn.vaults.iter().enumerate() {
                     // Use the delegation amount for this specific vault
                     let delegation_amount = config.delegations[vault_index];
