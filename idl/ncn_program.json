@@ -1194,6 +1194,121 @@
       }
     },
     {
+      "name": "DistributeOperatorRewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operator",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorSnapshot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 23
+      }
+    },
+    {
+      "name": "DistributeVaultRewards",
+      "accounts": [
+        {
+          "name": "epochState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "operator",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorSnapshot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardRouter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "operatorVaultRewardReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 24
+      }
+    },
+    {
       "name": "AdminSetParameters",
       "accounts": [
         {
@@ -1240,7 +1355,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 23
+        "value": 25
       }
     },
     {
@@ -1277,7 +1392,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 24
+        "value": 26
       }
     },
     {
@@ -1321,7 +1436,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 25
+        "value": 27
       }
     },
     {
@@ -1364,7 +1479,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 26
+        "value": 28
       }
     },
     {
@@ -1406,7 +1521,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 27
+        "value": 29
       }
     },
     {
@@ -1447,7 +1562,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 28
+        "value": 30
       }
     }
   ],

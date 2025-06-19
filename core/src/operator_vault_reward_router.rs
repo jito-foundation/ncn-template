@@ -890,9 +890,7 @@ impl fmt::Display for OperatorVaultRewardRouter {
         for route in self.vault_reward_routes().iter() {
             if !route.is_empty() {
                 writeln!(f, "  Vault:                        {}", route.vault())?;
-                if route.has_rewards() {
-                    writeln!(f, "    Rewards:                    {}", route.rewards())?;
-                }
+                writeln!(f, "    Rewards:                    {}", route.rewards())?;
             }
         }
 

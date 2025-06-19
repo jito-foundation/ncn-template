@@ -324,6 +324,34 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
+    /// Distributes ncn operator rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "operator")]
+    #[account(4, writable, name = "operator_snapshot")]
+    #[account(5, writable, name = "operator_vault_reward_router")]
+    #[account(6, writable, name = "operator_vault_reward_receiver")]
+    #[account(7, name = "system_program")]
+    DistributeOperatorRewards{
+        epoch: u64,
+    },
+
+    /// Distributes vault rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, writable, name = "vault")]
+    #[account(5, writable, name = "operator_snapshot")]
+    #[account(6, writable, name = "operator_vault_reward_router")]
+    #[account(7, writable, name = "operator_vault_reward_receiver")]
+    #[account(8, name = "system_program")]
+    DistributeVaultRewards{
+        epoch: u64,
+    },
+
+
     // ---------------------------------------------------- //
     //                        ADMIN                         //
     // ---------------------------------------------------- //

@@ -9,7 +9,9 @@ mod cast_vote;
 mod close_epoch_account;
 mod distribute_jito_dao_rewards;
 mod distribute_ncn_rewards;
+mod distribute_operator_rewards;
 mod distribute_operator_vault_reward_route;
+mod distribute_vault_rewards;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
@@ -49,7 +51,9 @@ use crate::{
     close_epoch_account::process_close_epoch_account,
     distribute_jito_dao_rewards::process_distribute_jito_dao_rewards,
     distribute_ncn_rewards::process_distribute_ncn_rewards,
+    distribute_operator_rewards::process_distribute_operator_rewards,
     distribute_operator_vault_reward_route::process_distribute_operator_vault_reward_route,
+    distribute_vault_rewards::process_distribute_vault_rewards,
     initialize_ballot_box::process_initialize_ballot_box,
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
     initialize_ncn_reward_router::process_initialize_ncn_reward_router,
@@ -60,8 +64,7 @@ use crate::{
     realloc_ballot_box::process_realloc_ballot_box,
     realloc_ncn_reward_router::process_realloc_ncn_reward_router,
     realloc_vault_registry::process_realloc_vault_registry,
-    realloc_weight_table::process_realloc_weight_table,
-    register_vault::process_register_vault,
+    realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
     route_ncn_rewards::process_route_ncn_rewards,
     route_operator_vault_rewards::process_route_operator_vault_rewards,
     set_epoch_weights::process_set_epoch_weights,
@@ -275,6 +278,14 @@ pub fn process_instruction(
         } => {
             msg!("Instruction: RouteOperatorVaultRewards");
             process_route_operator_vault_rewards(program_id, accounts, max_iterations, epoch)
-        } //
+        }
+        NCNProgramInstruction::DistributeOperatorRewards { epoch } => {
+            msg!("Instruction: DistributeOperatorRewards");
+            process_distribute_operator_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeVaultRewards { epoch } => {
+            msg!("Instruction: DistributeVaultRewards");
+            process_distribute_vault_rewards(program_id, accounts, epoch)
+        }
     }
 }
