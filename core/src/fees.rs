@@ -489,7 +489,6 @@ mod tests {
     #[test]
     fn test_init_fee_config_errors() {
         const OK_FEE: u16 = 1;
-        const ZERO_FEE: u16 = 0;
         const OK_EPOCH: u64 = 0;
 
         let ok_wallet = Pubkey::new_unique();
