@@ -9,32 +9,38 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct AdminSetTieBreaker {
+pub struct DistributeOperatorRewards {
     pub epoch_state: solana_program::pubkey::Pubkey,
 
     pub config: solana_program::pubkey::Pubkey,
 
-    pub ballot_box: solana_program::pubkey::Pubkey,
-
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub tie_breaker_admin: solana_program::pubkey::Pubkey,
+    pub operator: solana_program::pubkey::Pubkey,
+
+    pub operator_snapshot: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_router: solana_program::pubkey::Pubkey,
+
+    pub operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
+
+    pub system_program: solana_program::pubkey::Pubkey,
 }
 
-impl AdminSetTieBreaker {
+impl DistributeOperatorRewards {
     pub fn instruction(
         &self,
-        args: AdminSetTieBreakerInstructionArgs,
+        args: DistributeOperatorRewardsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: AdminSetTieBreakerInstructionArgs,
+        args: DistributeOperatorRewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.epoch_state,
             false,
@@ -43,19 +49,31 @@ impl AdminSetTieBreaker {
             self.config,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.ballot_box,
-            false,
-        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_snapshot,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_vault_reward_router,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.operator_vault_reward_receiver,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.tie_breaker_admin,
-            true,
+            self.system_program,
+            false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = AdminSetTieBreakerInstructionData::new()
+        let mut data = DistributeOperatorRewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = args.try_to_vec().unwrap();
@@ -70,17 +88,17 @@ impl AdminSetTieBreaker {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct AdminSetTieBreakerInstructionData {
+pub struct DistributeOperatorRewardsInstructionData {
     discriminator: u8,
 }
 
-impl AdminSetTieBreakerInstructionData {
+impl DistributeOperatorRewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 27 }
+        Self { discriminator: 23 }
     }
 }
 
-impl Default for AdminSetTieBreakerInstructionData {
+impl Default for DistributeOperatorRewardsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -88,33 +106,37 @@ impl Default for AdminSetTieBreakerInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AdminSetTieBreakerInstructionArgs {
-    pub weather_status: u8,
+pub struct DistributeOperatorRewardsInstructionArgs {
     pub epoch: u64,
 }
 
-/// Instruction builder for `AdminSetTieBreaker`.
+/// Instruction builder for `DistributeOperatorRewards`.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
 ///   1. `[]` config
-///   2. `[writable]` ballot_box
-///   3. `[]` ncn
-///   4. `[signer]` tie_breaker_admin
+///   2. `[]` ncn
+///   3. `[writable]` operator
+///   4. `[writable]` operator_snapshot
+///   5. `[writable]` operator_vault_reward_router
+///   6. `[writable]` operator_vault_reward_receiver
+///   7. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct AdminSetTieBreakerBuilder {
+pub struct DistributeOperatorRewardsBuilder {
     epoch_state: Option<solana_program::pubkey::Pubkey>,
     config: Option<solana_program::pubkey::Pubkey>,
-    ballot_box: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    tie_breaker_admin: Option<solana_program::pubkey::Pubkey>,
-    weather_status: Option<u8>,
+    operator: Option<solana_program::pubkey::Pubkey>,
+    operator_snapshot: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_router: Option<solana_program::pubkey::Pubkey>,
+    operator_vault_reward_receiver: Option<solana_program::pubkey::Pubkey>,
+    system_program: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl AdminSetTieBreakerBuilder {
+impl DistributeOperatorRewardsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -129,26 +151,43 @@ impl AdminSetTieBreakerBuilder {
         self
     }
     #[inline(always)]
-    pub fn ballot_box(&mut self, ballot_box: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.ballot_box = Some(ballot_box);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
         self.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn tie_breaker_admin(
-        &mut self,
-        tie_breaker_admin: solana_program::pubkey::Pubkey,
-    ) -> &mut Self {
-        self.tie_breaker_admin = Some(tie_breaker_admin);
+    pub fn operator(&mut self, operator: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.operator = Some(operator);
         self
     }
     #[inline(always)]
-    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
-        self.weather_status = Some(weather_status);
+    pub fn operator_snapshot(
+        &mut self,
+        operator_snapshot: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_snapshot = Some(operator_snapshot);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_router = Some(operator_vault_reward_router);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
+        self
+    }
+    /// `[optional account, default to '11111111111111111111111111111111']`
+    #[inline(always)]
+    pub fn system_program(&mut self, system_program: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.system_program = Some(system_program);
         self
     }
     #[inline(always)]
@@ -176,20 +215,25 @@ impl AdminSetTieBreakerBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = AdminSetTieBreaker {
+        let accounts = DistributeOperatorRewards {
             epoch_state: self.epoch_state.expect("epoch_state is not set"),
             config: self.config.expect("config is not set"),
-            ballot_box: self.ballot_box.expect("ballot_box is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            tie_breaker_admin: self
-                .tie_breaker_admin
-                .expect("tie_breaker_admin is not set"),
+            operator: self.operator.expect("operator is not set"),
+            operator_snapshot: self
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+            operator_vault_reward_router: self
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+            operator_vault_reward_receiver: self
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
+            system_program: self
+                .system_program
+                .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
-        let args = AdminSetTieBreakerInstructionArgs {
-            weather_status: self
-                .weather_status
-                .clone()
-                .expect("weather_status is not set"),
+        let args = DistributeOperatorRewardsInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -197,21 +241,27 @@ impl AdminSetTieBreakerBuilder {
     }
 }
 
-/// `admin_set_tie_breaker` CPI accounts.
-pub struct AdminSetTieBreakerCpiAccounts<'a, 'b> {
+/// `distribute_operator_rewards` CPI accounts.
+pub struct DistributeOperatorRewardsCpiAccounts<'a, 'b> {
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `admin_set_tie_breaker` CPI instruction.
-pub struct AdminSetTieBreakerCpi<'a, 'b> {
+/// `distribute_operator_rewards` CPI instruction.
+pub struct DistributeOperatorRewardsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -219,28 +269,37 @@ pub struct AdminSetTieBreakerCpi<'a, 'b> {
 
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    pub operator: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: AdminSetTieBreakerInstructionArgs,
+    pub __args: DistributeOperatorRewardsInstructionArgs,
 }
 
-impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
+impl<'a, 'b> DistributeOperatorRewardsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: AdminSetTieBreakerCpiAccounts<'a, 'b>,
-        args: AdminSetTieBreakerInstructionArgs,
+        accounts: DistributeOperatorRewardsCpiAccounts<'a, 'b>,
+        args: DistributeOperatorRewardsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
             epoch_state: accounts.epoch_state,
             config: accounts.config,
-            ballot_box: accounts.ballot_box,
             ncn: accounts.ncn,
-            tie_breaker_admin: accounts.tie_breaker_admin,
+            operator: accounts.operator,
+            operator_snapshot: accounts.operator_snapshot,
+            operator_vault_reward_router: accounts.operator_vault_reward_router,
+            operator_vault_reward_receiver: accounts.operator_vault_reward_receiver,
+            system_program: accounts.system_program,
             __args: args,
         }
     }
@@ -277,7 +336,7 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.epoch_state.key,
             false,
@@ -286,17 +345,29 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             *self.config.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.ballot_box.key,
-            false,
-        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.ncn.key,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_snapshot.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_vault_reward_router.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.operator_vault_reward_receiver.key,
+            false,
+        ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.tie_breaker_admin.key,
-            true,
+            *self.system_program.key,
+            false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -305,7 +376,7 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = AdminSetTieBreakerInstructionData::new()
+        let mut data = DistributeOperatorRewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
@@ -316,13 +387,16 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(8 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_state.clone());
         account_infos.push(self.config.clone());
-        account_infos.push(self.ballot_box.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.tie_breaker_admin.clone());
+        account_infos.push(self.operator.clone());
+        account_infos.push(self.operator_snapshot.clone());
+        account_infos.push(self.operator_vault_reward_router.clone());
+        account_infos.push(self.operator_vault_reward_receiver.clone());
+        account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -335,30 +409,35 @@ impl<'a, 'b> AdminSetTieBreakerCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `AdminSetTieBreaker` via CPI.
+/// Instruction builder for `DistributeOperatorRewards` via CPI.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` epoch_state
 ///   1. `[]` config
-///   2. `[writable]` ballot_box
-///   3. `[]` ncn
-///   4. `[signer]` tie_breaker_admin
+///   2. `[]` ncn
+///   3. `[writable]` operator
+///   4. `[writable]` operator_snapshot
+///   5. `[writable]` operator_vault_reward_router
+///   6. `[writable]` operator_vault_reward_receiver
+///   7. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct AdminSetTieBreakerCpiBuilder<'a, 'b> {
-    instruction: Box<AdminSetTieBreakerCpiBuilderInstruction<'a, 'b>>,
+pub struct DistributeOperatorRewardsCpiBuilder<'a, 'b> {
+    instruction: Box<DistributeOperatorRewardsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
+impl<'a, 'b> DistributeOperatorRewardsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(AdminSetTieBreakerCpiBuilderInstruction {
+        let instruction = Box::new(DistributeOperatorRewardsCpiBuilderInstruction {
             __program: program,
             epoch_state: None,
             config: None,
-            ballot_box: None,
             ncn: None,
-            tie_breaker_admin: None,
-            weather_status: None,
+            operator: None,
+            operator_snapshot: None,
+            operator_vault_reward_router: None,
+            operator_vault_reward_receiver: None,
+            system_program: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -381,29 +460,48 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn ballot_box(
-        &mut self,
-        ballot_box: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.ballot_box = Some(ballot_box);
-        self
-    }
-    #[inline(always)]
     pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn tie_breaker_admin(
+    pub fn operator(
         &mut self,
-        tie_breaker_admin: &'b solana_program::account_info::AccountInfo<'a>,
+        operator: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.tie_breaker_admin = Some(tie_breaker_admin);
+        self.instruction.operator = Some(operator);
         self
     }
     #[inline(always)]
-    pub fn weather_status(&mut self, weather_status: u8) -> &mut Self {
-        self.instruction.weather_status = Some(weather_status);
+    pub fn operator_snapshot(
+        &mut self,
+        operator_snapshot: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_snapshot = Some(operator_snapshot);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_router(
+        &mut self,
+        operator_vault_reward_router: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_router = Some(operator_vault_reward_router);
+        self
+    }
+    #[inline(always)]
+    pub fn operator_vault_reward_receiver(
+        &mut self,
+        operator_vault_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.operator_vault_reward_receiver = Some(operator_vault_reward_receiver);
+        self
+    }
+    #[inline(always)]
+    pub fn system_program(
+        &mut self,
+        system_program: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.system_program = Some(system_program);
         self
     }
     #[inline(always)]
@@ -452,15 +550,10 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = AdminSetTieBreakerInstructionArgs {
-            weather_status: self
-                .instruction
-                .weather_status
-                .clone()
-                .expect("weather_status is not set"),
+        let args = DistributeOperatorRewardsInstructionArgs {
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = AdminSetTieBreakerCpi {
+        let instruction = DistributeOperatorRewardsCpi {
             __program: self.instruction.__program,
 
             epoch_state: self
@@ -470,14 +563,29 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
 
             config: self.instruction.config.expect("config is not set"),
 
-            ballot_box: self.instruction.ballot_box.expect("ballot_box is not set"),
-
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            tie_breaker_admin: self
+            operator: self.instruction.operator.expect("operator is not set"),
+
+            operator_snapshot: self
                 .instruction
-                .tie_breaker_admin
-                .expect("tie_breaker_admin is not set"),
+                .operator_snapshot
+                .expect("operator_snapshot is not set"),
+
+            operator_vault_reward_router: self
+                .instruction
+                .operator_vault_reward_router
+                .expect("operator_vault_reward_router is not set"),
+
+            operator_vault_reward_receiver: self
+                .instruction
+                .operator_vault_reward_receiver
+                .expect("operator_vault_reward_receiver is not set"),
+
+            system_program: self
+                .instruction
+                .system_program
+                .expect("system_program is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -488,14 +596,16 @@ impl<'a, 'b> AdminSetTieBreakerCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct AdminSetTieBreakerCpiBuilderInstruction<'a, 'b> {
+struct DistributeOperatorRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ballot_box: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    tie_breaker_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    weather_status: Option<u8>,
+    operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_snapshot: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    operator_vault_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

@@ -868,29 +868,27 @@ impl TestBuilder {
                 .await?;
 
             let operator_rewards = operator_vault_reward_router.operator_rewards();
-            // if operator_rewards > 0 {
-            //     ncn_program_client
-            //         .do_distribute_ncn_operator_rewards(operator, ncn, epoch)
-            //         .await?;
-            // }
+            if operator_rewards > 0 {
+                ncn_program_client
+                    .do_distribute_operator_rewards(operator, ncn, epoch)
+                    .await?;
+            }
 
-            // for vault_root in test_ncn.vaults.iter() {
-            //     let vault = vault_root.vault_pubkey;
-            //
-            //     let vault_reward_route = operator_vault_reward_router.vault_reward_route(&vault);
-            //
-            //     if let Ok(vault_reward_route) = vault_reward_route {
-            //         let vault_rewards = vault_reward_route.rewards();
-            //
-            //         if vault_rewards > 0 {
-            //             ncn_program_client
-            //                 .do_distribute_ncn_vault_rewards(
-            //                     *group, vault, operator, ncn, epoch, pool_root,
-            //                 )
-            //                 .await?;
-            //         }
-            //     }
-            // }
+            for vault_root in test_ncn.vaults.iter() {
+                let vault = vault_root.vault_pubkey;
+
+                let vault_reward_route = operator_vault_reward_router.vault_reward_route(&vault);
+
+                if let Ok(vault_reward_route) = vault_reward_route {
+                    let vault_rewards = vault_reward_route.rewards();
+
+                    if vault_rewards > 0 {
+                        ncn_program_client
+                            .do_distribute_vault_rewards(vault, operator, ncn, epoch)
+                            .await?;
+                    }
+                }
+            }
         }
 
         Ok(())

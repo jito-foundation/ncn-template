@@ -23,7 +23,9 @@ import {
   type ParsedCloseEpochAccountInstruction,
   type ParsedDistributeJitoDAORewardsInstruction,
   type ParsedDistributeNCNRewardsInstruction,
+  type ParsedDistributeOperatorRewardsInstruction,
   type ParsedDistributeOperatorVaultRewardRouteInstruction,
+  type ParsedDistributeVaultRewardsInstruction,
   type ParsedInitializeBallotBoxInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeEpochSnapshotInstruction,
@@ -85,6 +87,8 @@ export enum NcnProgramInstruction {
   DistributeOperatorVaultRewardRoute,
   RouteOperatorVaultRewards,
   CloseEpochAccount,
+  DistributeOperatorRewards,
+  DistributeVaultRewards,
   AdminSetParameters,
   AdminSetNewAdmin,
   AdminSetTieBreaker,
@@ -167,21 +171,27 @@ export function identifyNcnProgramInstruction(
     return NcnProgramInstruction.CloseEpochAccount;
   }
   if (containsBytes(data, getU8Encoder().encode(23), 0)) {
-    return NcnProgramInstruction.AdminSetParameters;
+    return NcnProgramInstruction.DistributeOperatorRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(24), 0)) {
-    return NcnProgramInstruction.AdminSetNewAdmin;
+    return NcnProgramInstruction.DistributeVaultRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(25), 0)) {
-    return NcnProgramInstruction.AdminSetTieBreaker;
+    return NcnProgramInstruction.AdminSetParameters;
   }
   if (containsBytes(data, getU8Encoder().encode(26), 0)) {
-    return NcnProgramInstruction.AdminSetWeight;
+    return NcnProgramInstruction.AdminSetNewAdmin;
   }
   if (containsBytes(data, getU8Encoder().encode(27), 0)) {
-    return NcnProgramInstruction.AdminRegisterStMint;
+    return NcnProgramInstruction.AdminSetTieBreaker;
   }
   if (containsBytes(data, getU8Encoder().encode(28), 0)) {
+    return NcnProgramInstruction.AdminSetWeight;
+  }
+  if (containsBytes(data, getU8Encoder().encode(29), 0)) {
+    return NcnProgramInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(30), 0)) {
     return NcnProgramInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -261,6 +271,12 @@ export type ParsedNcnProgramInstruction<
   | ({
       instructionType: NcnProgramInstruction.CloseEpochAccount;
     } & ParsedCloseEpochAccountInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeOperatorRewards;
+    } & ParsedDistributeOperatorRewardsInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeVaultRewards;
+    } & ParsedDistributeVaultRewardsInstruction<TProgram>)
   | ({
       instructionType: NcnProgramInstruction.AdminSetParameters;
     } & ParsedAdminSetParametersInstruction<TProgram>)

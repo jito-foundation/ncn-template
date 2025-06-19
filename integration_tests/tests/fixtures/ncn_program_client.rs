@@ -5,14 +5,14 @@ use jito_restaking_core::{
 use jito_vault_core::{
     vault_ncn_ticket::VaultNcnTicket, vault_operator_delegation::VaultOperatorDelegation,
 };
-use log::log_enabled;
 use ncn_program_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
         CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, DistributeNCNRewardsBuilder,
-        DistributeOperatorVaultRewardRouteBuilder, InitializeBallotBoxBuilder,
-        InitializeConfigBuilder, InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
+        DistributeOperatorRewardsBuilder, DistributeOperatorVaultRewardRouteBuilder,
+        DistributeVaultRewardsBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
+        InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
         InitializeOperatorVaultRewardRouterBuilder, InitializeVaultRegistryBuilder,
         InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocNCNRewardRouterBuilder,
@@ -1941,6 +1941,107 @@ impl NCNProgramClient {
                 ComputeBudgetInstruction::set_compute_unit_limit(1_400_000),
                 ix,
             ],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+        .await
+    }
+
+    pub async fn do_distribute_operator_rewards(
+        &mut self,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let ncn_config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
+
+        let (operator_vault_reward_router, _, _) = OperatorVaultRewardRouter::find_program_address(
+            &ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        );
+
+        let (operator_vault_reward_receiver, _, _) =
+            OperatorVaultRewardReceiver::find_program_address(
+                &ncn_program::id(),
+                &operator,
+                &ncn,
+                epoch,
+            );
+
+        let operator_snapshot =
+            OperatorSnapshot::find_program_address(&ncn_program::id(), &operator, &ncn, epoch).0;
+
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let ix = DistributeOperatorRewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .config(ncn_config)
+            .ncn(ncn)
+            .operator(operator)
+            .operator_snapshot(operator_snapshot)
+            .operator_vault_reward_router(operator_vault_reward_router)
+            .operator_vault_reward_receiver(operator_vault_reward_receiver)
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+        .await
+    }
+
+    pub async fn do_distribute_vault_rewards(
+        &mut self,
+        vault: Pubkey,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let ncn_config = NcnConfig::find_program_address(&ncn_program::id(), &ncn).0;
+
+        let (operator_vault_reward_router, _, _) = OperatorVaultRewardRouter::find_program_address(
+            &ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        );
+        let (operator_vault_reward_receiver, _, _) =
+            OperatorVaultRewardReceiver::find_program_address(
+                &ncn_program::id(),
+                &operator,
+                &ncn,
+                epoch,
+            );
+
+        let operator_snapshot =
+            OperatorSnapshot::find_program_address(&ncn_program::id(), &operator, &ncn, epoch).0;
+
+        let epoch_state = EpochState::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let ix = DistributeVaultRewardsBuilder::new()
+            .epoch_state(epoch_state)
+            .config(ncn_config)
+            .ncn(ncn)
+            .operator(operator)
+            .vault(vault)
+            .operator_snapshot(operator_snapshot)
+            .operator_vault_reward_router(operator_vault_reward_router)
+            .operator_vault_reward_receiver(operator_vault_reward_receiver)
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
             Some(&self.payer.pubkey()),
             &[&self.payer],
             blockhash,
