@@ -79,7 +79,7 @@ A CLI for creating and managing the ncn program
   Default value: `0`
 * `--ncn-program-id <NCN_PROGRAM_ID>` — NCN program ID
 
-  Default value: `7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8`
+  Default value: `HDdd3ATbccVPoFs9aXtZKqXMSvehsgt8UFQdJnyCyYb8`
 * `--restaking-program-id <RESTAKING_PROGRAM_ID>` — Restaking program ID
 
   Default value: `RestkWeAVL8fRGgzhfeoqFhsqKRchg6aa1XrcH96z4Q`

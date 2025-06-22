@@ -1,11 +1,11 @@
 [workspace]
 members = [
-  "clients/rust/ncn_program",
-  "core",
-  "integration_tests",
-  "program",
-  "shank_cli",
-  "cli",
+    "cli",
+    "clients/rust/ncn_program",
+    "core",
+    "integration_tests",
+    "program",
+    "shank_cli",
 ]
 
 resolver = "2"
@@ -57,9 +57,7 @@ jito-vault-program = { package = "jito-vault-program", git = "https://github.com
 jito-vault-sdk = { package = "jito-vault-sdk", git = "https://github.com/jito-foundation/restaking", branch = "v2.1-upgrade" }
 log = "0.4.22"
 matches = "0.1.10"
-ncn-operator-cli = { path = "./operator_cli", version = "=0.0.1" }
 ncn-program = { path = "./program", version = "=0.0.1" }
-ncn-program-cli = { path = "./cli", version = "=0.0.1" }
 ncn-program-client = { path = "./clients/rust/ncn_program", version = "0.0.1" }
 ncn-program-core = { path = "./core", version = "=0.0.1" }
 ncn-program-shank-cli = { path = "./shank_cli", version = "=0.0.1" }

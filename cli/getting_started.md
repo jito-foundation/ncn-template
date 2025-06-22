@@ -4,7 +4,7 @@
 
 | Account             | Address                                      |
 | ------------------- | -------------------------------------------- |
-| Test NCN Program ID | 7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8 |
+| Test NCN Program ID | HDdd3ATbccVPoFs9aXtZKqXMSvehsgt8UFQdJnyCyYb8 |
 | Test NCN            | 5zqy3uyXMi5Uurup7S5kKUUuwHGnGcykVwwUik37fm6i |
 
 ## Setup CLIs
@@ -50,7 +50,7 @@ export RPC_URL="https://api.devnet.solana.com"
 export COMMITMENT="confirmed"
 
 # Set NCN Program ID (if different from default)
-export NCN_PROGRAM_ID="7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8"
+export NCN_PROGRAM_ID="HDdd3ATbccVPoFs9aXtZKqXMSvehsgt8UFQdJnyCyYb8"
 
 
 # Set Jito Restaking and Vault Program IDs
