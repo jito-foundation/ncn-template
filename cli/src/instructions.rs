@@ -1004,7 +1004,7 @@ pub async fn operator_cast_vote(
             format!("NCN: {:?}", ncn),
             format!("Operator: {:?}", operator),
             format!(
-                "Meta Merkle Root: {:?}",
+                "Weather Status: {:?}",
                 WeatherStatus::from_u8(weather_status)
             ),
             format!("Epoch: {:?}", epoch),
