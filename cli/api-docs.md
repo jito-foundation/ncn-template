@@ -109,7 +109,7 @@ A CLI for creating and managing the ncn program
 
 ## `ncn-program-cli run-keeper`
 
-NCN Keeper
+NCN Keeper - Automates the epoch lifecycle including set weights, snapshots, voting, distribution, and closing
 
 **Usage:** `ncn-program-cli run-keeper [OPTIONS]`
 
@@ -163,6 +163,8 @@ Crank Functions
 
 
 ## `ncn-program-cli crank-distribute`
+
+Handles the distribution of rewards after consensus is reached
 
 **Usage:** `ncn-program-cli crank-distribute`
 

@@ -11,6 +11,7 @@ Key features:
 - Support for multiple stake token mints with configurable weights
 - Weather status system (Sunny, Cloudy, Rainy)
 - Admin controls for configuration and tie-breaking
+- Fee distribution to stakeholders after consensus
 
 ## Testing Setup
 
@@ -26,8 +27,9 @@ Key features:
 3. **Create Snapshots** of operators and vaults to establish voting weights
 4. **Cast Votes** on weather status with influence based on stake weight
 5. **Achieve Consensus** when votes for a status reach ≥66% of total stake weight
-6. **Record Results** with the winning status, voting statistics, and timing data
-7. **Clean Up** accounts after sufficient time has passed to reclaim rent
+6. **Distribute Rewards** to stakeholders based on participation and stake weight
+7. **Record Results** with the winning status, voting statistics, and timing data
+8. **Clean Up** accounts after sufficient time has passed to reclaim rent
 
 ## Customization
 
@@ -58,4 +60,4 @@ While this implementation uses weather status as the consensus target, the frame
 
 ## More info
 
-You can check the docs for more into [here](TODO: add link). There is also a tutorial on how to use the program [here](TODO: add link).
+You can check the docs for more info in the `cli/` directory. See [getting_started.md](cli/getting_started.md) and [api-docs.md](cli/api-docs.md) for details.
