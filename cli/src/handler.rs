@@ -198,6 +198,8 @@ impl CliHandler {
 
             // Admin
             ProgramCommand::AdminCreateConfig {
+                ncn_fee_wallet,
+                ncn_fee_bps,
                 epochs_before_stall,
                 valid_slots_after_consensus,
                 epochs_after_consensus_before_close,
@@ -212,12 +214,17 @@ impl CliHandler {
                     None
                 };
 
+                let ncn_fee_wallet = Pubkey::from_str(&ncn_fee_wallet)
+                    .map_err(|e| anyhow!("Error parsing NCN fee wallet: {}", e))?;
+
                 admin_create_config(
                     self,
+                    ncn_fee_wallet,
+                    ncn_fee_bps.try_into()?,
+                    tie_breaker,
                     epochs_before_stall,
                     valid_slots_after_consensus,
                     epochs_after_consensus_before_close,
-                    tie_breaker,
                 )
                 .await
             }

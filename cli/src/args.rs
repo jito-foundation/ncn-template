@@ -158,6 +158,11 @@ pub enum ProgramCommand {
 
     /// Admin
     AdminCreateConfig {
+        #[arg(long, help = "Ncn Fee Wallet Address")]
+        ncn_fee_wallet: String,
+        #[arg(long, help = "Ncn Fee bps")]
+        ncn_fee_bps: u64,
+
         #[arg(long, default_value_t = 10 as u64, help = "Epochs before tie breaker can set consensus")]
         epochs_before_stall: u64,
         #[arg(long, default_value_t = (DEFAULT_SLOTS_PER_EPOCH as f64 * 0.1) as u64, help = "Valid slots after consensus")]

@@ -75,10 +75,12 @@ use tokio::time::sleep;
 #[allow(clippy::too_many_arguments)]
 pub async fn admin_create_config(
     handler: &CliHandler,
+    ncn_fee_wallet: Pubkey,
+    ncn_fee_bps: u16,
+    tie_breaker_admin: Option<Pubkey>,
     epochs_before_stall: u64,
     valid_slots_after_consensus: u64,
     epochs_after_consensus_before_close: u64,
-    tie_breaker_admin: Option<Pubkey>,
 ) -> Result<()> {
     let keypair = handler.keypair()?;
     let client = handler.rpc_client();
@@ -97,10 +99,13 @@ pub async fn admin_create_config(
         .ncn_admin(keypair.pubkey())
         .ncn(ncn)
         .account_payer(account_payer)
+        .ncn_fee_wallet(ncn_fee_wallet)
+        .ncn_fee_bps(ncn_fee_bps)
         .epochs_before_stall(epochs_before_stall)
         .valid_slots_after_consensus(valid_slots_after_consensus)
         .epochs_after_consensus_before_close(epochs_after_consensus_before_close)
-        .tie_breaker_admin(keypair.pubkey())
+        .tie_breaker_admin(tie_breaker_admin)
+        .ncn_admin(keypair.pubkey())
         .instruction();
 
     let program = client.get_account(&handler.ncn_program_id).await?;
