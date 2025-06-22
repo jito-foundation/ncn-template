@@ -20,9 +20,11 @@ mod fuzz_tests {
         operator_fee_bps: u16,  // Operator fee in basis points (100 = 1%)
     }
 
-    // Main simulation function that runs a full consensus cycle with the given configuration
+    /// Main simulation function that runs a full consensus cycle with the given configuration
+    /// This is a modular version of the simulation_test that can be run with different parameters
+    /// It follows the same workflow: setup → initialization → voting → rewards → verification
     async fn run_simulation(config: SimConfig) -> TestResult<()> {
-        // Create test environment
+        // 1. Create and initialize test environment
         let mut fixture = TestBuilder::new().await;
         fixture.initialize_restaking_and_vault_programs().await?;
 
@@ -30,20 +32,16 @@ mod fuzz_tests {
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
 
-        // Validate configuration
+        // Validate configuration - ensure we have delegation amounts for each vault
         let total_vaults = config.mints.iter().map(|m| m.vault_count).sum::<usize>();
         assert_eq!(config.delegations.len(), total_vaults);
 
-        // 2. Initializing all the needed accounts using Jito's Staking and Vault programs
-        // this step will initialize the NCN account, and all the operators and vaults accounts,
-        // it will also initialize the handshake relationships between all the NCN components
-
+        // 2. Initialize system accounts and establish relationships
         // 2.a. Initialize the NCN account using the Jito Restaking program
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 
-        // 2.b. Initialize the operators using the Jito Restaking program, and initiate the
-        //   handshake relationship between the NCN <> operators
+        // 2.b. Initialize operators and establish NCN <> operator relationships
         {
             for _ in 0..config.operator_count {
                 // Set operator fee to the configured value
@@ -55,7 +53,7 @@ mod fuzz_tests {
                     .await?;
 
                 // Establish bidirectional handshake between NCN and operator:
-                // 1. Initialize the NCN's state tracking (the NCN operator ticket) for this operator
+                // 1. Initialize the NCN's state tracking for this operator
                 restaking_client
                     .do_initialize_ncn_operator_state(
                         &test_ncn.ncn_root,
@@ -81,10 +79,9 @@ mod fuzz_tests {
             }
         }
 
-        // 2.c. Initialize the vaults using the Vault program By Jito
-        // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
+        // 2.c. Initialize vaults and establish NCN <> vaults and vault <> operator relationships
         {
-            // Create vaults for each mint
+            // Create vaults for each mint according to the configuration
             for mint_config in config.mints.iter() {
                 fixture
                     .add_vaults_to_test_ncn(
@@ -97,7 +94,7 @@ mod fuzz_tests {
         }
 
         // 2.d. Vaults delegate stakes to operators
-        // Each vault delegates different amounts to different operators based on the delegation amounts array
+        // Each vault delegates to each operator with configured delegation amounts
         {
             for operator_root in test_ncn.operators.iter() {
                 for (vault_index, vault_root) in test_ncn.vaults.iter().enumerate() {
@@ -118,9 +115,9 @@ mod fuzz_tests {
             }
         }
 
+        // 2.e. Fast-forward time to simulate epochs passing
+        // This is needed for all the relationships to finish warming up
         {
-            // 2.e Fast-forward time to simulate a full epoch passing
-            // This is needed for all the relationships to finish warming up
             let restaking_config_address =
                 Config::find_program_address(&jito_restaking_program::id()).0;
             let restaking_config = restaking_client
@@ -134,10 +131,9 @@ mod fuzz_tests {
         }
 
         // 3. Setting up the NCN-program
-        // every thing here will be a call for an instruction to the NCN program that the NCN admin
-        // is suppose to deploy to the network.
+        // The following instructions would be executed by the NCN admin in a production environment
         {
-            // 3.a. Initialize the config for the ncn-program
+            // 3.a. Initialize the config for the NCN program
             ncn_program_client
                 .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
                 .await?;
@@ -147,7 +143,7 @@ mod fuzz_tests {
                 .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
                 .await?;
 
-            // 3.c. Register all the ST (Support Token) mints in the ncn program
+            // 3.c. Register all the Supported Token (ST) mints in the NCN program
             // This assigns weights to each mint for voting power calculations
             for mint_config in config.mints.iter() {
                 ncn_program_client
@@ -159,8 +155,8 @@ mod fuzz_tests {
                     .await?;
             }
 
-            // 3.d Register all the vaults in the ncn program
-            // note that this is permissionless because the admin already approved it by initiating
+            // 3.d Register all the vaults in the NCN program
+            // This is permissionless because the admin already approved it by initiating
             // the handshake before
             for vault in test_ncn.vaults.iter() {
                 let vault = vault.vault_pubkey;
@@ -175,17 +171,13 @@ mod fuzz_tests {
                     .await?;
             }
         }
-        // At this point, all the preparations and configurations are done, everything else after
-        // this is part of the consensus cycle, so it depends on the way you setup your voting system
-        // you will have to run the code below
-        //
-        // in this example, the voting is cyclical, and per epoch, so the code you will see below
-        // will run per epoch to prepare for the voting
 
-        // 4. Prepare the voting environment
+        // 4. Prepare the epoch consensus cycle
+        // In a real system, these steps would run each epoch to prepare for voting on weather status
         {
             // 4.a. Initialize the epoch state - creates a new state for the current epoch
             fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
+
             // 4.b. Initialize the weight table - prepares the table that will track voting weights
             let clock = fixture.clock().await;
             let epoch = clock.epoch;
@@ -198,12 +190,15 @@ mod fuzz_tests {
             ncn_program_client
                 .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
                 .await?;
+
             // 4.d. Take the epoch snapshot - records the current state for this epoch
             fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
+
             // 4.e. Take a snapshot for each operator - records their current stakes
             fixture
                 .add_operator_snapshots_to_test_ncn(&test_ncn)
                 .await?;
+
             // 4.f. Take a snapshot for each vault and its delegation - records delegations
             fixture
                 .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
@@ -214,6 +209,7 @@ mod fuzz_tests {
         }
 
         // Define which weather status we expect to win in the vote
+        // In this example, operators will vote on a simulated weather status
         let winning_weather_status = WeatherStatus::Sunny as u8;
 
         // 5. Cast votes from operators
@@ -221,6 +217,7 @@ mod fuzz_tests {
             let epoch = fixture.clock().await.epoch;
 
             // All operators vote for the same status to ensure consensus
+            // This differs from simulation_test.rs where some operators vote differently
             for operator_root in test_ncn.operators.iter() {
                 let operator = operator_root.operator_pubkey;
                 ncn_program_client
@@ -245,19 +242,22 @@ mod fuzz_tests {
         }
 
         // 7. Reward Distribution
+        // Simulate rewards flowing through the system after consensus
         {
             const REWARD_AMOUNT: u64 = 1_000_000;
+            // Setup reward routers for NCN and operators
             fixture.add_routers_for_test_ncn(&test_ncn).await?;
+            // Route rewards into the NCN reward system
             fixture
                 .route_in_ncn_rewards_for_test_ncn(&test_ncn, REWARD_AMOUNT)
                 .await?;
-
+            // Route rewards to operators and their delegated vaults
             fixture
                 .route_in_operator_vault_rewards_for_test_ncn(&test_ncn)
                 .await?;
         }
 
-        // 8. Fetch and verify the consensus_result account
+        // 8. Fetch and verify the consensus result account
         {
             let epoch = fixture.clock().await.epoch;
             let consensus_result = ncn_program_client
@@ -290,6 +290,7 @@ mod fuzz_tests {
         }
 
         // 9. Close epoch accounts but keep consensus result
+        // This simulates cleanup after epoch completion while preserving the final result
         let epoch_before_closing_account = fixture.clock().await.epoch;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 
@@ -307,6 +308,8 @@ mod fuzz_tests {
         Ok(())
     }
 
+    // Test with basic configuration
+    // This test runs the core simulation with a standard set of parameters
     #[ignore = "long test"]
     #[tokio::test]
     async fn test_basic_simulation() -> TestResult<()> {
@@ -351,6 +354,8 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
+    // Test with high operator count to verify system scalability
+    // This test ensures the system can handle a large number of operators
     #[ignore = "long test"]
     #[tokio::test]
     async fn test_high_operator_count_simulation() -> TestResult<()> {
@@ -369,6 +374,8 @@ mod fuzz_tests {
         run_simulation(config).await
     }
 
+    // Comprehensive fuzz testing with multiple configuration variations
+    // This test runs several different configurations sequentially to stress test the system
     #[ignore = "long test"]
     #[tokio::test]
     async fn test_fuzz_simulation() -> TestResult<()> {

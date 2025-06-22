@@ -7,20 +7,21 @@ mod tests {
 
     use crate::fixtures::{test_builder::TestBuilder, TestResult};
 
-    // #[ignore = "20-30 minute test"]
+    // This test runs a complete end-to-end NCN (Network of Consensus Nodes) consensus workflow
     #[tokio::test]
     async fn simulation_test() -> TestResult<()> {
-        // 0.a. Building the test environment
+        // 1. Setup test environment
+        // 1.a. Building the test environment
         let mut fixture = TestBuilder::new().await;
-        // 0.b. Initialize the configuration for the staking and vault programs
-        // you will not have to do that on mainnet, the programs will already be configured
+        // 1.b. Initialize the configuration for the restaking and vault programs
+        // Note: On mainnet, these programs would already be configured
         fixture.initialize_restaking_and_vault_programs().await?;
 
         let mut ncn_program_client = fixture.ncn_program_client();
         let mut vault_program_client = fixture.vault_client();
         let mut restaking_client = fixture.restaking_program_client();
 
-        // 1. Preparing the test variables
+        // 2. Define test parameters
         const OPERATOR_COUNT: usize = 13; // Number of operators to create for testing
         let mints = vec![
             (Keypair::new(), WEIGHT),     // Alice with base weight
@@ -36,16 +37,12 @@ mod tests {
             10_000_000_000_000, // 10k tokens
         ];
 
-        // 2. Initializing all the needed accounts using Jito's Staking and Vault programs
-        // this step will initialize the NCN account, and all the operators and vaults accounts,
-        // it will also initialize the handshake relationships between all the NCN components
-
-        // 2.a. Initialize the NCN account using the Jito Restaking program
+        // 3. Initialize system accounts and establish relationships
+        // 3.a. Initialize the NCN account using the Jito Restaking program
         let mut test_ncn = fixture.create_test_ncn().await?;
         let ncn_pubkey = test_ncn.ncn_root.ncn_pubkey;
 
-        // 2.b. Initialize the operators using the Jito Restaking program, and initiate the
-        //   handshake relationship between the NCN <> operators
+        // 3.b. Initialize operators and establish NCN <> operator relationships
         {
             for _ in 0..OPERATOR_COUNT {
                 // Set operator fee to 100 basis points (1%)
@@ -57,7 +54,7 @@ mod tests {
                     .await?;
 
                 // Establish bidirectional handshake between NCN and operator:
-                // 1. Initialize the NCN's state tracking (the NCN operator ticket) for this operator
+                // 1. Initialize the NCN's state tracking for this operator
                 restaking_client
                     .do_initialize_ncn_operator_state(
                         &test_ncn.ncn_root,
@@ -83,8 +80,7 @@ mod tests {
             }
         }
 
-        // 2.c. Initialize the vaults using the Vault program By Jito
-        // and initiate the handshake relationship between the NCN <> vaults, and vaults <> operators
+        // 3.c. Initialize vaults and establish NCN <> vaults and vault <> operator relationships
         {
             // Create 3 vaults for Alice
             fixture
@@ -104,7 +100,7 @@ mod tests {
                 .await?;
         }
 
-        // 2.d. Vaults delegate stakes to operators
+        // 3.d. Vaults delegate stakes to operators
         // Each vault delegates different amounts to different operators based on the delegation amounts array
         {
             for (index, operator_root) in test_ncn.operators.iter().enumerate() {
@@ -126,9 +122,9 @@ mod tests {
             }
         }
 
+        // 3.e. Fast-forward time to simulate a full epoch passing
+        // This is needed for all the relationships to finish warming up
         {
-            // 2.e Fast-forward time to simulate a full epoch passing
-            // This is needed for all the relationships to finish warming up
             let restaking_config_address =
                 Config::find_program_address(&jito_restaking_program::id()).0;
             let restaking_config = restaking_client
@@ -141,21 +137,20 @@ mod tests {
                 .unwrap();
         }
 
-        // 3. Setting up the NCN-program
-        // every thing here will be a call for an instruction to the NCN program that the NCN admin
-        // is suppose to deploy to the network.
+        // 4. Setting up the NCN-program
+        // The following instructions would be executed by the NCN admin in a production environment
         {
-            // 3.a. Initialize the config for the ncn-program
+            // 4.a. Initialize the config for the NCN program
             ncn_program_client
                 .do_initialize_config(test_ncn.ncn_root.ncn_pubkey, &test_ncn.ncn_root.ncn_admin)
                 .await?;
 
-            // 3.b Initialize the vault_registry - creates accounts to track vaults
+            // 4.b Initialize the vault_registry - creates accounts to track vaults
             ncn_program_client
                 .do_full_initialize_vault_registry(test_ncn.ncn_root.ncn_pubkey)
                 .await?;
 
-            // 3.c. Register all the ST (Support Token) mints in the ncn program
+            // 4.c. Register all the Supported Token (ST) mints in the NCN program
             // This assigns weights to each mint for voting power calculations
             for (mint, weight) in mints.iter() {
                 ncn_program_client
@@ -163,8 +158,8 @@ mod tests {
                     .await?;
             }
 
-            // 4.d Register all the vaults in the ncn program
-            // note that this is permissionless because the admin already approved it by initiating
+            // 4.d Register all the vaults in the NCN program
+            // This is permissionless because the admin already approved it by initiating
             // the handshake before
             for vault in test_ncn.vaults.iter() {
                 let vault = vault.vault_pubkey;
@@ -179,48 +174,48 @@ mod tests {
                     .await?;
             }
         }
-        // At this point, all the preparations and configurations are done, everything else after
-        // this is part of the consensus cycle, so it depends on the way you setup your voting system
-        // you will have to run the code below
-        //
-        // in this example, the voting is cyclical, and per epoch, so the code you will see below
-        // will run per epoch to prepare for the voting
 
-        // 4. Prepare the voting environment
+        // 5. Prepare the epoch consensus cycle
+        // In a real system, these steps would run each epoch to prepare for voting on weather status
         {
-            // 4.a. Initialize the epoch state - creates a new state for the current epoch
+            // 5.a. Initialize the epoch state - creates a new state for the current epoch
             fixture.add_epoch_state_for_test_ncn(&test_ncn).await?;
-            // 4.b. Initialize the weight table - prepares the table that will track voting weights
+
+            // 5.b. Initialize the weight table - prepares the table that will track voting weights
             let clock = fixture.clock().await;
             let epoch = clock.epoch;
             ncn_program_client
                 .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
                 .await?;
 
-            // 4.c. Take a snapshot of the weights for each ST mint
+            // 5.c. Take a snapshot of the weights for each ST mint
             // This records the current weights for the voting calculations
             ncn_program_client
                 .do_set_epoch_weights(test_ncn.ncn_root.ncn_pubkey, epoch)
                 .await?;
-            // 4.d. Take the epoch snapshot - records the current state for this epoch
+
+            // 5.d. Take the epoch snapshot - records the current state for this epoch
             fixture.add_epoch_snapshot_to_test_ncn(&test_ncn).await?;
-            // 4.e. Take a snapshot for each operator - records their current stakes
+
+            // 5.e. Take a snapshot for each operator - records their current stakes
             fixture
                 .add_operator_snapshots_to_test_ncn(&test_ncn)
                 .await?;
-            // 4.f. Take a snapshot for each vault and its delegation - records delegations
+
+            // 5.f. Take a snapshot for each vault and its delegation - records delegations
             fixture
                 .add_vault_operator_delegation_snapshots_to_test_ncn(&test_ncn)
                 .await?;
 
-            // 4.g. Initialize the ballot box - creates the voting container for this epoch
+            // 5.g. Initialize the ballot box - creates the voting container for this epoch
             fixture.add_ballot_box_to_test_ncn(&test_ncn).await?;
         }
 
         // Define which weather status we expect to win in the vote
+        // In this example, operators will vote on a simulated weather status
         let winning_weather_status = WeatherStatus::Sunny as u8;
 
-        // 5. Cast votes from operators
+        // 6. Cast votes from operators
         {
             let epoch = fixture.clock().await.epoch;
 
@@ -228,7 +223,7 @@ mod tests {
             let second_operator = &test_ncn.operators[1];
             let third_operator = &test_ncn.operators[2];
 
-            // First operator votes for Cloudy
+            // First operator votes for Cloudy (minority vote)
             ncn_program_client
                 .do_cast_vote(
                     ncn_pubkey,
@@ -239,7 +234,7 @@ mod tests {
                 )
                 .await?;
 
-            // Second and third operators vote for Sunny (the expected winner)
+            // Second and third operators vote for Sunny (expected winner)
             ncn_program_client
                 .do_cast_vote(
                     ncn_pubkey,
@@ -274,7 +269,7 @@ mod tests {
                     .await?;
             }
 
-            // 6. Verify voting results
+            // 7. Verify voting results
             let ballot_box = ncn_program_client.get_ballot_box(ncn_pubkey, epoch).await?;
             assert!(ballot_box.has_winning_ballot());
             assert!(ballot_box.is_consensus_reached());
@@ -284,20 +279,23 @@ mod tests {
             );
         }
 
-        // 7. Reward Distribution
+        // 8. Reward Distribution
+        // Simulate rewards flowing through the system after consensus
         {
             const REWARD_AMOUNT: u64 = 1_000_000;
+            // Setup reward routers for NCN and operators
             fixture.add_routers_for_test_ncn(&test_ncn).await?;
+            // Route rewards into the NCN reward system
             fixture
                 .route_in_ncn_rewards_for_test_ncn(&test_ncn, REWARD_AMOUNT)
                 .await?;
-
+            // Route rewards to operators and their delegated vaults
             fixture
                 .route_in_operator_vault_rewards_for_test_ncn(&test_ncn)
                 .await?;
         }
 
-        // 8. Fetch and verify the consensus_result account
+        // 9. Fetch and verify the consensus result account
         {
             let epoch = fixture.clock().await.epoch;
             let consensus_result = ncn_program_client
@@ -329,7 +327,8 @@ mod tests {
             );
         }
 
-        // 9. Close epoch accounts but keep consensus result
+        // 10. Close epoch accounts but keep consensus result
+        // This simulates cleanup after epoch completion while preserving the final result
         let epoch_before_closing_account = fixture.clock().await.epoch;
         fixture.close_epoch_accounts_for_test_ncn(&test_ncn).await?;
 

@@ -118,14 +118,14 @@ pub enum ProgramCommand {
             long,
             env,
             default_value_t = 600_000, // 10 minutes
-            help = "Keeper error timeout in milliseconds"
+            help = "Maximum time in milliseconds between keeper loop iterations"
         )]
         loop_timeout_ms: u64,
         #[arg(
             long,
             env,
             default_value_t = 10_000, // 10 seconds
-            help = "Keeper error timeout in milliseconds"
+            help = "Timeout in milliseconds when an error occurs before retrying"
         )]
         error_timeout_ms: u64,
     },
@@ -138,14 +138,14 @@ pub enum ProgramCommand {
             long,
             env,
             default_value_t = 600_000, // 10 minutes
-            help = "Keeper error timeout in milliseconds"
+            help = "Maximum time in milliseconds between keeper loop iterations"
         )]
         loop_timeout_ms: u64,
         #[arg(
             long,
             env,
             default_value_t = 10_000, // 10 seconds
-            help = "Keeper error timeout in milliseconds"
+            help = "Timeout in milliseconds when an error occurs before retrying"
         )]
         error_timeout_ms: u64,
     },
@@ -191,7 +191,7 @@ pub enum ProgramCommand {
         weight: u128,
     },
     AdminSetTieBreaker {
-        #[arg(long, help = "tir breaker for voting")]
+        #[arg(long, help = "tie breaker for voting")]
         weather_status: u8,
     },
     AdminSetParameters {

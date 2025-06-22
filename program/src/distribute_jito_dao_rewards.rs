@@ -16,17 +16,22 @@ pub fn process_distribute_jito_dao_rewards(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
+    msg!("Starting Jito DAO rewards distribution for epoch {}", epoch);
+
     let [epoch_state, ncn_config, ncn, ncn_reward_router, ncn_reward_receiver, jito_dao_fee_wallet, system_program] =
         accounts
     else {
+        msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    msg!("Loading accounts...");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     Config::load(program_id, ncn_config, ncn.key, false)?;
     NCNRewardRouter::load(program_id, ncn_reward_router, ncn.key, epoch, true)?;
     NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
+    msg!("All accounts loaded successfully");
 
     {
         let ncn_config_data = ncn_config.try_borrow_data()?;
@@ -34,26 +39,32 @@ pub fn process_distribute_jito_dao_rewards(
         let fee_wallet = ncn_config_account.fee_config.jito_dao_fee_wallet();
 
         if fee_wallet.ne(jito_dao_fee_wallet.key) {
-            msg!("Incorrect Jito DAO fee wallet");
+            msg!("Error: Incorrect Jito DAO fee wallet provided");
             return Err(ProgramError::InvalidAccountData);
         }
+        msg!("Jito DAO fee wallet validation passed");
     }
 
     // Get rewards and update state
+    msg!("Checking if rewards are still routing...");
     let rewards = {
         let mut ncn_reward_router_data = ncn_reward_router.try_borrow_mut_data()?;
         let ncn_reward_router_account =
             NCNRewardRouter::try_from_slice_unchecked_mut(&mut ncn_reward_router_data)?;
 
         if ncn_reward_router_account.still_routing() {
-            msg!("Rewards still routing");
+            msg!("Error: Rewards still routing, cannot distribute yet");
             return Err(NCNProgramError::RouterStillRouting.into());
         }
 
-        ncn_reward_router_account.distribute_jito_dao_fee_rewards()?
+        let rewards = ncn_reward_router_account.distribute_jito_dao_fee_rewards()?;
+        msg!("Calculated Jito DAO fee rewards: {} lamports", rewards);
+        rewards
     };
 
     if rewards > 0 {
+        msg!("Distributing {} lamports to Jito DAO fee wallet", rewards);
+
         let (_, ncn_reward_receiver_bump, mut ncn_reward_receiver_seeds) =
             NCNRewardReceiver::find_program_address(program_id, ncn.key, epoch);
         ncn_reward_receiver_seeds.push(vec![ncn_reward_receiver_bump]);
@@ -82,7 +93,12 @@ pub fn process_distribute_jito_dao_rewards(
                 .as_slice()],
         )?;
 
-        msg!("Transferred {} lamports to Jito DAO fee wallet", rewards);
+        msg!(
+            "Successfully transferred {} lamports to Jito DAO fee wallet",
+            rewards
+        );
+    } else {
+        msg!("No rewards to distribute (0 lamports)");
     }
 
     {
@@ -95,5 +111,9 @@ pub fn process_distribute_jito_dao_rewards(
         );
     }
 
+    msg!(
+        "Jito DAO rewards distribution completed successfully for epoch {}",
+        epoch
+    );
     Ok(())
 }
