@@ -7,17 +7,20 @@ use crate::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
         get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
         get_epoch_snapshot, get_epoch_state, get_is_epoch_completed, get_ncn,
-        get_ncn_operator_state, get_ncn_program_config, get_ncn_vault_ticket,
-        get_operator_snapshot, get_total_epoch_rent_cost, get_vault_ncn_ticket,
+        get_ncn_operator_state, get_ncn_program_config, get_ncn_reward_receiver,
+        get_ncn_reward_router, get_ncn_vault_ticket, get_operator_snapshot,
+        get_operator_vault_reward_router, get_total_epoch_rent_cost, get_vault_ncn_ticket,
         get_vault_operator_delegation, get_vault_registry, get_weight_table,
     },
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
         admin_set_parameters, admin_set_tie_breaker, admin_set_weight, crank_close_epoch_accounts,
-        crank_register_vaults, crank_snapshot, create_ballot_box, create_epoch_snapshot,
-        create_epoch_state, create_operator_snapshot, create_vault_registry, create_weight_table,
-        full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
-        snapshot_vault_operator_delegation, update_all_vaults_in_network,
+        crank_distribute, crank_register_vaults, crank_snapshot, create_ballot_box,
+        create_epoch_snapshot, create_epoch_state, create_ncn_reward_router,
+        create_operator_snapshot, create_operator_vault_reward_router, create_vault_registry,
+        create_weight_table, distribute_operator_vault_rewards, full_vault_update,
+        operator_cast_vote, register_vault, route_ncn_rewards, route_operator_vault_rewards,
+        set_epoch_weights, snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
     keeper::keeper_loop::startup_ncn_keeper,
     operator::operator_loop::startup_operator_loop,
@@ -188,6 +191,7 @@ impl CliHandler {
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
+            ProgramCommand::CrankDistribute {} => crank_distribute(self, self.epoch).await,
 
             ProgramCommand::CrankSnapshot {} => crank_snapshot(self, self.epoch).await,
             ProgramCommand::CrankCloseEpochAccounts {} => {
@@ -642,6 +646,64 @@ impl CliHandler {
                 for vault in vaults_to_update.iter() {
                     println!("Updating {:?}", vault);
                     full_vault_update(self, vault).await?;
+                }
+                Ok(())
+            }
+
+            ProgramCommand::CreateNCNRewardRouter {} => {
+                create_ncn_reward_router(self, self.epoch).await
+            }
+
+            ProgramCommand::CreateOperatorVaultRewardRouter { operator } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                create_operator_vault_reward_router(self, &operator, self.epoch).await
+            }
+
+            ProgramCommand::RouteNCNRewards {} => route_ncn_rewards(self, self.epoch).await,
+
+            ProgramCommand::RouteOperatorVaultRewards { operator } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                route_operator_vault_rewards(self, &operator, self.epoch).await
+            }
+
+            ProgramCommand::DistributeBaseOperatorVaultRewards { operator } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                distribute_operator_vault_rewards(self, &operator, self.epoch).await
+            }
+
+            ProgramCommand::GetNCNRewardRouter {} => {
+                let ncn_reward_router = get_ncn_reward_router(self, self.epoch).await?;
+                info!("{:?}", ncn_reward_router);
+                Ok(())
+            }
+
+            ProgramCommand::GetNCNRewardReceiverAddress {} => {
+                let (address, _) = get_ncn_reward_receiver(self, self.epoch).await?;
+                info!("NCN Reward Receiver Address: {:?}", address);
+                Ok(())
+            }
+
+            ProgramCommand::GetOperatorVaultRewardRouter { operator } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                let router = get_operator_vault_reward_router(self, &operator, self.epoch).await?;
+                info!("{:?}", router);
+                Ok(())
+            }
+
+            ProgramCommand::GetAllOperatorVaultRewardRouters {} => {
+                let operators = get_all_operators_in_ncn(self).await?;
+                for operator in operators {
+                    match get_operator_vault_reward_router(self, &operator, self.epoch).await {
+                        Ok(router) => info!("Operator: {:?}, Router: {:?}", operator, router),
+                        Err(e) => info!(
+                            "Failed to get operator vault reward router for {:?}: {:?}",
+                            operator, e
+                        ),
+                    }
                 }
                 Ok(())
             }
