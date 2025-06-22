@@ -17,6 +17,10 @@ use jito_vault_core::{
     vault_update_state_tracker::VaultUpdateStateTracker,
 };
 use log::{info, warn};
+use ncn_program_core::ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter};
+use ncn_program_core::operator_vault_reward_router::{
+    OperatorVaultRewardReceiver, OperatorVaultRewardRouter,
+};
 use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::BallotBox,
@@ -695,6 +699,156 @@ pub async fn get_all_tickets(handler: &CliHandler) -> Result<Vec<NcnTickets>> {
     }
 
     Ok(tickets)
+}
+
+pub async fn get_ncn_reward_router(handler: &CliHandler, epoch: u64) -> Result<NCNRewardRouter> {
+    let (address, _, _) =
+        NCNRewardRouter::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    let account = NCNRewardRouter::try_from_slice_unchecked(account.data.as_slice())?;
+    Ok(*account)
+}
+
+pub async fn get_ncn_reward_receiver(
+    handler: &CliHandler,
+    epoch: u64,
+) -> Result<(Pubkey, Account)> {
+    let (address, _, _) =
+        NCNRewardReceiver::find_program_address(&handler.ncn_program_id, handler.ncn()?, epoch);
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    Ok((address, account))
+}
+
+pub async fn get_operator_vault_reward_router(
+    handler: &CliHandler,
+    operator: &Pubkey,
+    epoch: u64,
+) -> Result<OperatorVaultRewardRouter> {
+    let (address, _, _) = OperatorVaultRewardRouter::find_program_address(
+        &handler.ncn_program_id,
+        operator,
+        handler.ncn()?,
+        epoch,
+    );
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    let account = OperatorVaultRewardRouter::try_from_slice_unchecked(account.data.as_slice())?;
+    Ok(*account)
+}
+
+pub async fn get_operator_vault_reward_receiver(
+    handler: &CliHandler,
+    operator: &Pubkey,
+    epoch: u64,
+) -> Result<(Pubkey, Account)> {
+    let (address, _, _) = OperatorVaultRewardReceiver::find_program_address(
+        &handler.ncn_program_id,
+        operator,
+        handler.ncn()?,
+        epoch,
+    );
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    Ok((address, account))
+}
+
+pub async fn get_receiver_rewards(handler: &CliHandler, address: &Pubkey) -> Result<u64> {
+    let account = get_account(handler, address).await?;
+
+    let rent = handler
+        .rpc_client()
+        .get_minimum_balance_for_rent_exemption(0)
+        .await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    Ok(account.lamports - rent)
+}
+
+pub async fn get_ncn_reward_receiver_rewards(handler: &CliHandler, epoch: u64) -> Result<u64> {
+    let (address, _) = get_ncn_reward_receiver(handler, epoch).await?;
+    get_receiver_rewards(handler, &address).await
+}
+
+pub async fn get_operator_vault_reward_receiver_rewards(
+    handler: &CliHandler,
+    operator: &Pubkey,
+    epoch: u64,
+) -> Result<u64> {
+    let (address, _) = get_operator_vault_reward_receiver(handler, operator, epoch).await?;
+    get_receiver_rewards(handler, &address).await
+}
+
+#[allow(clippy::large_stack_frames)]
+pub async fn get_total_rewards_to_be_distributed(handler: &CliHandler, epoch: u64) -> Result<u64> {
+    let all_operators = {
+        let ballot_box = get_ballot_box(handler, epoch).await?;
+        let winning_ballot = ballot_box.get_winning_ballot_tally()?;
+        let winning_ballot_index = winning_ballot.index();
+
+        ballot_box
+            .operator_votes()
+            .iter()
+            .filter_map(|vote| {
+                if vote.ballot_index() == winning_ballot_index {
+                    Some(*vote.operator())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<Pubkey>>()
+    };
+
+    let mut total_amount_to_distribute = 0;
+    {
+        let result = get_ncn_reward_receiver_rewards(handler, epoch).await;
+        if result.is_err() {
+            return Ok(0);
+        }
+
+        total_amount_to_distribute += result.unwrap();
+    }
+
+    for operator in all_operators.iter() {
+        let result = get_operator_vault_reward_receiver_rewards(handler, operator, epoch).await;
+
+        if result.is_err() {
+            continue;
+        }
+
+        total_amount_to_distribute += result.unwrap();
+    }
+
+    Ok(total_amount_to_distribute)
 }
 
 pub struct NcnTickets {

@@ -4,8 +4,8 @@ use crate::{
     getters::get_guaranteed_epoch_and_slot,
     handler::CliHandler,
     instructions::{
-        crank_close_epoch_accounts, crank_post_vote_cooldown, crank_register_vaults,
-        crank_set_weight, crank_snapshot, create_epoch_state,
+        crank_close_epoch_accounts, crank_distribute, crank_post_vote_cooldown,
+        crank_register_vaults, crank_set_weight, crank_snapshot, create_epoch_state,
     },
     keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_heartbeat, emit_ncn_metrics},
@@ -223,6 +223,9 @@ pub async fn startup_ncn_keeper(
             // PostVoteCooldown: Wait period after voting completes, this step will only log the
             // consensus result
             State::PostVoteCooldown => crank_post_vote_cooldown(handler, state.epoch).await,
+
+            State::Distribute => crank_distribute(handler, state.epoch).await,
+
             // Close: Finalize and close the epoch's accounts
             State::Close => crank_close_epoch_accounts(handler, state.epoch).await,
         };
@@ -256,7 +259,7 @@ pub async fn startup_ncn_keeper(
         {
             info!("\n\n5. Detect Stall - {}\n", current_keeper_epoch);
 
-            let result = state.detect_stall().await;
+            let result = state.detect_stall(handler).await;
 
             if check_and_timeout_error(
                 "Detect Stall".to_string(),
