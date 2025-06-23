@@ -28,8 +28,6 @@ jito-restaking-sdk = { workspace = true }
 jito-vault-core = { workspace = true }
 jito-vault-program = { workspace = true }
 jito-vault-sdk = { workspace = true }
-ncn-program = { workspace = true }
-ncn-program-core = { workspace = true }
 shank = { workspace = true }
 solana-program = { workspace = true }
 solana-program-test = { workspace = true }
@@ -39,4 +37,3 @@ spl-associated-token-account = { workspace = true }
 spl-token = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-
