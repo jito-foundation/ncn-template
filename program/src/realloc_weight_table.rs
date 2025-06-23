@@ -39,14 +39,18 @@ pub fn process_realloc_weight_table(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading required accounts...");
+    msg!("Loading system program");
     load_system_program(system_program)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
+    msg!("Loading NCN config");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
+    msg!("Loading vault registry");
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
-    msg!("All required accounts loaded successfully");
 
     let (weight_table_pda, weight_table_bump, _) =
         WeightTable::find_program_address(program_id, ncn.key, epoch);
@@ -64,7 +68,6 @@ pub fn process_realloc_weight_table(
             new_size
         );
         AccountPayer::pay_and_realloc(program_id, ncn.key, account_payer, weight_table, new_size)?;
-        msg!("Weight table reallocation completed successfully");
     } else {
         msg!("Weight table size is sufficient, no reallocation needed");
     }
@@ -82,12 +85,6 @@ pub fn process_realloc_weight_table(
         let vault_entries = vault_registry.get_vault_entries();
         let mint_entries = vault_registry.get_mint_entries();
 
-        msg!(
-            "Found {} vaults and {} st mints",
-            vault_count,
-            st_mint_count
-        );
-
         let mut weight_table_data = weight_table.try_borrow_mut_data()?;
         weight_table_data[0] = WeightTable::DISCRIMINATOR;
         let weight_table_account =
@@ -102,7 +99,6 @@ pub fn process_realloc_weight_table(
             vault_entries,
             mint_entries,
         )?;
-        msg!("Weight table initialized successfully");
 
         // Update Epoch State
         {
@@ -111,12 +107,10 @@ pub fn process_realloc_weight_table(
             let epoch_state_account =
                 EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
             epoch_state_account.update_realloc_weight_table(vault_count, st_mint_count as u64);
-            msg!("Epoch state updated successfully");
         }
     } else {
         msg!("Weight table already initialized, skipping initialization");
     }
 
-    msg!("realloc_weight_table instruction completed successfully");
     Ok(())
 }

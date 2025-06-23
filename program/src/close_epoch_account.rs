@@ -142,25 +142,21 @@ pub fn process_close_epoch_account(
 
             match discriminator {
                 EpochState::DISCRIMINATOR => {
-                    msg!("Account is an EpochState, loading to close");
                     EpochState::load_to_close(epoch_state_account, ncn.key, epoch)?;
                     msg!("Closing epoch state");
                     epoch_state_account.close_epoch_state();
                 }
                 WeightTable::DISCRIMINATOR => {
-                    msg!("Account is a WeightTable, loading to close");
                     WeightTable::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing weight table");
                     epoch_state_account.close_weight_table();
                 }
                 EpochSnapshot::DISCRIMINATOR => {
-                    msg!("Account is an EpochSnapshot, loading to close");
                     EpochSnapshot::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing epoch snapshot");
                     epoch_state_account.close_epoch_snapshot();
                 }
                 OperatorSnapshot::DISCRIMINATOR => {
-                    msg!("Account is an OperatorSnapshot, loading to close");
                     OperatorSnapshot::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     let account_to_close_data = account_to_close.try_borrow_data()?;
                     let account_to_close_struct =
@@ -173,14 +169,12 @@ pub fn process_close_epoch_account(
                     epoch_state_account.close_operator_snapshot(ncn_operator_index);
                 }
                 BallotBox::DISCRIMINATOR => {
-                    msg!("Account is a BallotBox, loading to close");
                     BallotBox::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing ballot box");
                     epoch_state_account.close_ballot_box();
                 }
 
                 NCNRewardRouter::DISCRIMINATOR => {
-                    msg!("Account is an NCN Rewards Router, loading to close");
                     NCNRewardRouter::load_to_close(program_id, account_to_close, ncn.key, epoch)?;
                     msg!("Closing NCN Rewards Router");
                     let [ncn_fee_wallet, ncn_reward_receiver] = optional_accounts else {
@@ -199,7 +193,6 @@ pub fn process_close_epoch_account(
                         }
                     }
 
-                    msg!("Account is an NCN Rewards Receiver, loading to close");
                     NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
                     NCNRewardReceiver::close(
                         program_id,
@@ -215,7 +208,6 @@ pub fn process_close_epoch_account(
                 }
 
                 OperatorVaultRewardRouter::DISCRIMINATOR => {
-                    msg!("Account is an Operator Vault Rewards Router, loading to close");
                     msg!(
                         "Loading OperatorVaultRewardRouter for operator and epoch {}...",
                         epoch
@@ -226,14 +218,12 @@ pub fn process_close_epoch_account(
                         ncn.key,
                         epoch,
                     )?;
-                    msg!("Successfully loaded OperatorVaultRewardRouter");
 
                     msg!("Closing Operator Vault Rewards Router");
                     let [ncn_fee_wallet, operator_vault_reward_receiver] = optional_accounts else {
                         msg!("Optional Accounts are not enough");
                         return Err(NCNProgramError::CannotCloseAccountNoEnoughAccounts.into());
                     };
-                    msg!("Optional accounts validated successfully");
 
                     // Check correct NCN fee wallet
                     {
@@ -246,7 +236,6 @@ pub fn process_close_epoch_account(
                             msg!("Invalid NCN fee wallet provided");
                             return Err(NCNProgramError::InvalidNCNFeeWallet.into());
                         }
-                        msg!("NCN fee wallet verified successfully");
                     }
 
                     msg!("Loading operator vault reward router data...");
@@ -255,7 +244,6 @@ pub fn process_close_epoch_account(
                         OperatorVaultRewardRouter::try_from_slice_unchecked(
                             &account_to_close_data,
                         )?;
-                    msg!("Successfully loaded operator vault reward router data");
 
                     let operator_vault_operator_index =
                         operator_vault_reward_router.ncn_operator_index() as usize;
@@ -275,7 +263,6 @@ pub fn process_close_epoch_account(
                         epoch,
                         true,
                     )?;
-                    msg!("Successfully loaded OperatorVaultRewardReceiver");
 
                     msg!("Closing OperatorVaultRewardReceiver...");
                     OperatorVaultRewardReceiver::close(
@@ -287,25 +274,20 @@ pub fn process_close_epoch_account(
                         ncn_fee_wallet,
                         account_payer,
                     )?;
-                    msg!("Successfully closed OperatorVaultRewardReceiver");
 
                     msg!("Closing operator vault reward router in epoch state...");
                     epoch_state_account
                         .close_operator_vault_reward_router(operator_vault_operator_index);
-                    msg!("Successfully closed operator vault reward router in epoch state");
                 }
                 _ => {
                     msg!("Error: Invalid account discriminator: {}", discriminator);
                     return Err(NCNProgramError::InvalidAccountToCloseDiscriminator.into());
                 }
             }
-            msg!("Account closed successfully in epoch state tracking");
         }
     }
 
     if closing_epoch_state {
-        msg!("Closing epoch state, creating epoch marker");
-
         msg!("Finding program address for epoch marker");
         let (epoch_marker_pda, epoch_marker_bump, mut epoch_marker_seeds) =
             EpochMarker::find_program_address(program_id, ncn.key, epoch);
@@ -326,10 +308,6 @@ pub fn process_close_epoch_account(
             return Err(ProgramError::InvalidSeeds);
         }
 
-        msg!(
-            "Creating epoch marker account with {} bytes",
-            EpochMarker::SIZE
-        );
         AccountPayer::pay_and_create_account(
             program_id,
             ncn.key,
@@ -345,14 +323,11 @@ pub fn process_close_epoch_account(
             epoch_marker.key
         );
 
-        msg!("Initializing epoch marker account with discriminator");
         let mut epoch_marker_data = epoch_marker.try_borrow_mut_data()?;
         epoch_marker_data[0] = EpochMarker::DISCRIMINATOR;
         let epoch_marker = EpochMarker::try_from_slice_unchecked_mut(&mut epoch_marker_data)?;
 
-        msg!("Getting current slot for epoch marker");
         let slot_closed = Clock::get()?.slot;
-        msg!("Current slot: {}", slot_closed);
 
         msg!(
             "Creating new epoch marker for NCN: {}, epoch: {}, slot: {}",
@@ -361,19 +336,10 @@ pub fn process_close_epoch_account(
             slot_closed
         );
         *epoch_marker = EpochMarker::new(ncn.key, epoch, slot_closed);
-        msg!("Epoch marker initialized successfully");
     }
 
     msg!("Closing account: {}", account_to_close.key);
     AccountPayer::close_account(program_id, account_payer, account_to_close)?;
-    msg!(
-        "Account closed successfully, lamports transferred to account payer: {}",
-        account_payer.key
-    );
 
-    msg!(
-        "Close epoch account completed successfully for epoch: {}",
-        epoch
-    );
     Ok(())
 }

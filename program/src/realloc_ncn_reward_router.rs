@@ -26,40 +26,28 @@ pub fn process_realloc_ncn_reward_router(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading system program...");
+    msg!("Loading system program");
     load_system_program(system_program)?;
 
-    msg!("Loading NCN account...");
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
 
-    msg!("Loading epoch state...");
+    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
 
-    msg!("Loading NCN config...");
+    msg!("Loading NCN config");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
 
-    msg!("Loading account payer...");
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
     let (ncn_reward_router_pda, ncn_reward_router_bump, _) =
         NCNRewardRouter::find_program_address(program_id, ncn.key, epoch);
 
-    msg!("Expected NCN reward router PDA: {}", ncn_reward_router_pda);
-    msg!("Actual NCN reward router key: {}", ncn_reward_router.key);
-
     if ncn_reward_router_pda != *ncn_reward_router.key {
         msg!("Error: NCN reward router account is not at the correct PDA");
         return Err(ProgramError::InvalidAccountData);
     }
-
-    msg!(
-        "Current NCN reward router size: {} bytes",
-        ncn_reward_router.data_len()
-    );
-    msg!(
-        "Required NCN reward router size: {} bytes",
-        NCNRewardRouter::SIZE
-    );
 
     if ncn_reward_router.data_len() < NCNRewardRouter::SIZE {
         let new_size = get_new_size(ncn_reward_router.data_len(), NCNRewardRouter::SIZE)?;
@@ -75,7 +63,6 @@ pub fn process_realloc_ncn_reward_router(
             ncn_reward_router,
             new_size,
         )?;
-        msg!("NCN reward router reallocation completed successfully");
     } else {
         msg!("NCN reward router size is sufficient, no reallocation needed");
     }
@@ -96,7 +83,6 @@ pub fn process_realloc_ncn_reward_router(
             ncn_reward_router_bump,
             Clock::get()?.slot,
         );
-        msg!("NCN reward router initialized successfully");
 
         // Update Epoch State
         msg!("Updating epoch state...");
@@ -106,11 +92,9 @@ pub fn process_realloc_ncn_reward_router(
                 EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
             epoch_state_account.update_realloc_ncn_reward_router();
         }
-        msg!("Epoch state updated successfully");
     } else {
         msg!("NCN reward router already initialized, skipping initialization");
     }
 
-    msg!("NCN reward router reallocation process completed successfully");
     Ok(())
 }

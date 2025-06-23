@@ -56,8 +56,6 @@ pub fn process_admin_set_st_mint(
 
     msg!("Setting ST mint to {:?} with weight {:?}", st_mint, weight);
     vault_registry_account.set_st_mint(st_mint, weight)?;
-    msg!("Successfully updated ST mint in vault registry");
 
-    msg!("Successfully completed admin_set_st_mint instruction");
     Ok(())
 }

@@ -65,7 +65,6 @@ pub fn process_admin_initialize_config(
     msg!("Loading account payer: {}", account_payer.key);
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Getting current epoch");
     let epoch = Clock::get()?.epoch;
     msg!("Current epoch: {}", epoch);
 
@@ -158,7 +157,6 @@ pub fn process_admin_initialize_config(
         Config::SIZE,
         &config_seeds,
     )?;
-    msg!("Config account created successfully: {}", config.key);
 
     msg!("Initializing config account with discriminator");
     let mut config_data = config.try_borrow_mut_data()?;
@@ -187,10 +185,6 @@ pub fn process_admin_initialize_config(
         &fee_config,
         config_bump,
     );
-    msg!("Config initialized successfully");
-
     config.fee_config.check_fees_okay(epoch)?;
-
-    msg!("Admin initialize config completed successfully");
     Ok(())
 }

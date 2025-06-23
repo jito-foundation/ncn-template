@@ -31,13 +31,17 @@ pub fn process_distribute_operator_vault_reward_route(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading accounts...");
+    msg!("Loading epoch state for epoch {}", epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-
+    msg!("Loading NCN config");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
+    msg!("Loading NCN reward router");
     NCNRewardRouter::load(program_id, ncn_reward_router, ncn.key, epoch, true)?;
+    msg!("Loading operator vault reward router");
     OperatorVaultRewardRouter::load(
         program_id,
         operator_vault_reward_router,
@@ -46,7 +50,9 @@ pub fn process_distribute_operator_vault_reward_route(
         epoch,
         false,
     )?;
+    msg!("Loading NCN reward receiver");
     NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
+    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         operator_vault_reward_receiver,
@@ -55,12 +61,11 @@ pub fn process_distribute_operator_vault_reward_route(
         epoch,
         false,
     )?;
-    msg!("All accounts loaded successfully");
 
     load_system_program(system_program)?;
 
     // Get rewards and update state
-    msg!("Checking if rewards are still routing...");
+    msg!("Calculating operator vault reward route");
     let rewards = {
         let mut epoch_reward_router_data = ncn_reward_router.try_borrow_mut_data()?;
         let ncn_reward_router_account =

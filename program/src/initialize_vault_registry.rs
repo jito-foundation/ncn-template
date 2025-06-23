@@ -27,13 +27,16 @@ pub fn process_initialize_vault_registry(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Verifying system accounts");
+    msg!("Loading system account for vault registry");
     load_system_account(vault_registry, true)?;
+    msg!("Loading system program");
     load_system_program(system_program)?;
 
-    msg!("Loading and verifying accounts");
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading NCN config account");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
     msg!("Deriving vault registry PDA");
@@ -46,10 +49,6 @@ pub fn process_initialize_vault_registry(
         return Err(ProgramError::InvalidSeeds);
     }
 
-    msg!(
-        "Creating vault registry account with size: {}",
-        MAX_REALLOC_BYTES
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -61,6 +60,5 @@ pub fn process_initialize_vault_registry(
         &vault_registry_seeds,
     )?;
 
-    msg!("Successfully completed initialize_vault_registry instruction");
     Ok(())
 }

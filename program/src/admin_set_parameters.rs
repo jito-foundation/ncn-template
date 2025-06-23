@@ -74,7 +74,6 @@ pub fn process_admin_set_parameters(
             epoch
         );
         config.starting_valid_epoch = PodU64::from(epoch);
-        msg!("Successfully updated valid_starting_epoch");
     }
 
     if let Some(epochs) = epochs_before_stall {
@@ -89,7 +88,6 @@ pub fn process_admin_set_parameters(
             epochs
         );
         config.epochs_before_stall = PodU64::from(epochs);
-        msg!("Successfully updated epochs_before_stall");
     }
 
     if let Some(epochs) = epochs_after_consensus_before_close {
@@ -109,7 +107,6 @@ pub fn process_admin_set_parameters(
             epochs
         );
         config.epochs_after_consensus_before_close = PodU64::from(epochs);
-        msg!("Successfully updated epochs_after_consensus_before_close");
     }
 
     if let Some(slots) = valid_slots_after_consensus {
@@ -124,9 +121,7 @@ pub fn process_admin_set_parameters(
             slots
         );
         config.valid_slots_after_consensus = PodU64::from(slots);
-        msg!("Successfully updated valid_slots_after_consensus");
     }
 
-    msg!("Successfully completed admin_set_parameters instruction");
     Ok(())
 }

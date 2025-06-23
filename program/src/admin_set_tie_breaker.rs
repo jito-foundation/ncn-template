@@ -80,6 +80,5 @@ pub fn process_admin_set_tie_breaker(
         epoch_state_account.update_set_tie_breaker(consensus_reached, slot)?;
     }
 
-    msg!("Successfully completed admin_set_tie_breaker instruction");
     Ok(())
 }

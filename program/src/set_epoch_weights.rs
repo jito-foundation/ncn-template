@@ -31,12 +31,14 @@ pub fn process_set_epoch_weights(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading required accounts...");
+    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading weight table");
     WeightTable::load(program_id, weight_table, ncn.key, epoch, true)?;
+    msg!("Loading vault registry");
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
-    msg!("All required accounts loaded successfully");
 
     let mut weight_table_data = weight_table.try_borrow_mut_data()?;
     let weight_table_account = WeightTable::try_from_slice_unchecked_mut(&mut weight_table_data)?;
@@ -72,7 +74,6 @@ pub fn process_set_epoch_weights(
             Clock::get()?.slot,
         )?;
     }
-    msg!("All mint entries processed successfully");
 
     // Update Epoch State
     {
@@ -83,13 +84,7 @@ pub fn process_set_epoch_weights(
             weight_table_account.weight_count() as u64,
             weight_table_account.st_mint_count() as u64,
         );
-        msg!(
-            "Epoch state updated with weight count: {} and st mint count: {}",
-            weight_table_account.weight_count(),
-            weight_table_account.st_mint_count()
-        );
     }
 
-    msg!("set_epoch_weights instruction completed successfully");
     Ok(())
 }

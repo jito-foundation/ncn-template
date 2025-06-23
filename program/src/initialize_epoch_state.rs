@@ -38,14 +38,18 @@ pub fn process_initialize_epoch_state(
         return Err(ProgramError::InvalidArgument);
     }
 
-    msg!("Verifying system accounts");
+    msg!("Loading system account for epoch state");
     load_system_account(epoch_state, true)?;
+    msg!("Loading system program");
     load_system_program(system_program)?;
 
-    msg!("Loading and verifying accounts");
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading config account");
     Config::load(program_id, config, ncn.key, false)?;
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
+    msg!("Checking epoch marker does not exist for epoch: {}", epoch);
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
     msg!("Checking starting valid epoch");
@@ -78,7 +82,6 @@ pub fn process_initialize_epoch_state(
         &epoch_state_seeds,
     )?;
 
-    msg!("Initializing epoch state data");
     let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
     epoch_state_data[0] = EpochState::DISCRIMINATOR;
     let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
@@ -90,6 +93,5 @@ pub fn process_initialize_epoch_state(
     msg!("Updating epoch state reallocation");
     epoch_state_account.update_realloc_epoch_state();
 
-    msg!("Successfully completed initialize_epoch_state instruction");
     Ok(())
 }

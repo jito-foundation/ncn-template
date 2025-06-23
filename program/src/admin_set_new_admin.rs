@@ -65,10 +65,8 @@ pub fn process_admin_set_new_admin(
                 new_admin.key
             );
             config.tie_breaker_admin = *new_admin.key;
-            msg!("Successfully set tie breaker admin to {:?}", new_admin.key);
         }
     }
 
-    msg!("Successfully completed admin_set_new_admin instruction");
     Ok(())
 }

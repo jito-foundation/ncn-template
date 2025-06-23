@@ -17,10 +17,6 @@ pub fn process_route_operator_vault_rewards(
     max_iterations: u16,
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting route_operator_vault_rewards process");
-    msg!("Processing epoch: {}", epoch);
-    msg!("Max iterations: {}", max_iterations);
-
     let [epoch_state, ncn, operator, operator_snapshot, ncn_reward_router, ncn_reward_receiver] =
         accounts
     else {
@@ -28,17 +24,16 @@ pub fn process_route_operator_vault_rewards(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading accounts...");
-
+    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-    msg!("✓ EpochState loaded successfully");
 
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("✓ NCN account loaded successfully");
 
+    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-    msg!("✓ Operator account loaded successfully");
 
+    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         ncn_reward_receiver,
@@ -47,8 +42,8 @@ pub fn process_route_operator_vault_rewards(
         epoch,
         true,
     )?;
-    msg!("✓ OperatorVaultRewardReceiver loaded successfully");
 
+    msg!("Loading operator snapshot");
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
@@ -57,8 +52,8 @@ pub fn process_route_operator_vault_rewards(
         epoch,
         false,
     )?;
-    msg!("✓ OperatorSnapshot loaded successfully");
 
+    msg!("Loading operator vault reward router");
     OperatorVaultRewardRouter::load(
         program_id,
         ncn_reward_router,
@@ -67,12 +62,11 @@ pub fn process_route_operator_vault_rewards(
         epoch,
         true,
     )?;
-    msg!("✓ OperatorVaultRewardRouter loaded successfully");
 
+    msg!("Loading operator snapshot");
     let operator_snapshot_data = operator_snapshot.try_borrow_data()?;
     let operator_snapshot_account =
         OperatorSnapshot::try_from_slice_unchecked(&operator_snapshot_data)?;
-    msg!("✓ OperatorSnapshot data deserialized");
 
     let account_balance = **ncn_reward_receiver.try_borrow_lamports()?;
     msg!("Account balance: {} lamports", account_balance);
@@ -80,7 +74,6 @@ pub fn process_route_operator_vault_rewards(
     let mut ncn_reward_router_data = ncn_reward_router.try_borrow_mut_data()?;
     let ncn_reward_router_account =
         OperatorVaultRewardRouter::try_from_slice_unchecked_mut(&mut ncn_reward_router_data)?;
-    msg!("✓ OperatorVaultRewardRouter data deserialized");
 
     let rent_cost = Rent::get()?.minimum_balance(0);
     msg!("Rent cost: {} lamports", rent_cost);
@@ -88,16 +81,13 @@ pub fn process_route_operator_vault_rewards(
     if !ncn_reward_router_account.still_routing() {
         msg!("Routing is not in progress, starting new routing process");
         ncn_reward_router_account.route_incoming_rewards(rent_cost, account_balance)?;
-        msg!("✓ Incoming rewards routed");
         ncn_reward_router_account.route_operator_rewards(operator_snapshot_account)?;
-        msg!("✓ Operator rewards routed");
     } else {
         msg!("Routing already in progress, continuing existing process");
     }
 
     msg!("Routing reward pool...");
     ncn_reward_router_account.route_reward_pool(operator_snapshot_account, max_iterations)?;
-    msg!("✓ Reward pool routing completed");
 
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
@@ -112,9 +102,7 @@ pub fn process_route_operator_vault_rewards(
         );
 
         epoch_state_account.update_route_operator_vault_rewards(ncn_operator_index, total_rewards);
-        msg!("✓ Epoch state updated successfully");
     }
 
-    msg!("route_operator_vault_rewards process completed successfully");
     Ok(())
 }

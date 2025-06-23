@@ -59,19 +59,17 @@ pub fn process_realloc_ballot_box(
         msg!("Error: Ballot box account is not at the correct PDA");
         return Err(ProgramError::InvalidAccountData);
     }
-    msg!("Ballot box PDA verified");
 
-    if ballot_box.data_len() < BallotBox::SIZE {
-        let new_size = get_new_size(ballot_box.data_len(), BallotBox::SIZE)?;
+    let ballot_box_size = ballot_box.data_len();
+    if ballot_box_size < BallotBox::SIZE {
+        let new_size = get_new_size(ballot_box_size, BallotBox::SIZE)?;
         msg!(
             "Reallocating ballot box from {} bytes to {} bytes",
-            ballot_box.data_len(),
+            ballot_box_size,
             new_size
         );
 
-        msg!("Paying for reallocation");
         AccountPayer::pay_and_realloc(program_id, ncn.key, account_payer, ballot_box, new_size)?;
-        msg!("Reallocation completed");
     } else {
         msg!("Ballot box size is sufficient, no reallocation needed");
     }
@@ -85,7 +83,6 @@ pub fn process_realloc_ballot_box(
         ballot_box_data[0] = BallotBox::DISCRIMINATOR;
         let ballot_box_account = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
         ballot_box_account.initialize(ncn.key, epoch, ballot_box_bump, Clock::get()?.slot);
-        msg!("Ballot box initialized successfully");
 
         msg!("Updating epoch state");
         {
@@ -94,11 +91,9 @@ pub fn process_realloc_ballot_box(
                 EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
             epoch_state_account.update_realloc_ballot_box();
         }
-        msg!("Epoch state updated");
     } else {
         msg!("Ballot box already initialized, skipping initialization");
     }
 
-    msg!("Realloc ballot box instruction completed successfully");
     Ok(())
 }

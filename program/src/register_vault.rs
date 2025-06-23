@@ -27,11 +27,15 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading required accounts...");
+    msg!("Loading NCN config account");
     Config::load(program_id, config, ncn.key, false)?;
+    msg!("Loading vault registry account");
     VaultRegistry::load(program_id, vault_registry, ncn.key, true)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading vault account");
     Vault::load(&jito_vault_program::id(), vault, false)?;
+    msg!("Loading NCN vault ticket account");
     NcnVaultTicket::load(
         &jito_restaking_program::id(),
         ncn_vault_ticket,
@@ -39,7 +43,6 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         vault,
         false,
     )?;
-    msg!("All required accounts loaded successfully");
 
     let clock = Clock::get()?;
     let slot = clock.slot;
@@ -56,7 +59,6 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         msg!("Error: Supported mint not registered");
         return Err(ProgramError::InvalidAccountData);
     }
-    msg!("Supported mint is registered");
 
     msg!(
         "Registering vault with index {} and supported mint {}",
@@ -69,8 +71,6 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         vault_account.vault_index(),
         slot,
     )?;
-    msg!("Vault registered successfully");
 
-    msg!("register_vault instruction completed successfully");
     Ok(())
 }

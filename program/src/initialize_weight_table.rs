@@ -36,15 +36,20 @@ pub fn process_initialize_weight_table(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and verifying accounts");
+    msg!("Loading and validating epoch state for epoch: {}", epoch);
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, false)?;
+    msg!("Loading vault registry account");
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
+    msg!("Checking epoch marker does not exist for epoch: {}", epoch);
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Verifying system accounts");
+    msg!("Loading system account for weight table");
     load_system_account(weight_table, true)?;
+    msg!("Loading system program");
     load_system_program(system_program)?;
 
     msg!("Getting vault counts");
@@ -89,10 +94,6 @@ pub fn process_initialize_weight_table(
         ncn.key,
         epoch
     );
-    msg!(
-        "Creating weight table account with size: {}",
-        MAX_REALLOC_BYTES
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -104,6 +105,5 @@ pub fn process_initialize_weight_table(
         &weight_table_seeds,
     )?;
 
-    msg!("Successfully completed initialize_weight_table instruction");
     Ok(())
 }

@@ -31,26 +31,26 @@ pub fn process_initialize_operator_vault_reward_router(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Validating epoch state and checking if epoch is closing...");
+    msg!("Validating epoch state and checking if epoch is closing");
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, true)?;
 
-    msg!("Loading NCN account...");
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
 
-    msg!("Loading operator account...");
+    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
 
-    msg!("Loading operator snapshot for epoch {}...", epoch);
+    msg!("Loading operator snapshot for epoch {}", epoch);
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
         operator.key,
         ncn.key,
         epoch,
-        false,
+        true,
     )?;
 
-    msg!("Loading operator vault reward receiver...");
+    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         operator_vault_reward_receiver,
@@ -60,15 +60,15 @@ pub fn process_initialize_operator_vault_reward_router(
         true,
     )?;
 
-    msg!("Loading system accounts...");
+    msg!("Loading system accounts");
     load_system_account(operator_vault_reward_router, true)?;
     load_system_program(system_program)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Checking epoch marker...");
+    msg!("Checking epoch marker");
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Retrieving operator NCN index from snapshot...");
+    msg!("Retrieving operator NCN index from snapshot");
     let operator_ncn_index = {
         let operator_snapshot_data = operator_snapshot.try_borrow_data()?;
         let operator_snapshot_account =
@@ -79,7 +79,7 @@ pub fn process_initialize_operator_vault_reward_router(
     let current_slot = Clock::get()?.slot;
     msg!("Current slot: {}", current_slot);
 
-    msg!("Deriving operator vault reward router PDA...");
+    msg!("Deriving operator vault reward router PDA");
     let (
         operator_vault_reward_router_pubkey,
         operator_vault_reward_router_bump,
@@ -103,7 +103,6 @@ pub fn process_initialize_operator_vault_reward_router(
         epoch
     );
 
-    msg!("Paying for and creating the reward router account...");
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -115,7 +114,6 @@ pub fn process_initialize_operator_vault_reward_router(
         &operator_vault_reward_router_seeds,
     )?;
 
-    msg!("Initializing reward router account data...");
     let mut operator_vault_reward_router_data =
         operator_vault_reward_router.try_borrow_mut_data()?;
     operator_vault_reward_router_data[0] = OperatorVaultRewardRouter::DISCRIMINATOR;
@@ -147,7 +145,6 @@ pub fn process_initialize_operator_vault_reward_router(
         min_rent,
     )?;
 
-    msg!("Updating epoch state with new reward router allocation...");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
@@ -155,9 +152,5 @@ pub fn process_initialize_operator_vault_reward_router(
             .update_realloc_operator_vault_reward_router(operator_ncn_index as usize);
     }
 
-    msg!(
-        "Successfully initialized operator vault reward router for epoch {}",
-        epoch
-    );
     Ok(())
 }

@@ -66,7 +66,6 @@ pub fn process_admin_register_st_mint(
     msg!("Registering ST mint with weight: {}", weight);
 
     vault_registry_account.register_st_mint(st_mint.key, weight)?;
-    msg!("Successfully registered ST mint in vault registry");
 
     Ok(())
 }

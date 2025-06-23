@@ -73,7 +73,6 @@ pub fn process_admin_set_weight(
         return Err(NCNProgramError::IncorrectWeightTableAdmin.into());
     }
 
-    msg!("Preparing to modify weight table");
     let mut weight_table_data = weight_table.try_borrow_mut_data()?;
     let weight_table_account = WeightTable::try_from_slice_unchecked_mut(&mut weight_table_data)?;
 
@@ -85,7 +84,6 @@ pub fn process_admin_set_weight(
         return Err(ProgramError::InvalidAccountData);
     }
 
-    msg!("Getting current slot");
     let current_slot = Clock::get()?.slot;
     msg!("Current slot: {}", current_slot);
 
@@ -95,10 +93,8 @@ pub fn process_admin_set_weight(
         weight
     );
     weight_table_account.set_weight(st_mint, weight, current_slot)?;
-    msg!("Weight set successfully");
 
     // Update Epoch State
-    msg!("Updating epoch state account");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
@@ -114,14 +110,6 @@ pub fn process_admin_set_weight(
 
         epoch_state_account.update_set_weight(weight_count, st_mint_count);
     }
-    msg!("Epoch state updated successfully");
-
-    msg!(
-        "Admin set weight completed successfully for st_mint: {}, epoch: {}, weight: {}",
-        st_mint,
-        epoch,
-        weight
-    );
 
     Ok(())
 }

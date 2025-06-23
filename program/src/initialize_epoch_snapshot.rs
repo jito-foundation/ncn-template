@@ -38,15 +38,20 @@ pub fn process_initialize_epoch_snapshot(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and verifying accounts");
+    msg!("Loading and validating epoch state for epoch: {}", epoch);
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, true)?;
+    msg!("Loading NCN config account");
     Config::load(program_id, config, ncn.key, false)?;
+    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
+    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
+    msg!("Checking epoch marker does not exist for epoch: {}", epoch);
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Verifying system accounts");
+    msg!("Loading system account for epoch snapshot");
     load_system_account(epoch_snapshot, true)?;
+    msg!("Loading system program");
     load_system_program(system_program)?;
 
     let current_slot = Clock::get()?.slot;
@@ -88,7 +93,6 @@ pub fn process_initialize_epoch_snapshot(
         ncn.key,
         ncn_epoch
     );
-    msg!("Creating epoch snapshot account");
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -100,7 +104,6 @@ pub fn process_initialize_epoch_snapshot(
         &epoch_snapshot_seeds,
     )?;
 
-    msg!("Getting operator count from NCN account");
     let operator_count: u64 = {
         let ncn_data = ncn.data.borrow();
         let ncn_account = Ncn::try_from_slice_unchecked(&ncn_data)?;
@@ -114,7 +117,6 @@ pub fn process_initialize_epoch_snapshot(
         return Err(NCNProgramError::NoOperators.into());
     }
 
-    msg!("Initializing epoch snapshot data");
     let mut epoch_snapshot_data: std::cell::RefMut<'_, &mut [u8]> =
         epoch_snapshot.try_borrow_mut_data()?;
     epoch_snapshot_data[0] = EpochSnapshot::DISCRIMINATOR;
@@ -150,6 +152,5 @@ pub fn process_initialize_epoch_snapshot(
         epoch_state_account.update_initialize_epoch_snapshot(operator_count);
     }
 
-    msg!("Successfully completed initialize_epoch_snapshot instruction");
     Ok(())
 }

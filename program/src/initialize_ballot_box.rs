@@ -44,7 +44,6 @@ pub fn process_initialize_ballot_box(
     let system_program = next_account_info(account_info_iter)?;
     let consensus_result = next_account_info(account_info_iter)?;
 
-    msg!("Verifying accounts");
     msg!("Checking ballot box is a owned by the system program");
     load_system_account(ballot_box, true)?;
 
@@ -118,7 +117,6 @@ pub fn process_initialize_ballot_box(
     msg!("Checking consensus result account is a system account");
     load_system_account(consensus_result, true)?;
 
-    msg!("Finding program address for consensus result");
     let (consensus_result_pda, consensus_result_bump, mut consensus_result_seeds) =
         ConsensusResult::find_program_address(program_id, ncn.key, epoch);
     consensus_result_seeds.push(vec![consensus_result_bump]);
@@ -169,7 +167,6 @@ pub fn process_initialize_ballot_box(
         let consensus_result_account =
             ConsensusResult::try_from_slice_unchecked_mut(&mut consensus_result_data)?;
         consensus_result_account.initialize(ncn.key, epoch, consensus_result_bump)?;
-        msg!("Consensus result account initialized successfully");
     } else {
         msg!(
             "Consensus result account already exists: {}",

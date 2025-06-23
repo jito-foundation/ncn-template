@@ -131,7 +131,6 @@ pub fn process_cast_vote(
     let mut ballot_box_data = ballot_box.data.borrow_mut();
     let ballot_box = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
 
-    msg!("Getting total stake weights from epoch snapshot");
     let total_stake_weights = {
         let epoch_snapshot_data = epoch_snapshot.data.borrow();
         let epoch_snapshot = EpochSnapshot::try_from_slice_unchecked(&epoch_snapshot_data)?;
@@ -184,7 +183,6 @@ pub fn process_cast_vote(
 
     // If consensus is reached, update the consensus result account
     if ballot_box.is_consensus_reached() {
-        msg!("Consensus has been reached for epoch: {}", epoch);
         let winning_ballot_tally = ballot_box.get_winning_ballot_tally()?;
         msg!(
             "Consensus reached for epoch {} with ballot weather status: {}, stake weight: {}",
