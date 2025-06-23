@@ -20,20 +20,20 @@ import { getFeeDecoder, getFeeEncoder, type Fee, type FeeArgs } from '.';
 
 export type Fees = {
   activationEpoch: bigint;
-  jitoDaoFeeBps: Fee;
+  protocolFeeBps: Fee;
   ncnFeeBps: Fee;
 };
 
 export type FeesArgs = {
   activationEpoch: number | bigint;
-  jitoDaoFeeBps: FeeArgs;
+  protocolFeeBps: FeeArgs;
   ncnFeeBps: FeeArgs;
 };
 
 export function getFeesEncoder(): Encoder<FeesArgs> {
   return getStructEncoder([
     ['activationEpoch', getU64Encoder()],
-    ['jitoDaoFeeBps', getFeeEncoder()],
+    ['protocolFeeBps', getFeeEncoder()],
     ['ncnFeeBps', getFeeEncoder()],
   ]);
 }
@@ -41,7 +41,7 @@ export function getFeesEncoder(): Encoder<FeesArgs> {
 export function getFeesDecoder(): Decoder<Fees> {
   return getStructDecoder([
     ['activationEpoch', getU64Decoder()],
-    ['jitoDaoFeeBps', getFeeDecoder()],
+    ['protocolFeeBps', getFeeDecoder()],
     ['ncnFeeBps', getFeeDecoder()],
   ]);
 }

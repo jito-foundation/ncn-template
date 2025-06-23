@@ -17,7 +17,7 @@ pub struct FeeConfig {
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
     )]
-    pub jito_dao_fee_wallet: Pubkey,
+    pub protocol_fee_wallet: Pubkey,
     #[cfg_attr(
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")

@@ -29,20 +29,20 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const DISTRIBUTE_JITO_D_A_O_REWARDS_DISCRIMINATOR = 17;
+export const DISTRIBUTE_PROTOCOL_REWARDS_DISCRIMINATOR = 17;
 
-export function getDistributeJitoDAORewardsDiscriminatorBytes() {
-  return getU8Encoder().encode(DISTRIBUTE_JITO_D_A_O_REWARDS_DISCRIMINATOR);
+export function getDistributeProtocolRewardsDiscriminatorBytes() {
+  return getU8Encoder().encode(DISTRIBUTE_PROTOCOL_REWARDS_DISCRIMINATOR);
 }
 
-export type DistributeJitoDAORewardsInstruction<
+export type DistributeProtocolRewardsInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountEpochState extends string | IAccountMeta<string> = string,
   TAccountConfig extends string | IAccountMeta<string> = string,
   TAccountNcn extends string | IAccountMeta<string> = string,
   TAccountNcnRewardRouter extends string | IAccountMeta<string> = string,
   TAccountNcnRewardReceiver extends string | IAccountMeta<string> = string,
-  TAccountJitoDaoFeeWallet extends string | IAccountMeta<string> = string,
+  TAccountProtocolFeeWallet extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
@@ -64,9 +64,9 @@ export type DistributeJitoDAORewardsInstruction<
       TAccountNcnRewardReceiver extends string
         ? WritableAccount<TAccountNcnRewardReceiver>
         : TAccountNcnRewardReceiver,
-      TAccountJitoDaoFeeWallet extends string
-        ? WritableAccount<TAccountJitoDaoFeeWallet>
-        : TAccountJitoDaoFeeWallet,
+      TAccountProtocolFeeWallet extends string
+        ? WritableAccount<TAccountProtocolFeeWallet>
+        : TAccountProtocolFeeWallet,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -74,16 +74,16 @@ export type DistributeJitoDAORewardsInstruction<
     ]
   >;
 
-export type DistributeJitoDAORewardsInstructionData = {
+export type DistributeProtocolRewardsInstructionData = {
   discriminator: number;
   epoch: bigint;
 };
 
-export type DistributeJitoDAORewardsInstructionDataArgs = {
+export type DistributeProtocolRewardsInstructionDataArgs = {
   epoch: number | bigint;
 };
 
-export function getDistributeJitoDAORewardsInstructionDataEncoder(): Encoder<DistributeJitoDAORewardsInstructionDataArgs> {
+export function getDistributeProtocolRewardsInstructionDataEncoder(): Encoder<DistributeProtocolRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
@@ -91,35 +91,35 @@ export function getDistributeJitoDAORewardsInstructionDataEncoder(): Encoder<Dis
     ]),
     (value) => ({
       ...value,
-      discriminator: DISTRIBUTE_JITO_D_A_O_REWARDS_DISCRIMINATOR,
+      discriminator: DISTRIBUTE_PROTOCOL_REWARDS_DISCRIMINATOR,
     })
   );
 }
 
-export function getDistributeJitoDAORewardsInstructionDataDecoder(): Decoder<DistributeJitoDAORewardsInstructionData> {
+export function getDistributeProtocolRewardsInstructionDataDecoder(): Decoder<DistributeProtocolRewardsInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['epoch', getU64Decoder()],
   ]);
 }
 
-export function getDistributeJitoDAORewardsInstructionDataCodec(): Codec<
-  DistributeJitoDAORewardsInstructionDataArgs,
-  DistributeJitoDAORewardsInstructionData
+export function getDistributeProtocolRewardsInstructionDataCodec(): Codec<
+  DistributeProtocolRewardsInstructionDataArgs,
+  DistributeProtocolRewardsInstructionData
 > {
   return combineCodec(
-    getDistributeJitoDAORewardsInstructionDataEncoder(),
-    getDistributeJitoDAORewardsInstructionDataDecoder()
+    getDistributeProtocolRewardsInstructionDataEncoder(),
+    getDistributeProtocolRewardsInstructionDataDecoder()
   );
 }
 
-export type DistributeJitoDAORewardsInput<
+export type DistributeProtocolRewardsInput<
   TAccountEpochState extends string = string,
   TAccountConfig extends string = string,
   TAccountNcn extends string = string,
   TAccountNcnRewardRouter extends string = string,
   TAccountNcnRewardReceiver extends string = string,
-  TAccountJitoDaoFeeWallet extends string = string,
+  TAccountProtocolFeeWallet extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   epochState: Address<TAccountEpochState>;
@@ -127,39 +127,39 @@ export type DistributeJitoDAORewardsInput<
   ncn: Address<TAccountNcn>;
   ncnRewardRouter: Address<TAccountNcnRewardRouter>;
   ncnRewardReceiver: Address<TAccountNcnRewardReceiver>;
-  jitoDaoFeeWallet: Address<TAccountJitoDaoFeeWallet>;
+  protocolFeeWallet: Address<TAccountProtocolFeeWallet>;
   systemProgram?: Address<TAccountSystemProgram>;
-  epoch: DistributeJitoDAORewardsInstructionDataArgs['epoch'];
+  epoch: DistributeProtocolRewardsInstructionDataArgs['epoch'];
 };
 
-export function getDistributeJitoDAORewardsInstruction<
+export function getDistributeProtocolRewardsInstruction<
   TAccountEpochState extends string,
   TAccountConfig extends string,
   TAccountNcn extends string,
   TAccountNcnRewardRouter extends string,
   TAccountNcnRewardReceiver extends string,
-  TAccountJitoDaoFeeWallet extends string,
+  TAccountProtocolFeeWallet extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
 >(
-  input: DistributeJitoDAORewardsInput<
+  input: DistributeProtocolRewardsInput<
     TAccountEpochState,
     TAccountConfig,
     TAccountNcn,
     TAccountNcnRewardRouter,
     TAccountNcnRewardReceiver,
-    TAccountJitoDaoFeeWallet,
+    TAccountProtocolFeeWallet,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
-): DistributeJitoDAORewardsInstruction<
+): DistributeProtocolRewardsInstruction<
   TProgramAddress,
   TAccountEpochState,
   TAccountConfig,
   TAccountNcn,
   TAccountNcnRewardRouter,
   TAccountNcnRewardReceiver,
-  TAccountJitoDaoFeeWallet,
+  TAccountProtocolFeeWallet,
   TAccountSystemProgram
 > {
   // Program address.
@@ -175,8 +175,8 @@ export function getDistributeJitoDAORewardsInstruction<
       value: input.ncnRewardReceiver ?? null,
       isWritable: true,
     },
-    jitoDaoFeeWallet: {
-      value: input.jitoDaoFeeWallet ?? null,
+    protocolFeeWallet: {
+      value: input.protocolFeeWallet ?? null,
       isWritable: true,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
@@ -203,28 +203,28 @@ export function getDistributeJitoDAORewardsInstruction<
       getAccountMeta(accounts.ncn),
       getAccountMeta(accounts.ncnRewardRouter),
       getAccountMeta(accounts.ncnRewardReceiver),
-      getAccountMeta(accounts.jitoDaoFeeWallet),
+      getAccountMeta(accounts.protocolFeeWallet),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
-    data: getDistributeJitoDAORewardsInstructionDataEncoder().encode(
-      args as DistributeJitoDAORewardsInstructionDataArgs
+    data: getDistributeProtocolRewardsInstructionDataEncoder().encode(
+      args as DistributeProtocolRewardsInstructionDataArgs
     ),
-  } as DistributeJitoDAORewardsInstruction<
+  } as DistributeProtocolRewardsInstruction<
     TProgramAddress,
     TAccountEpochState,
     TAccountConfig,
     TAccountNcn,
     TAccountNcnRewardRouter,
     TAccountNcnRewardReceiver,
-    TAccountJitoDaoFeeWallet,
+    TAccountProtocolFeeWallet,
     TAccountSystemProgram
   >;
 
   return instruction;
 }
 
-export type ParsedDistributeJitoDAORewardsInstruction<
+export type ParsedDistributeProtocolRewardsInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -235,20 +235,20 @@ export type ParsedDistributeJitoDAORewardsInstruction<
     ncn: TAccountMetas[2];
     ncnRewardRouter: TAccountMetas[3];
     ncnRewardReceiver: TAccountMetas[4];
-    jitoDaoFeeWallet: TAccountMetas[5];
+    protocolFeeWallet: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
   };
-  data: DistributeJitoDAORewardsInstructionData;
+  data: DistributeProtocolRewardsInstructionData;
 };
 
-export function parseDistributeJitoDAORewardsInstruction<
+export function parseDistributeProtocolRewardsInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedDistributeJitoDAORewardsInstruction<TProgram, TAccountMetas> {
+): ParsedDistributeProtocolRewardsInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
@@ -267,10 +267,10 @@ export function parseDistributeJitoDAORewardsInstruction<
       ncn: getNextAccount(),
       ncnRewardRouter: getNextAccount(),
       ncnRewardReceiver: getNextAccount(),
-      jitoDaoFeeWallet: getNextAccount(),
+      protocolFeeWallet: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getDistributeJitoDAORewardsInstructionDataDecoder().decode(
+    data: getDistributeProtocolRewardsInstructionDataDecoder().decode(
       instruction.data
     ),
   };

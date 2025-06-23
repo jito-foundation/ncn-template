@@ -161,11 +161,11 @@ pub fn process_route_ncn_rewards(
     msg!("=== Final Reward Summary ===");
     let total_rewards = ncn_reward_router_account.total_rewards();
     let ncn_rewards = ncn_reward_router_account.ncn_rewards();
-    let jito_rewards = ncn_reward_router_account.jito_dao_rewards();
+    let jito_rewards = ncn_reward_router_account.protocol_rewards();
 
     msg!("Total rewards processed: {} lamports", total_rewards);
     msg!("NCN rewards: {} lamports", ncn_rewards);
-    msg!("Jito DAO rewards: {} lamports", jito_rewards);
+    msg!("Protocol rewards: {} lamports", jito_rewards);
 
     msg!("=== Updating Epoch State ===");
     msg!("Updating epoch state with final reward amounts...");
@@ -178,8 +178,8 @@ pub fn process_route_ncn_rewards(
             epoch_state_account.ncn_distribution_progress().total()
         );
         msg!(
-            "Previous Jito DAO rewards in epoch state: {} lamports",
-            epoch_state_account.jito_dao_distribution_progress().total()
+            "Previous Protocol rewards in epoch state: {} lamports",
+            epoch_state_account.protocol_distribution_progress().total()
         );
         msg!(
             "Previous total rewards in epoch state: {} lamports",
@@ -187,7 +187,7 @@ pub fn process_route_ncn_rewards(
         );
 
         epoch_state_account.update_route_ncn_rewards(ncn_rewards);
-        epoch_state_account.update_route_jito_dao_rewards(jito_rewards);
+        epoch_state_account.update_route_protocol_rewards(jito_rewards);
         epoch_state_account.update_route_total_rewards(total_rewards);
 
         msg!("✓ Epoch state updated successfully");
@@ -196,8 +196,8 @@ pub fn process_route_ncn_rewards(
             epoch_state_account.ncn_distribution_progress().total()
         );
         msg!(
-            "New Jito DAO rewards in epoch state: {} lamports",
-            epoch_state_account.jito_dao_distribution_progress().total()
+            "New Protocol rewards in epoch state: {} lamports",
+            epoch_state_account.protocol_distribution_progress().total()
         );
         msg!(
             "New total rewards in epoch state: {} lamports",

@@ -18,8 +18,8 @@ use crate::{constants::MAX_FEE_BPS, error::NCNProgramError};
 #[derive(Debug, Clone, Copy, Zeroable, ShankType, Pod)]
 #[repr(C)]
 pub struct FeeConfig {
-    /// Jito DAO wallet that receives DAO fees
-    jito_dao_fee_wallet: Pubkey,
+    /// Protocol wallet that receives DAO fees
+    protocol_fee_wallet: Pubkey,
 
     /// NCN wallet that receives NCN fees
     ncn_fee_wallets: Pubkey,
@@ -33,7 +33,7 @@ pub struct FeeConfig {
 impl FeeConfig {
     /// Creates a new fee configuration with initial values
     /// All fee amounts are validated to ensure they don't exceed maximum allowed values
-    pub const JITO_DAO_FEE_WALLET: Pubkey =
+    pub const PROTOCOL_FEE_WALLET: Pubkey =
         Pubkey::from_str_const("5eosrve6LktMZgVNszYzebgmmC7BjLK8NoWyRQtcmGTF");
 
     pub fn new(
@@ -52,7 +52,7 @@ impl FeeConfig {
         let fee = Fees::new(default_ncn_fee_bps, current_epoch)?;
 
         let fee_config = Self {
-            jito_dao_fee_wallet: Self::JITO_DAO_FEE_WALLET,
+            protocol_fee_wallet: Self::PROTOCOL_FEE_WALLET,
             ncn_fee_wallets: *ncn_fee_wallet,
 
             fee_1: fee,
@@ -133,31 +133,31 @@ impl FeeConfig {
         current_fees.precise_total_fee_bps()
     }
 
-    // ------------------- JITO DAO FEES -------------------
+    // ------------------- Protocol FEES -------------------
 
-    /// Gets the Jito DAO fee percentage in basis points for the current epoch
-    pub fn jito_dao_fee_bps(&self, current_epoch: u64) -> Result<u16, NCNProgramError> {
+    /// Gets the Protocol fee percentage in basis points for the current epoch
+    pub fn protocol_fee_bps(&self, current_epoch: u64) -> Result<u16, NCNProgramError> {
         let current_fees = self.current_fees(current_epoch);
-        current_fees.jito_dao_fee_bps()
+        current_fees.protocol_fee_bps()
     }
 
-    /// Gets the Jito DAO fee percentage as a precise number for accurate calculations
-    pub fn precise_jito_dao_fee_bps(
+    /// Gets the Protocol fee percentage as a precise number for accurate calculations
+    pub fn precise_protocol_fee_bps(
         &self,
         current_epoch: u64,
     ) -> Result<PreciseNumber, NCNProgramError> {
         let current_fees = self.current_fees(current_epoch);
-        current_fees.precise_jito_dao_fee_bps()
+        current_fees.precise_protocol_fee_bps()
     }
 
-    /// Sets the Jito DAO fee percentage for the next epoch
-    pub fn set_jito_dao_fee_bps(
+    /// Sets the Protocol fee percentage for the next epoch
+    pub fn set_protocol_fee_bps(
         &mut self,
         value: u16,
         current_epoch: u64,
     ) -> Result<(), NCNProgramError> {
         let updateable_fees = self.updatable_fees(current_epoch);
-        updateable_fees.set_jito_dao_fee_bps(value)
+        updateable_fees.set_protocol_fee_bps(value)
     }
 
     // ------------------- NCN FEES -------------------
@@ -199,14 +199,14 @@ impl FeeConfig {
         self.ncn_fee_wallets = *wallet;
     }
 
-    /// Gets the Jito DAO fee wallet address
-    pub fn jito_dao_fee_wallet(&self) -> &Pubkey {
-        &self.jito_dao_fee_wallet
+    /// Gets the Protocol fee wallet address
+    pub fn protocol_fee_wallet(&self) -> &Pubkey {
+        &self.protocol_fee_wallet
     }
 
-    /// Sets the Jito DAO fee wallet address (takes effect immediately)
-    pub fn set_jito_dao_fee_wallet(&mut self, wallet: &Pubkey) {
-        self.jito_dao_fee_wallet = *wallet;
+    /// Sets the Protocol fee wallet address (takes effect immediately)
+    pub fn set_protocol_fee_wallet(&mut self, wallet: &Pubkey) {
+        self.protocol_fee_wallet = *wallet;
     }
 
     // ------------- SETTERS -------------
@@ -281,7 +281,7 @@ impl FeeConfig {
     /// Validates that fee configuration is acceptable
     /// Checks that total fees don't exceed maximum and are greater than zero
     pub fn check_fees_okay(&self, current_epoch: u64) -> Result<(), NCNProgramError> {
-        let _ = self.precise_jito_dao_fee_bps(current_epoch)?;
+        let _ = self.precise_protocol_fee_bps(current_epoch)?;
         let _ = self.precise_ncn_fee_bps(current_epoch)?;
 
         let total_fees_bps = self.total_fees_bps(current_epoch)?;
@@ -307,26 +307,26 @@ pub struct Fees {
     /// The epoch when these fees become active
     activation_epoch: PodU64,
 
-    /// Jito DAO fee in basis points
-    jito_dao_fee_bps: Fee,
+    /// Protocol fee in basis points
+    protocol_fee_bps: Fee,
     /// NCN fee in basis points  
     ncn_fee_bps: Fee,
 }
 
 impl Fees {
     /// Default fee values in basis points (400 = 4%)
-    pub const JITO_DAO_FEE_BPS: u16 = 400;
+    pub const PROTOCOL_FEE_BPS: u16 = 400;
     pub const NCN_DEFAULT_FEE_BPS: u16 = 400;
 
     /// Creates a new fee configuration for a specific epoch
     pub fn new(default_ncn_fee_bps: u16, epoch: u64) -> Result<Self, NCNProgramError> {
         let mut fees = Self {
             activation_epoch: PodU64::from(epoch),
-            jito_dao_fee_bps: Fee::default(),
+            protocol_fee_bps: Fee::default(),
             ncn_fee_bps: Fee::default(),
         };
 
-        fees.set_jito_dao_fee_bps(Fees::JITO_DAO_FEE_BPS)?;
+        fees.set_protocol_fee_bps(Fees::PROTOCOL_FEE_BPS)?;
         fees.set_ncn_fee_bps(default_ncn_fee_bps)?;
 
         Ok(fees)
@@ -339,14 +339,14 @@ impl Fees {
         self.activation_epoch.into()
     }
 
-    /// Gets the Jito DAO fee in basis points
-    pub fn jito_dao_fee_bps(&self) -> Result<u16, NCNProgramError> {
-        Ok(self.jito_dao_fee_bps.fee())
+    /// Gets the Protocol fee in basis points
+    pub fn protocol_fee_bps(&self) -> Result<u16, NCNProgramError> {
+        Ok(self.protocol_fee_bps.fee())
     }
 
-    /// Gets the Jito DAO fee as a precise number for calculations
-    pub fn precise_jito_dao_fee_bps(&self) -> Result<PreciseNumber, NCNProgramError> {
-        let fee = self.jito_dao_fee_bps()?;
+    /// Gets the Protocol fee as a precise number for calculations
+    pub fn precise_protocol_fee_bps(&self) -> Result<PreciseNumber, NCNProgramError> {
+        let fee = self.protocol_fee_bps()?;
 
         PreciseNumber::new(fee.into()).ok_or(NCNProgramError::NewPreciseNumberError)
     }
@@ -367,9 +367,9 @@ impl Fees {
     pub fn total_fees_bps(&self) -> Result<u64, NCNProgramError> {
         let mut total_fee_bps: u64 = 0;
 
-        let jito_dao_fee_bps = self.jito_dao_fee_bps()?;
+        let protocol_fee_bps = self.protocol_fee_bps()?;
         total_fee_bps = total_fee_bps
-            .checked_add(jito_dao_fee_bps as u64)
+            .checked_add(protocol_fee_bps as u64)
             .ok_or(NCNProgramError::ArithmeticOverflow)?;
 
         let ncn_fee_bps = self.ncn_fee_bps()?;
@@ -394,13 +394,13 @@ impl Fees {
         self.activation_epoch = PodU64::from(value);
     }
 
-    /// Sets the Jito DAO fee with validation
-    pub fn set_jito_dao_fee_bps(&mut self, value: u16) -> Result<(), NCNProgramError> {
+    /// Sets the Protocol fee with validation
+    pub fn set_protocol_fee_bps(&mut self, value: u16) -> Result<(), NCNProgramError> {
         if value as u64 > MAX_FEE_BPS {
             return Err(NCNProgramError::FeeCapExceeded);
         }
 
-        self.jito_dao_fee_bps = Fee::new(value);
+        self.protocol_fee_bps = Fee::new(value);
 
         Ok(())
     }
@@ -460,7 +460,7 @@ mod tests {
     /// Validates that fees are properly initialized and can be retrieved correctly
     #[test]
     fn test_get_all_fees() {
-        const JITO_DAO_FEE: u16 = Fees::JITO_DAO_FEE_BPS;
+        const PROTOCOL_FEE: u16 = Fees::PROTOCOL_FEE_BPS;
         const DEFAULT_NCN_FEE: u16 = 300;
         const STARTING_EPOCH: u64 = 10;
 
@@ -471,14 +471,14 @@ mod tests {
         fee_config.check_fees_okay(STARTING_EPOCH).unwrap();
 
         assert_eq!(
-            fee_config.jito_dao_fee_bps(STARTING_EPOCH).unwrap(),
-            JITO_DAO_FEE
+            fee_config.protocol_fee_bps(STARTING_EPOCH).unwrap(),
+            PROTOCOL_FEE
         );
 
         assert_eq!(*fee_config.ncn_fee_wallet(), ncn_fee_wallet);
 
-        assert_eq!(fee_config.fee_1.jito_dao_fee_bps().unwrap(), JITO_DAO_FEE);
-        assert_eq!(fee_config.fee_2.jito_dao_fee_bps().unwrap(), JITO_DAO_FEE);
+        assert_eq!(fee_config.fee_1.protocol_fee_bps().unwrap(), PROTOCOL_FEE);
+        assert_eq!(fee_config.fee_2.protocol_fee_bps().unwrap(), PROTOCOL_FEE);
 
         assert_eq!(fee_config.fee_1.ncn_fee_bps().unwrap(), DEFAULT_NCN_FEE);
         assert_eq!(fee_config.fee_2.ncn_fee_bps().unwrap(), DEFAULT_NCN_FEE);
@@ -504,7 +504,7 @@ mod tests {
         // Test rejection when total fees exceed maximum
         let error = FeeConfig::new(
             &ok_wallet,
-            (MAX_FEE_BPS as u16) + 1 - Fees::JITO_DAO_FEE_BPS,
+            (MAX_FEE_BPS as u16) + 1 - Fees::PROTOCOL_FEE_BPS,
             OK_EPOCH,
         );
         assert_eq!(error.err().unwrap(), NCNProgramError::FeeCapExceeded);
@@ -536,19 +536,19 @@ mod tests {
 
         // Verify wallets update immediately
         assert_eq!(
-            *fee_config.jito_dao_fee_wallet(),
-            FeeConfig::JITO_DAO_FEE_WALLET
+            *fee_config.protocol_fee_wallet(),
+            FeeConfig::PROTOCOL_FEE_WALLET
         );
         assert_eq!(*fee_config.ncn_fee_wallet(), new_ncn_fee_wallet);
 
         // Verify fees update on next epoch (epoch-delayed)
         assert_eq!(
-            fee_config.jito_dao_fee_bps(STARTING_EPOCH).unwrap(),
-            Fees::JITO_DAO_FEE_BPS
+            fee_config.protocol_fee_bps(STARTING_EPOCH).unwrap(),
+            Fees::PROTOCOL_FEE_BPS
         );
         assert_eq!(
-            fee_config.jito_dao_fee_bps(STARTING_EPOCH + 1).unwrap(),
-            Fees::JITO_DAO_FEE_BPS
+            fee_config.protocol_fee_bps(STARTING_EPOCH + 1).unwrap(),
+            Fees::PROTOCOL_FEE_BPS
         );
         assert_eq!(
             fee_config.ncn_fee_bps(STARTING_EPOCH).unwrap(),
@@ -566,18 +566,18 @@ mod tests {
 
         // Verify wallet remains unchanged (None passed)
         assert_eq!(
-            *fee_config.jito_dao_fee_wallet(),
-            FeeConfig::JITO_DAO_FEE_WALLET
+            *fee_config.protocol_fee_wallet(),
+            FeeConfig::PROTOCOL_FEE_WALLET
         );
 
         // Verify fee progression across epochs
         assert_eq!(
-            fee_config.jito_dao_fee_bps(STARTING_EPOCH + 1).unwrap(),
-            Fees::JITO_DAO_FEE_BPS
+            fee_config.protocol_fee_bps(STARTING_EPOCH + 1).unwrap(),
+            Fees::PROTOCOL_FEE_BPS
         );
         assert_eq!(
-            fee_config.jito_dao_fee_bps(STARTING_EPOCH + 2).unwrap(),
-            Fees::JITO_DAO_FEE_BPS
+            fee_config.protocol_fee_bps(STARTING_EPOCH + 2).unwrap(),
+            Fees::PROTOCOL_FEE_BPS
         );
 
         assert_eq!(
@@ -609,8 +609,8 @@ mod tests {
 
         // Verify nothing changed
         assert_eq!(
-            *fee_config.jito_dao_fee_wallet(),
-            FeeConfig::JITO_DAO_FEE_WALLET
+            *fee_config.protocol_fee_wallet(),
+            FeeConfig::PROTOCOL_FEE_WALLET
         );
         assert_eq!(*fee_config.ncn_fee_wallet(), ncn_fee_wallet);
 
@@ -691,11 +691,11 @@ mod tests {
 
         // Modify fee_1 for future activation
         let fees = fee_config.updatable_fees(10);
-        fees.set_jito_dao_fee_bps(400).unwrap();
+        fees.set_protocol_fee_bps(400).unwrap();
         fees.set_activation_epoch(11);
 
         // Verify fee_1 was modified
-        assert_eq!(fee_config.fee_1.jito_dao_fee_bps().unwrap(), 400);
+        assert_eq!(fee_config.fee_1.protocol_fee_bps().unwrap(), 400);
         assert_eq!(fee_config.fee_1.activation_epoch(), 11);
 
         // Set fee_2 for even further future
@@ -703,11 +703,11 @@ mod tests {
 
         // Should now select fee_2 as updatable (lower activation epoch)
         let fees = fee_config.updatable_fees(12);
-        fees.set_jito_dao_fee_bps(500).unwrap();
+        fees.set_protocol_fee_bps(500).unwrap();
         fees.set_activation_epoch(13);
 
         // Verify fee_2 was modified
-        assert_eq!(fee_config.fee_2.jito_dao_fee_bps().unwrap(), 500);
+        assert_eq!(fee_config.fee_2.protocol_fee_bps().unwrap(), 500);
         assert_eq!(fee_config.fee_2.activation_epoch(), 13);
 
         // When current epoch is very high, should pick older activation epoch
@@ -730,20 +730,20 @@ mod tests {
         // Test precise total calculation
         let total = fee_config.precise_total_fee_bps(EPOCH).unwrap();
         let expected =
-            PreciseNumber::new((Fees::JITO_DAO_FEE_BPS + DEFAULT_NCN_FEE) as u128).unwrap();
+            PreciseNumber::new((Fees::PROTOCOL_FEE_BPS + DEFAULT_NCN_FEE) as u128).unwrap();
 
         assert!(total.eq(&expected));
     }
 
-    /// Tests precise Jito DAO fee calculation
+    /// Tests precise Protocol fee calculation
     #[test]
-    fn test_precise_jito_dao_fee_bps() {
+    fn test_precise_protocol_fee_bps() {
         let ncn_fee_wallet = Pubkey::new_unique();
 
         let fee_config = FeeConfig::new(&ncn_fee_wallet, 0, 0).unwrap();
 
-        let precise_fee = fee_config.precise_jito_dao_fee_bps(0).unwrap();
-        let expected = PreciseNumber::new(Fees::JITO_DAO_FEE_BPS.into()).unwrap();
+        let precise_fee = fee_config.precise_protocol_fee_bps(0).unwrap();
+        let expected = PreciseNumber::new(Fees::PROTOCOL_FEE_BPS.into()).unwrap();
 
         assert!(precise_fee.eq(&expected));
     }
@@ -776,13 +776,13 @@ mod tests {
         assert!(precise_fee.eq(&expected));
     }
 
-    /// Tests precise Jito DAO fee calculation at the Fees level
+    /// Tests precise Protocol fee calculation at the Fees level
     #[test]
-    fn test_fees_precise_jito_dao_fee_bps() {
+    fn test_fees_precise_protocol_fee_bps() {
         let fees = Fees::new(0, 0).unwrap();
 
-        let precise_fee = fees.precise_jito_dao_fee_bps().unwrap();
-        let expected = PreciseNumber::new(Fees::JITO_DAO_FEE_BPS.into()).unwrap();
+        let precise_fee = fees.precise_protocol_fee_bps().unwrap();
+        let expected = PreciseNumber::new(Fees::PROTOCOL_FEE_BPS.into()).unwrap();
 
         assert!(precise_fee.eq(&expected));
     }
@@ -808,7 +808,7 @@ mod tests {
         let fees = Fees::new(NCN_FEE, 0).unwrap();
 
         let precise_total = fees.precise_total_fee_bps().unwrap();
-        let expected = PreciseNumber::new((NCN_FEE + Fees::JITO_DAO_FEE_BPS) as u128).unwrap();
+        let expected = PreciseNumber::new((NCN_FEE + Fees::PROTOCOL_FEE_BPS) as u128).unwrap();
 
         assert!(precise_total.eq(&expected));
     }

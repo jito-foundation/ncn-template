@@ -80,7 +80,7 @@ export const NCN_PROGRAM_ERROR__MINT_ENTRY_NOT_FOUND = 0x2214; // 8724
 export const NCN_PROGRAM_ERROR__FEE_CAP_EXCEEDED = 0x2215; // 8725
 /** TotalFeesCannotBeZero: Total fees cannot be 0 */
 export const NCN_PROGRAM_ERROR__TOTAL_FEES_CANNOT_BE_ZERO = 0x2216; // 8726
-/** DefaultDaoWallet: Jito DAO wallet cannot be default */
+/** DefaultDaoWallet: Protocol wallet cannot be default */
 export const NCN_PROGRAM_ERROR__DEFAULT_DAO_WALLET = 0x2217; // 8727
 /** DefaultNcnWallet: NCN Fee wallet cannot be default */
 export const NCN_PROGRAM_ERROR__DEFAULT_NCN_WALLET = 0x2218; // 8728
@@ -316,7 +316,7 @@ if (process.env.NODE_ENV !== 'production') {
     [NCN_PROGRAM_ERROR__CONFIG_MINTS_NOT_UPDATED]: `Config supported mints do not match NCN Vault Count`,
     [NCN_PROGRAM_ERROR__CONSENSUS_ALREADY_REACHED]: `Consensus already reached, cannot change vote`,
     [NCN_PROGRAM_ERROR__CONSENSUS_NOT_REACHED]: `Consensus not reached`,
-    [NCN_PROGRAM_ERROR__DEFAULT_DAO_WALLET]: `Jito DAO wallet cannot be default`,
+    [NCN_PROGRAM_ERROR__DEFAULT_DAO_WALLET]: `Protocol wallet cannot be default`,
     [NCN_PROGRAM_ERROR__DEFAULT_NCN_WALLET]: `NCN Fee wallet cannot be default`,
     [NCN_PROGRAM_ERROR__DENOMINATOR_IS_ZERO]: `Zero in the denominator`,
     [NCN_PROGRAM_ERROR__DESTINATION_MISMATCH]: `Destination mismatch`,

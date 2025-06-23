@@ -20,14 +20,14 @@ import {
 import { getFeesDecoder, getFeesEncoder, type Fees, type FeesArgs } from '.';
 
 export type FeeConfig = {
-  jitoDaoFeeWallet: Address;
+  protocolFeeWallet: Address;
   ncnFeeWallets: Address;
   fee1: Fees;
   fee2: Fees;
 };
 
 export type FeeConfigArgs = {
-  jitoDaoFeeWallet: Address;
+  protocolFeeWallet: Address;
   ncnFeeWallets: Address;
   fee1: FeesArgs;
   fee2: FeesArgs;
@@ -35,7 +35,7 @@ export type FeeConfigArgs = {
 
 export function getFeeConfigEncoder(): Encoder<FeeConfigArgs> {
   return getStructEncoder([
-    ['jitoDaoFeeWallet', getAddressEncoder()],
+    ['protocolFeeWallet', getAddressEncoder()],
     ['ncnFeeWallets', getAddressEncoder()],
     ['fee1', getFeesEncoder()],
     ['fee2', getFeesEncoder()],
@@ -44,7 +44,7 @@ export function getFeeConfigEncoder(): Encoder<FeeConfigArgs> {
 
 export function getFeeConfigDecoder(): Decoder<FeeConfig> {
   return getStructDecoder([
-    ['jitoDaoFeeWallet', getAddressDecoder()],
+    ['protocolFeeWallet', getAddressDecoder()],
     ['ncnFeeWallets', getAddressDecoder()],
     ['fee1', getFeesDecoder()],
     ['fee2', getFeesDecoder()],

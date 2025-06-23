@@ -21,10 +21,10 @@ import {
   type ParsedAdminSetWeightInstruction,
   type ParsedCastVoteInstruction,
   type ParsedCloseEpochAccountInstruction,
-  type ParsedDistributeJitoDAORewardsInstruction,
   type ParsedDistributeNCNRewardsInstruction,
   type ParsedDistributeOperatorRewardsInstruction,
   type ParsedDistributeOperatorVaultRewardRouteInstruction,
+  type ParsedDistributeProtocolRewardsInstruction,
   type ParsedDistributeVaultRewardsInstruction,
   type ParsedInitializeBallotBoxInstruction,
   type ParsedInitializeConfigInstruction,
@@ -81,7 +81,7 @@ export enum NcnProgramInstruction {
   InitializeNCNRewardRouter,
   ReallocNCNRewardRouter,
   RouteNCNRewards,
-  DistributeJitoDAORewards,
+  DistributeProtocolRewards,
   DistributeNCNRewards,
   InitializeOperatorVaultRewardRouter,
   DistributeOperatorVaultRewardRoute,
@@ -153,7 +153,7 @@ export function identifyNcnProgramInstruction(
     return NcnProgramInstruction.RouteNCNRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(17), 0)) {
-    return NcnProgramInstruction.DistributeJitoDAORewards;
+    return NcnProgramInstruction.DistributeProtocolRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(18), 0)) {
     return NcnProgramInstruction.DistributeNCNRewards;
@@ -254,8 +254,8 @@ export type ParsedNcnProgramInstruction<
       instructionType: NcnProgramInstruction.RouteNCNRewards;
     } & ParsedRouteNCNRewardsInstruction<TProgram>)
   | ({
-      instructionType: NcnProgramInstruction.DistributeJitoDAORewards;
-    } & ParsedDistributeJitoDAORewardsInstruction<TProgram>)
+      instructionType: NcnProgramInstruction.DistributeProtocolRewards;
+    } & ParsedDistributeProtocolRewardsInstruction<TProgram>)
   | ({
       instructionType: NcnProgramInstruction.DistributeNCNRewards;
     } & ParsedDistributeNCNRewardsInstruction<TProgram>)

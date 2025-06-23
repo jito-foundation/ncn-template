@@ -29,7 +29,7 @@ pub struct NCNRewardRouter {
     pub reserved: [u8; 128],
     pub last_vote_index: u16,
     pub last_rewards_to_process: u64,
-    pub jito_dao_rewards: u64,
+    pub protocol_rewards: u64,
     pub ncn_rewards: u64,
     pub operator_vault_rewards: u64,
     #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]

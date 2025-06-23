@@ -70,7 +70,7 @@ pub enum NCNProgramError {
     FeeCapExceeded,
     #[error("Total fees cannot be 0")]
     TotalFeesCannotBeZero,
-    #[error("Jito DAO wallet cannot be default")]
+    #[error("Protocol wallet cannot be default")]
     DefaultDaoWallet,
     #[error("NCN Fee wallet cannot be default")]
     DefaultNcnWallet,

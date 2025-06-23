@@ -11,14 +11,14 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, system_instruction,
 };
 
-pub fn process_distribute_jito_dao_rewards(
+pub fn process_distribute_protocol_rewards(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting Jito DAO rewards distribution for epoch {}", epoch);
+    msg!("Starting Protocol rewards distribution for epoch {}", epoch);
 
-    let [epoch_state, ncn_config, ncn, ncn_reward_router, ncn_reward_receiver, jito_dao_fee_wallet, system_program] =
+    let [epoch_state, ncn_config, ncn, ncn_reward_router, ncn_reward_receiver, protocol_fee_wallet, system_program] =
         accounts
     else {
         msg!("Error: Not enough account keys provided");
@@ -36,13 +36,13 @@ pub fn process_distribute_jito_dao_rewards(
     {
         let ncn_config_data = ncn_config.try_borrow_data()?;
         let ncn_config_account = Config::try_from_slice_unchecked(&ncn_config_data)?;
-        let fee_wallet = ncn_config_account.fee_config.jito_dao_fee_wallet();
+        let fee_wallet = ncn_config_account.fee_config.protocol_fee_wallet();
 
-        if fee_wallet.ne(jito_dao_fee_wallet.key) {
-            msg!("Error: Incorrect Jito DAO fee wallet provided");
+        if fee_wallet.ne(protocol_fee_wallet.key) {
+            msg!("Error: Incorrect Protocol fee wallet provided");
             return Err(ProgramError::InvalidAccountData);
         }
-        msg!("Jito DAO fee wallet validation passed");
+        msg!("Protocol fee wallet validation passed");
     }
 
     // Get rewards and update state
@@ -57,13 +57,13 @@ pub fn process_distribute_jito_dao_rewards(
             return Err(NCNProgramError::RouterStillRouting.into());
         }
 
-        let rewards = ncn_reward_router_account.distribute_jito_dao_fee_rewards()?;
-        msg!("Calculated Jito DAO fee rewards: {} lamports", rewards);
+        let rewards = ncn_reward_router_account.distribute_protocol_fee_rewards()?;
+        msg!("Calculated Protocol fee rewards: {} lamports", rewards);
         rewards
     };
 
     if rewards > 0 {
-        msg!("Distributing {} lamports to Jito DAO fee wallet", rewards);
+        msg!("Distributing {} lamports to Protocol fee wallet", rewards);
 
         let (_, ncn_reward_receiver_bump, mut ncn_reward_receiver_seeds) =
             NCNRewardReceiver::find_program_address(program_id, ncn.key, epoch);
@@ -75,15 +75,15 @@ pub fn process_distribute_jito_dao_rewards(
             ncn_reward_receiver_balance
         );
 
-        // Transfer rewards from receiver to Jito DAO fee wallet
+        // Transfer rewards from receiver to Protocol fee wallet
         let transfer_instruction =
-            system_instruction::transfer(ncn_reward_receiver.key, jito_dao_fee_wallet.key, rewards);
+            system_instruction::transfer(ncn_reward_receiver.key, protocol_fee_wallet.key, rewards);
 
         invoke_signed(
             &transfer_instruction,
             &[
                 ncn_reward_receiver.clone(),
-                jito_dao_fee_wallet.clone(),
+                protocol_fee_wallet.clone(),
                 system_program.clone(),
             ],
             &[ncn_reward_receiver_seeds
@@ -94,7 +94,7 @@ pub fn process_distribute_jito_dao_rewards(
         )?;
 
         msg!(
-            "Successfully transferred {} lamports to Jito DAO fee wallet",
+            "Successfully transferred {} lamports to Protocol fee wallet",
             rewards
         );
     } else {
@@ -104,15 +104,15 @@ pub fn process_distribute_jito_dao_rewards(
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
-        epoch_state_account.update_distribute_jito_dao_rewards(rewards);
+        epoch_state_account.update_distribute_protocol_rewards(rewards);
         msg!(
-            "Updated epoch state with distributed Jito DAO rewards: {} lamports",
+            "Updated epoch state with distributed Protocol rewards: {} lamports",
             rewards
         );
     }
 
     msg!(
-        "Jito DAO rewards distribution completed successfully for epoch {}",
+        "Protocol rewards distribution completed successfully for epoch {}",
         epoch
     );
     Ok(())

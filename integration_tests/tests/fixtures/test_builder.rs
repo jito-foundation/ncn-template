@@ -755,32 +755,32 @@ impl TestBuilder {
         // Rewards Distribution
         // 1. Jito Rewards Distribution
         {
-            let rewards = ncn_reward_router.jito_dao_rewards();
+            let rewards = ncn_reward_router.protocol_rewards();
 
             if rewards > 0 {
                 let mut ncn_program_client = self.ncn_program_client();
                 let config = ncn_program_client.get_ncn_config(ncn).await?;
-                let jito_dao_fee_wallet = config.fee_config.jito_dao_fee_wallet();
+                let protocol_fee_wallet = config.fee_config.protocol_fee_wallet();
 
                 let balance_before = {
-                    let account = self.get_account(jito_dao_fee_wallet).await?;
+                    let account = self.get_account(protocol_fee_wallet).await?;
                     account.unwrap().lamports
                 };
 
-                println!("Distributing {} of Jito DAO Rewards", rewards);
+                println!("Distributing {} of Protocol Rewards", rewards);
                 ncn_program_client
-                    .do_distribute_jito_dao_rewards(ncn, epoch)
+                    .do_distribute_protocol_rewards(ncn, epoch)
                     .await?;
 
                 let balance_after = {
-                    let account = self.get_account(jito_dao_fee_wallet).await?;
+                    let account = self.get_account(protocol_fee_wallet).await?;
                     account.unwrap().lamports
                 };
 
                 assert_eq!(
                     balance_after,
                     balance_before + rewards,
-                    "Jito DAO fee wallet balance should increase by the rewards amount"
+                    "Protocol fee wallet balance should increase by the rewards amount"
                 );
             }
         }

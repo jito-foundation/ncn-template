@@ -109,8 +109,8 @@ pub enum NcnProgramError {
     /// 8726 - Total fees cannot be 0
     #[error("Total fees cannot be 0")]
     TotalFeesCannotBeZero = 0x2216,
-    /// 8727 - Jito DAO wallet cannot be default
-    #[error("Jito DAO wallet cannot be default")]
+    /// 8727 - Protocol wallet cannot be default
+    #[error("Protocol wallet cannot be default")]
     DefaultDaoWallet = 0x2217,
     /// 8728 - NCN Fee wallet cannot be default
     #[error("NCN Fee wallet cannot be default")]

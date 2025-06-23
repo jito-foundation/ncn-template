@@ -55,7 +55,7 @@ export type NCNRewardRouter = {
   reserved: Array<number>;
   lastVoteIndex: number;
   lastRewardsToProcess: bigint;
-  jitoDaoRewards: bigint;
+  protocolRewards: bigint;
   ncnRewards: bigint;
   operatorVaultRewards: bigint;
   operatorVaultRewardRoutes: Array<OperatorVaultRewardRoute>;
@@ -73,7 +73,7 @@ export type NCNRewardRouterArgs = {
   reserved: Array<number>;
   lastVoteIndex: number;
   lastRewardsToProcess: number | bigint;
-  jitoDaoRewards: number | bigint;
+  protocolRewards: number | bigint;
   ncnRewards: number | bigint;
   operatorVaultRewards: number | bigint;
   operatorVaultRewardRoutes: Array<OperatorVaultRewardRouteArgs>;
@@ -92,7 +92,7 @@ export function getNCNRewardRouterEncoder(): Encoder<NCNRewardRouterArgs> {
     ['reserved', getArrayEncoder(getU8Encoder(), { size: 128 })],
     ['lastVoteIndex', getU16Encoder()],
     ['lastRewardsToProcess', getU64Encoder()],
-    ['jitoDaoRewards', getU64Encoder()],
+    ['protocolRewards', getU64Encoder()],
     ['ncnRewards', getU64Encoder()],
     ['operatorVaultRewards', getU64Encoder()],
     [
@@ -115,7 +115,7 @@ export function getNCNRewardRouterDecoder(): Decoder<NCNRewardRouter> {
     ['reserved', getArrayDecoder(getU8Decoder(), { size: 128 })],
     ['lastVoteIndex', getU16Decoder()],
     ['lastRewardsToProcess', getU64Decoder()],
-    ['jitoDaoRewards', getU64Decoder()],
+    ['protocolRewards', getU64Decoder()],
     ['ncnRewards', getU64Decoder()],
     ['operatorVaultRewards', getU64Decoder()],
     [

@@ -574,7 +574,7 @@ impl fmt::Display for EpochSnapshot {
        writeln!(f, "  Slot Finalized:               {}", self.slot_finalized())?;
        writeln!(f, "  Finalized:                    {}", self.finalized())?;
        writeln!(f, "  total Weight:                 {}", self.stake_weights().stake_weight())?;
-       writeln!(f, "  Jito DAO Fee BPS:             {}", self.fees().jito_dao_fee_bps().unwrap_or(0))?;
+       writeln!(f, "  Protocol Fee BPS:             {}", self.fees().protocol_fee_bps().unwrap_or(0))?;
        writeln!(f, "  NCN Fee BPS:                  {}", self.fees().ncn_fee_bps().unwrap_or(0))?;
        writeln!(f, "  Total Fee BPS:                {}", self.fees().total_fees_bps().unwrap_or(0))?;
 

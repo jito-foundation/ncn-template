@@ -270,8 +270,8 @@ pub struct EpochState {
     /// NCN distribution progress
     ncn_distribution_progress: Progress,
 
-    /// Jito distribution progress
-    jito_dao_distribution_progress: Progress,
+    /// Protocol distribution progress
+    protocol_distribution_progress: Progress,
 
     /// Operator Vault distribution progress
     operator_vault_distribution_progress: Progress,
@@ -308,7 +308,7 @@ impl EpochState {
             voting_progress: Progress::default(),
             total_distribution_progress: Progress::default(),
             ncn_distribution_progress: Progress::default(),
-            jito_dao_distribution_progress: Progress::default(),
+            protocol_distribution_progress: Progress::default(),
             operator_vault_distribution_progress: Progress::default(),
             operator_vault_routes_distribution_progress: [Progress::default(); MAX_OPERATORS],
             is_closing: PodBool::from(false),
@@ -490,8 +490,8 @@ impl EpochState {
         self.ncn_distribution_progress
     }
 
-    pub const fn jito_dao_distribution_progress(&self) -> Progress {
-        self.jito_dao_distribution_progress
+    pub const fn protocol_distribution_progress(&self) -> Progress {
+        self.protocol_distribution_progress
     }
 
     pub const fn operator_vault_distribution_progress(&self) -> Progress {
@@ -599,7 +599,7 @@ impl EpochState {
         self.account_status
             .set_ncn_reward_router(AccountStatus::CreatedWithReceiver);
         self.ncn_distribution_progress = Progress::new(0);
-        self.jito_dao_distribution_progress = Progress::new(0);
+        self.protocol_distribution_progress = Progress::new(0);
         self.operator_vault_distribution_progress = Progress::new(0);
     }
 
@@ -617,9 +617,9 @@ impl EpochState {
         self.ncn_distribution_progress.set_total(ncn_rewards);
     }
 
-    pub fn update_route_jito_dao_rewards(&mut self, jito_dao_rewards: u64) {
-        self.jito_dao_distribution_progress
-            .set_total(jito_dao_rewards);
+    pub fn update_route_protocol_rewards(&mut self, protocol_rewards: u64) {
+        self.protocol_distribution_progress
+            .set_total(protocol_rewards);
     }
 
     pub fn update_operator_vault_rewards(&mut self, rewards: u64) {
@@ -631,9 +631,9 @@ impl EpochState {
         let _ = self.ncn_distribution_progress.increment(rewards);
     }
 
-    pub fn update_distribute_jito_dao_rewards(&mut self, rewards: u64) {
+    pub fn update_distribute_protocol_rewards(&mut self, rewards: u64) {
         let _ = self.total_distribution_progress.increment(rewards);
-        let _ = self.jito_dao_distribution_progress.increment(rewards);
+        let _ = self.protocol_distribution_progress.increment(rewards);
     }
 
     pub fn update_route_operator_vault_rewards(

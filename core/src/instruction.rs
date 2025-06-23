@@ -245,15 +245,15 @@ pub enum NCNProgramInstruction {
         epoch: u64,
     },
 
-    /// Distributes Jito DAO rewards
+    /// Distributes Protocol rewards
     #[account(0, writable, name = "epoch_state")]
     #[account(1, name = "config")]
     #[account(2, name = "ncn")]
     #[account(3, writable, name = "ncn_reward_router")]
     #[account(4, writable, name = "ncn_reward_receiver")]
-    #[account(5, writable, name = "jito_dao_fee_wallet")]
+    #[account(5, writable, name = "protocol_fee_wallet")]
     #[account(6, name = "system_program")]
-    DistributeJitoDAORewards{
+    DistributeProtocolRewards{
         epoch: u64,
     },
 

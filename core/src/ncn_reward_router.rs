@@ -21,7 +21,7 @@ use crate::{
 /// NCN Reward Router - Main entry point for routing rewards from NCNs
 ///
 /// This router receives rewards and distributes them according to the fee structure:
-/// 1. Jito DAO receives a percentage (4%)
+/// 1. Protocol receives a percentage (4%)
 /// 2. NCN receives a percentage (4%)
 /// 3. Remaining rewards (92%) go to operator-vault rewards
 ///
@@ -55,8 +55,8 @@ pub struct NCNRewardRouter {
     /// Last rewards amount being processed during routing (for resuming partial operations)
     last_rewards_to_process: PodU64,
 
-    /// Rewards allocated to the Jito DAO (ready for distribution)
-    jito_dao_rewards: PodU64,
+    /// Rewards allocated to the Protocol (ready for distribution)
+    protocol_rewards: PodU64,
     /// Rewards allocated to the NCN (ready for distribution)
     ncn_rewards: PodU64,
 
@@ -77,7 +77,7 @@ impl NCNRewardRouter {
     pub const NCN_REWARD_ROUTER_SEED: &'static [u8] = b"ncn_reward_router";
 
     /// Fee constants - in basis points (1/100 of 1%)
-    pub const JITO_DAO_FEE_BPS: u16 = 400; // 4%
+    pub const PROTOCOL_FEE_BPS: u16 = 400; // 4%
     pub const NCN_DEFAULT_FEE_BPS: u16 = 400; // 4%
 
     /// Sentinel values indicating no partial routing is in progress
@@ -101,7 +101,7 @@ impl NCNRewardRouter {
             reserved: [0; 128],
             last_vote_index: PodU16::from(Self::NO_LAST_VOTE_INDEX),
             last_rewards_to_process: PodU64::from(Self::NO_LAST_REWARDS_TO_PROCESS),
-            jito_dao_rewards: PodU64::from(0),
+            protocol_rewards: PodU64::from(0),
             ncn_rewards: PodU64::from(0),
             operator_vault_rewards: PodU64::from(0),
             operator_vault_reward_routes: [OperatorVaultRewardRoute::default(); 256],
@@ -120,7 +120,7 @@ impl NCNRewardRouter {
         self.reward_pool = PodU64::from(0);
         self.rewards_processed = PodU64::from(0);
         self.reserved = [0; 128];
-        self.jito_dao_rewards = PodU64::from(0);
+        self.protocol_rewards = PodU64::from(0);
         self.ncn_rewards = PodU64::from(0);
         self.operator_vault_rewards = PodU64::from(0);
         self.operator_vault_reward_routes = [OperatorVaultRewardRoute::default(); 256];
@@ -295,17 +295,17 @@ impl NCNRewardRouter {
         Ok(())
     }
 
-    /// Routes rewards from the reward pool to Jito DAO and NCN based on fee structure
+    /// Routes rewards from the reward pool to Protocol and NCN based on fee structure
     /// This is the first phase of reward distribution
     pub fn route_reward_pool(&mut self, fee: &Fees) -> Result<(), NCNProgramError> {
         let rewards_to_process: u64 = self.reward_pool();
 
-        // Route Jito DAO fee (typically 4%)
+        // Route Protocol fee (typically 4%)
         {
-            let jito_dao_fee =
-                Self::calculate_reward_split(fee.jito_dao_fee_bps()?, rewards_to_process)?;
-            self.route_from_reward_pool(jito_dao_fee)?;
-            self.route_to_jito_dao(jito_dao_fee)?;
+            let protocol_fee =
+                Self::calculate_reward_split(fee.protocol_fee_bps()?, rewards_to_process)?;
+            self.route_from_reward_pool(protocol_fee)?;
+            self.route_to_protocol(protocol_fee)?;
         }
 
         // Route NCN fee (typically 4%)
@@ -407,7 +407,7 @@ impl NCNRewardRouter {
     // ------------------ CALCULATIONS ---------------------
 
     /// Calculates reward amount based on basis points
-    /// Used for fee calculations (Jito DAO and NCN fees)
+    /// Used for fee calculations (Protocol and NCN fees)
     fn calculate_reward_split(
         fee_basis_points: u16,
         total_rewards: u64,
@@ -562,14 +562,14 @@ impl NCNRewardRouter {
         Ok(())
     }
 
-    /// Routes rewards to Jito DAO allocation
-    pub fn route_to_jito_dao(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
+    /// Routes rewards to Protocol allocation
+    pub fn route_to_protocol(&mut self, rewards: u64) -> Result<(), NCNProgramError> {
         if rewards == 0 {
             return Ok(());
         }
 
-        self.jito_dao_rewards = PodU64::from(
-            self.jito_dao_rewards()
+        self.protocol_rewards = PodU64::from(
+            self.protocol_rewards()
                 .checked_add(rewards)
                 .ok_or(NCNProgramError::ArithmeticOverflow)?,
         );
@@ -656,15 +656,15 @@ impl NCNRewardRouter {
         Ok(rewards)
     }
 
-    pub fn jito_dao_rewards(&self) -> u64 {
-        self.jito_dao_rewards.into()
+    pub fn protocol_rewards(&self) -> u64 {
+        self.protocol_rewards.into()
     }
 
-    /// Distributes Jito DAO rewards and updates counters
+    /// Distributes Protocol rewards and updates counters
     /// Returns the amount of rewards distributed
-    pub fn distribute_jito_dao_fee_rewards(&mut self) -> Result<u64, NCNProgramError> {
-        let rewards = self.jito_dao_rewards();
-        self.jito_dao_rewards = PodU64::from(
+    pub fn distribute_protocol_fee_rewards(&mut self) -> Result<u64, NCNProgramError> {
+        let rewards = self.protocol_rewards();
+        self.protocol_rewards = PodU64::from(
             rewards
                 .checked_sub(rewards)
                 .ok_or(NCNProgramError::ArithmeticUnderflowError)?,
@@ -768,7 +768,7 @@ impl fmt::Display for NCNRewardRouter {
         }
 
         writeln!(f, "\nRewards:")?;
-        writeln!(f, "  Jito DAO Rewards:             {}", self.jito_dao_rewards())?;
+        writeln!(f, "  Protocol Rewards:             {}", self.protocol_rewards())?;
         writeln!(f, "  NCN Rewards:                  {}", self.ncn_rewards())?;
         writeln!(
             f,
@@ -1102,7 +1102,7 @@ mod tests {
             + 128 // reserved
             + size_of::<PodU16>() // last_vote_index
             + size_of::<PodU64>() // last_rewards_to_process
-            + size_of::<PodU64>() // jito_dao_rewards
+            + size_of::<PodU64>() // protocol_rewards
             + size_of::<PodU64>() // ncn_rewards
             + size_of::<PodU64>() // operator_vault_rewards
             + size_of::<OperatorVaultRewardRoute>() * 256; // operator_vault_reward_routes
@@ -1246,7 +1246,7 @@ mod tests {
 
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
-        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
+        assert_eq!(router.protocol_rewards(), 40); // 4% of 1000
         assert_eq!(router.ncn_rewards(), 10);
     }
 
@@ -1275,7 +1275,7 @@ mod tests {
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
 
-        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
+        assert_eq!(router.protocol_rewards(), 40); // 4% of 1000
         assert_eq!(router.ncn_rewards(), 10);
         assert_eq!(router.operator_vault_rewards(), 950);
     }
@@ -1305,7 +1305,7 @@ mod tests {
         assert_eq!(router.total_rewards(), INCOMING_REWARDS);
         assert_eq!(router.reward_pool(), 0);
 
-        assert_eq!(router.jito_dao_rewards(), 40); // 4% of 1000
+        assert_eq!(router.protocol_rewards(), 40); // 4% of 1000
         assert_eq!(router.ncn_rewards(), 1);
         assert_eq!(router.operator_vault_rewards(), 959);
     }

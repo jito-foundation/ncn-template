@@ -863,7 +863,7 @@
       }
     },
     {
-      "name": "DistributeJitoDAORewards",
+      "name": "DistributeProtocolRewards",
       "accounts": [
         {
           "name": "epochState",
@@ -891,7 +891,7 @@
           "isSigner": false
         },
         {
-          "name": "jitoDaoFeeWallet",
+          "name": "protocolFeeWallet",
           "isMut": true,
           "isSigner": false
         },
@@ -2023,7 +2023,7 @@
             }
           },
           {
-            "name": "jitoDaoDistributionProgress",
+            "name": "protocolDistributionProgress",
             "type": {
               "defined": "Progress"
             }
@@ -2119,7 +2119,7 @@
             }
           },
           {
-            "name": "jitoDaoRewards",
+            "name": "protocolRewards",
             "type": {
               "defined": "PodU64"
             }
@@ -2507,7 +2507,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "jitoDaoFeeWallet",
+            "name": "protocolFeeWallet",
             "type": "publicKey"
           },
           {
@@ -2541,7 +2541,7 @@
             }
           },
           {
-            "name": "jitoDaoFeeBps",
+            "name": "protocolFeeBps",
             "type": {
               "defined": "Fee"
             }
@@ -2901,7 +2901,7 @@
     {
       "code": 8727,
       "name": "DefaultDaoWallet",
-      "msg": "Jito DAO wallet cannot be default"
+      "msg": "Protocol wallet cannot be default"
     },
     {
       "code": 8728,

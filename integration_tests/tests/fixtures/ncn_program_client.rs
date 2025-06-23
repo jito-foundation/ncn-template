@@ -9,8 +9,8 @@ use ncn_program_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetStMintBuilder, AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
-        CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, DistributeNCNRewardsBuilder,
-        DistributeOperatorRewardsBuilder, DistributeOperatorVaultRewardRouteBuilder,
+        CloseEpochAccountBuilder, DistributeNCNRewardsBuilder, DistributeOperatorRewardsBuilder,
+        DistributeOperatorVaultRewardRouteBuilder, DistributeProtocolRewardsBuilder,
         DistributeVaultRewardsBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
         InitializeNCNRewardRouterBuilder, InitializeOperatorSnapshotBuilder,
@@ -248,8 +248,8 @@ impl NCNProgramClient {
         let ncn_fee_wallet = Keypair::new();
         self.airdrop(&ncn_fee_wallet.pubkey(), 0.1).await?;
 
-        // Airdroping some SOL to Jito DAO fee wallet to get it started.
-        let jito_fee_wallet = FeeConfig::JITO_DAO_FEE_WALLET;
+        // Airdroping some SOL to Protocol fee wallet to get it started.
+        let jito_fee_wallet = FeeConfig::PROTOCOL_FEE_WALLET;
         self.airdrop(&jito_fee_wallet, 0.1).await?;
 
         self.initialize_config(
@@ -1708,7 +1708,7 @@ impl NCNProgramClient {
         self.process_transaction(tx).await
     }
 
-    pub async fn do_distribute_jito_dao_rewards(
+    pub async fn do_distribute_protocol_rewards(
         &mut self,
         ncn: Pubkey,
         epoch: u64,
@@ -1721,18 +1721,18 @@ impl NCNProgramClient {
             NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch);
 
         let ncn_config_account = self.get_ncn_config(ncn).await?;
-        let jito_dao_fee_wallet = ncn_config_account.fee_config.jito_dao_fee_wallet();
+        let protocol_fee_wallet = ncn_config_account.fee_config.protocol_fee_wallet();
 
         let (ncn_reward_receiver, _, _) =
             NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch);
 
-        let ix = DistributeJitoDAORewardsBuilder::new()
+        let ix = DistributeProtocolRewardsBuilder::new()
             .epoch_state(epoch_state)
             .config(ncn_config)
             .ncn(ncn)
             .ncn_reward_router(ncn_reward_router)
             .ncn_reward_receiver(ncn_reward_receiver)
-            .jito_dao_fee_wallet(*jito_dao_fee_wallet)
+            .protocol_fee_wallet(*protocol_fee_wallet)
             .system_program(system_program::id())
             .epoch(epoch)
             .instruction();

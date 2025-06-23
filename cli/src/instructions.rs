@@ -34,8 +34,8 @@ use ncn_program_client::{
     instructions::{
         AdminRegisterStMintBuilder, AdminSetNewAdminBuilder, AdminSetParametersBuilder,
         AdminSetTieBreakerBuilder, AdminSetWeightBuilder, CastVoteBuilder,
-        CloseEpochAccountBuilder, DistributeJitoDAORewardsBuilder, DistributeNCNRewardsBuilder,
-        DistributeOperatorRewardsBuilder, DistributeOperatorVaultRewardRouteBuilder,
+        CloseEpochAccountBuilder, DistributeNCNRewardsBuilder, DistributeOperatorRewardsBuilder,
+        DistributeOperatorVaultRewardRouteBuilder, DistributeProtocolRewardsBuilder,
         DistributeVaultRewardsBuilder, InitializeBallotBoxBuilder,
         InitializeConfigBuilder as InitializeNCNProgramConfigBuilder,
         InitializeEpochSnapshotBuilder, InitializeEpochStateBuilder,
@@ -1742,7 +1742,7 @@ pub async fn crank_distribute(handler: &CliHandler, epoch: u64) -> Result<()> {
         }
     }
 
-    // Jito Rewards Distribution
+    // Protocol Rewards Distribution
     {
         let result = distribute_jito_rewards(handler, epoch).await;
         if let Err(err) = result {
@@ -2058,7 +2058,7 @@ pub async fn distribute_jito_rewards(handler: &CliHandler, epoch: u64) -> Result
     let (ncn_reward_router, _, _) =
         NCNRewardRouter::find_program_address(&handler.ncn_program_id, &ncn, epoch);
 
-    let distribute_jito_dao_rewards_ix = DistributeJitoDAORewardsBuilder::new()
+    let distribute_protocol_rewards_ix = DistributeProtocolRewardsBuilder::new()
         .ncn(ncn)
         .ncn_reward_router(ncn_reward_router)
         .epoch(epoch)
@@ -2066,9 +2066,9 @@ pub async fn distribute_jito_rewards(handler: &CliHandler, epoch: u64) -> Result
 
     send_and_log_transaction(
         handler,
-        &[distribute_jito_dao_rewards_ix],
+        &[distribute_protocol_rewards_ix],
         &[],
-        "Distributed Jito DAO Rewards",
+        "Distributed Protocol Rewards",
         &[format!("NCN: {:?}", ncn), format!("Epoch: {:?}", epoch)],
     )
     .await?;

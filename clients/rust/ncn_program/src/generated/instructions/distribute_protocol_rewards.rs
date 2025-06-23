@@ -9,7 +9,7 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct DistributeJitoDAORewards {
+pub struct DistributeProtocolRewards {
     pub epoch_state: solana_program::pubkey::Pubkey,
 
     pub config: solana_program::pubkey::Pubkey,
@@ -20,22 +20,22 @@ pub struct DistributeJitoDAORewards {
 
     pub ncn_reward_receiver: solana_program::pubkey::Pubkey,
 
-    pub jito_dao_fee_wallet: solana_program::pubkey::Pubkey,
+    pub protocol_fee_wallet: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
 }
 
-impl DistributeJitoDAORewards {
+impl DistributeProtocolRewards {
     pub fn instruction(
         &self,
-        args: DistributeJitoDAORewardsInstructionArgs,
+        args: DistributeProtocolRewardsInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: DistributeJitoDAORewardsInstructionArgs,
+        args: DistributeProtocolRewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
@@ -59,7 +59,7 @@ impl DistributeJitoDAORewards {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.jito_dao_fee_wallet,
+            self.protocol_fee_wallet,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -67,7 +67,7 @@ impl DistributeJitoDAORewards {
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = DistributeJitoDAORewardsInstructionData::new()
+        let mut data = DistributeProtocolRewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = args.try_to_vec().unwrap();
@@ -82,17 +82,17 @@ impl DistributeJitoDAORewards {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct DistributeJitoDAORewardsInstructionData {
+pub struct DistributeProtocolRewardsInstructionData {
     discriminator: u8,
 }
 
-impl DistributeJitoDAORewardsInstructionData {
+impl DistributeProtocolRewardsInstructionData {
     pub fn new() -> Self {
         Self { discriminator: 17 }
     }
 }
 
-impl Default for DistributeJitoDAORewardsInstructionData {
+impl Default for DistributeProtocolRewardsInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -100,11 +100,11 @@ impl Default for DistributeJitoDAORewardsInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DistributeJitoDAORewardsInstructionArgs {
+pub struct DistributeProtocolRewardsInstructionArgs {
     pub epoch: u64,
 }
 
-/// Instruction builder for `DistributeJitoDAORewards`.
+/// Instruction builder for `DistributeProtocolRewards`.
 ///
 /// ### Accounts:
 ///
@@ -113,22 +113,22 @@ pub struct DistributeJitoDAORewardsInstructionArgs {
 ///   2. `[]` ncn
 ///   3. `[writable]` ncn_reward_router
 ///   4. `[writable]` ncn_reward_receiver
-///   5. `[writable]` jito_dao_fee_wallet
+///   5. `[writable]` protocol_fee_wallet
 ///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct DistributeJitoDAORewardsBuilder {
+pub struct DistributeProtocolRewardsBuilder {
     epoch_state: Option<solana_program::pubkey::Pubkey>,
     config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
     ncn_reward_router: Option<solana_program::pubkey::Pubkey>,
     ncn_reward_receiver: Option<solana_program::pubkey::Pubkey>,
-    jito_dao_fee_wallet: Option<solana_program::pubkey::Pubkey>,
+    protocol_fee_wallet: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl DistributeJitoDAORewardsBuilder {
+impl DistributeProtocolRewardsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -164,11 +164,11 @@ impl DistributeJitoDAORewardsBuilder {
         self
     }
     #[inline(always)]
-    pub fn jito_dao_fee_wallet(
+    pub fn protocol_fee_wallet(
         &mut self,
-        jito_dao_fee_wallet: solana_program::pubkey::Pubkey,
+        protocol_fee_wallet: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
-        self.jito_dao_fee_wallet = Some(jito_dao_fee_wallet);
+        self.protocol_fee_wallet = Some(protocol_fee_wallet);
         self
     }
     /// `[optional account, default to '11111111111111111111111111111111']`
@@ -202,7 +202,7 @@ impl DistributeJitoDAORewardsBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = DistributeJitoDAORewards {
+        let accounts = DistributeProtocolRewards {
             epoch_state: self.epoch_state.expect("epoch_state is not set"),
             config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
@@ -212,14 +212,14 @@ impl DistributeJitoDAORewardsBuilder {
             ncn_reward_receiver: self
                 .ncn_reward_receiver
                 .expect("ncn_reward_receiver is not set"),
-            jito_dao_fee_wallet: self
-                .jito_dao_fee_wallet
-                .expect("jito_dao_fee_wallet is not set"),
+            protocol_fee_wallet: self
+                .protocol_fee_wallet
+                .expect("protocol_fee_wallet is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
-        let args = DistributeJitoDAORewardsInstructionArgs {
+        let args = DistributeProtocolRewardsInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
         };
 
@@ -227,8 +227,8 @@ impl DistributeJitoDAORewardsBuilder {
     }
 }
 
-/// `distribute_jito_d_a_o_rewards` CPI accounts.
-pub struct DistributeJitoDAORewardsCpiAccounts<'a, 'b> {
+/// `distribute_protocol_rewards` CPI accounts.
+pub struct DistributeProtocolRewardsCpiAccounts<'a, 'b> {
     pub epoch_state: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
@@ -239,13 +239,13 @@ pub struct DistributeJitoDAORewardsCpiAccounts<'a, 'b> {
 
     pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+    pub protocol_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `distribute_jito_d_a_o_rewards` CPI instruction.
-pub struct DistributeJitoDAORewardsCpi<'a, 'b> {
+/// `distribute_protocol_rewards` CPI instruction.
+pub struct DistributeProtocolRewardsCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -259,18 +259,18 @@ pub struct DistributeJitoDAORewardsCpi<'a, 'b> {
 
     pub ncn_reward_receiver: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+    pub protocol_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: DistributeJitoDAORewardsInstructionArgs,
+    pub __args: DistributeProtocolRewardsInstructionArgs,
 }
 
-impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
+impl<'a, 'b> DistributeProtocolRewardsCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: DistributeJitoDAORewardsCpiAccounts<'a, 'b>,
-        args: DistributeJitoDAORewardsInstructionArgs,
+        accounts: DistributeProtocolRewardsCpiAccounts<'a, 'b>,
+        args: DistributeProtocolRewardsInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
@@ -279,7 +279,7 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
             ncn: accounts.ncn,
             ncn_reward_router: accounts.ncn_reward_router,
             ncn_reward_receiver: accounts.ncn_reward_receiver,
-            jito_dao_fee_wallet: accounts.jito_dao_fee_wallet,
+            protocol_fee_wallet: accounts.protocol_fee_wallet,
             system_program: accounts.system_program,
             __args: args,
         }
@@ -339,7 +339,7 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.jito_dao_fee_wallet.key,
+            *self.protocol_fee_wallet.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -353,7 +353,7 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = DistributeJitoDAORewardsInstructionData::new()
+        let mut data = DistributeProtocolRewardsInstructionData::new()
             .try_to_vec()
             .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
@@ -371,7 +371,7 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
         account_infos.push(self.ncn.clone());
         account_infos.push(self.ncn_reward_router.clone());
         account_infos.push(self.ncn_reward_receiver.clone());
-        account_infos.push(self.jito_dao_fee_wallet.clone());
+        account_infos.push(self.protocol_fee_wallet.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -385,7 +385,7 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `DistributeJitoDAORewards` via CPI.
+/// Instruction builder for `DistributeProtocolRewards` via CPI.
 ///
 /// ### Accounts:
 ///
@@ -394,23 +394,23 @@ impl<'a, 'b> DistributeJitoDAORewardsCpi<'a, 'b> {
 ///   2. `[]` ncn
 ///   3. `[writable]` ncn_reward_router
 ///   4. `[writable]` ncn_reward_receiver
-///   5. `[writable]` jito_dao_fee_wallet
+///   5. `[writable]` protocol_fee_wallet
 ///   6. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
-    instruction: Box<DistributeJitoDAORewardsCpiBuilderInstruction<'a, 'b>>,
+pub struct DistributeProtocolRewardsCpiBuilder<'a, 'b> {
+    instruction: Box<DistributeProtocolRewardsCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
+impl<'a, 'b> DistributeProtocolRewardsCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(DistributeJitoDAORewardsCpiBuilderInstruction {
+        let instruction = Box::new(DistributeProtocolRewardsCpiBuilderInstruction {
             __program: program,
             epoch_state: None,
             config: None,
             ncn: None,
             ncn_reward_router: None,
             ncn_reward_receiver: None,
-            jito_dao_fee_wallet: None,
+            protocol_fee_wallet: None,
             system_program: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
@@ -455,11 +455,11 @@ impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn jito_dao_fee_wallet(
+    pub fn protocol_fee_wallet(
         &mut self,
-        jito_dao_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
+        protocol_fee_wallet: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.jito_dao_fee_wallet = Some(jito_dao_fee_wallet);
+        self.instruction.protocol_fee_wallet = Some(protocol_fee_wallet);
         self
     }
     #[inline(always)]
@@ -516,10 +516,10 @@ impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = DistributeJitoDAORewardsInstructionArgs {
+        let args = DistributeProtocolRewardsInstructionArgs {
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
         };
-        let instruction = DistributeJitoDAORewardsCpi {
+        let instruction = DistributeProtocolRewardsCpi {
             __program: self.instruction.__program,
 
             epoch_state: self
@@ -541,10 +541,10 @@ impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
                 .ncn_reward_receiver
                 .expect("ncn_reward_receiver is not set"),
 
-            jito_dao_fee_wallet: self
+            protocol_fee_wallet: self
                 .instruction
-                .jito_dao_fee_wallet
-                .expect("jito_dao_fee_wallet is not set"),
+                .protocol_fee_wallet
+                .expect("protocol_fee_wallet is not set"),
 
             system_program: self
                 .instruction
@@ -560,14 +560,14 @@ impl<'a, 'b> DistributeJitoDAORewardsCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct DistributeJitoDAORewardsCpiBuilderInstruction<'a, 'b> {
+struct DistributeProtocolRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     epoch_state: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn_reward_router: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn_reward_receiver: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    jito_dao_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    protocol_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.

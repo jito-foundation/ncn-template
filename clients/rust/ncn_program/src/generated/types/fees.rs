@@ -13,6 +13,6 @@ use borsh::BorshSerialize;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Fees {
     pub activation_epoch: u64,
-    pub jito_dao_fee_bps: Fee,
+    pub protocol_fee_bps: Fee,
     pub ncn_fee_bps: Fee,
 }
