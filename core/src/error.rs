@@ -71,7 +71,7 @@ pub enum NCNProgramError {
     #[error("Total fees cannot be 0")]
     TotalFeesCannotBeZero,
     #[error("Protocol wallet cannot be default")]
-    DefaultDaoWallet,
+    DefaultProtocolWallet,
     #[error("NCN Fee wallet cannot be default")]
     DefaultNcnWallet,
     #[error("Incorrect NCN Admin")]

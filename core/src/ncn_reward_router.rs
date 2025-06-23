@@ -76,10 +76,6 @@ impl NCNRewardRouter {
     pub const SIZE: usize = 8 + size_of::<Self>();
     pub const NCN_REWARD_ROUTER_SEED: &'static [u8] = b"ncn_reward_router";
 
-    /// Fee constants - in basis points (1/100 of 1%)
-    pub const PROTOCOL_FEE_BPS: u16 = 400; // 4%
-    pub const NCN_DEFAULT_FEE_BPS: u16 = 400; // 4%
-
     /// Sentinel values indicating no partial routing is in progress
     pub const NO_LAST_NCN_GROUP_INDEX: u8 = u8::MAX;
     pub const NO_LAST_VOTE_INDEX: u16 = u16::MAX;

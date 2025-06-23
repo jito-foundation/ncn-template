@@ -2900,7 +2900,7 @@
     },
     {
       "code": 8727,
-      "name": "DefaultDaoWallet",
+      "name": "DefaultProtocolWallet",
       "msg": "Protocol wallet cannot be default"
     },
     {

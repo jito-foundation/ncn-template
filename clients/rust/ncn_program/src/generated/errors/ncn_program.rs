@@ -111,7 +111,7 @@ pub enum NcnProgramError {
     TotalFeesCannotBeZero = 0x2216,
     /// 8727 - Protocol wallet cannot be default
     #[error("Protocol wallet cannot be default")]
-    DefaultDaoWallet = 0x2217,
+    DefaultProtocolWallet = 0x2217,
     /// 8728 - NCN Fee wallet cannot be default
     #[error("NCN Fee wallet cannot be default")]
     DefaultNcnWallet = 0x2218,

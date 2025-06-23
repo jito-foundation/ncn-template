@@ -150,16 +150,6 @@ impl FeeConfig {
         current_fees.precise_protocol_fee_bps()
     }
 
-    /// Sets the Protocol fee percentage for the next epoch
-    pub fn set_protocol_fee_bps(
-        &mut self,
-        value: u16,
-        current_epoch: u64,
-    ) -> Result<(), NCNProgramError> {
-        let updateable_fees = self.updatable_fees(current_epoch);
-        updateable_fees.set_protocol_fee_bps(value)
-    }
-
     // ------------------- NCN FEES -------------------
 
     /// Gets the NCN fee percentage in basis points for the current epoch
@@ -316,7 +306,6 @@ pub struct Fees {
 impl Fees {
     /// Default fee values in basis points (400 = 4%)
     pub const PROTOCOL_FEE_BPS: u16 = 400;
-    pub const NCN_DEFAULT_FEE_BPS: u16 = 400;
 
     /// Creates a new fee configuration for a specific epoch
     pub fn new(default_ncn_fee_bps: u16, epoch: u64) -> Result<Self, NCNProgramError> {
@@ -325,8 +314,8 @@ impl Fees {
             protocol_fee_bps: Fee::default(),
             ncn_fee_bps: Fee::default(),
         };
+        fees.protocol_fee_bps = Fee::new(Self::PROTOCOL_FEE_BPS);
 
-        fees.set_protocol_fee_bps(Fees::PROTOCOL_FEE_BPS)?;
         fees.set_ncn_fee_bps(default_ncn_fee_bps)?;
 
         Ok(fees)
@@ -392,17 +381,6 @@ impl Fees {
     /// Sets the activation epoch for these fees
     fn set_activation_epoch(&mut self, value: u64) {
         self.activation_epoch = PodU64::from(value);
-    }
-
-    /// Sets the Protocol fee with validation
-    pub fn set_protocol_fee_bps(&mut self, value: u16) -> Result<(), NCNProgramError> {
-        if value as u64 > MAX_FEE_BPS {
-            return Err(NCNProgramError::FeeCapExceeded);
-        }
-
-        self.protocol_fee_bps = Fee::new(value);
-
-        Ok(())
     }
 
     /// Sets the NCN fee with validation
@@ -691,7 +669,6 @@ mod tests {
 
         // Modify fee_1 for future activation
         let fees = fee_config.updatable_fees(10);
-        fees.set_protocol_fee_bps(400).unwrap();
         fees.set_activation_epoch(11);
 
         // Verify fee_1 was modified
@@ -703,11 +680,10 @@ mod tests {
 
         // Should now select fee_2 as updatable (lower activation epoch)
         let fees = fee_config.updatable_fees(12);
-        fees.set_protocol_fee_bps(500).unwrap();
         fees.set_activation_epoch(13);
 
         // Verify fee_2 was modified
-        assert_eq!(fee_config.fee_2.protocol_fee_bps().unwrap(), 500);
+        assert_eq!(fee_config.fee_2.protocol_fee_bps().unwrap(), 400);
         assert_eq!(fee_config.fee_2.activation_epoch(), 13);
 
         // When current epoch is very high, should pick older activation epoch
