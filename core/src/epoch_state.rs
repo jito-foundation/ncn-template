@@ -148,6 +148,16 @@ impl EpochAccountStatus {
             return false;
         }
 
+        for operator_vault_reward_router_ref in self.operator_vault_reward_router.iter() {
+            let operator_vault_reward_router = *operator_vault_reward_router_ref;
+            let is_dne = operator_vault_reward_router == AccountStatus::DNE as u8;
+            let is_closed = operator_vault_reward_router == AccountStatus::Closed as u8;
+
+            if !is_dne && !is_closed {
+                return false;
+            }
+        }
+
         true
     }
 }
