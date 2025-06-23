@@ -3166,7 +3166,7 @@
     {
       "code": 8780,
       "name": "CannotCloseAccountNoEnoughAccounts",
-      "msg": "Cannot close account - No enough accounts"
+      "msg": "Cannot close account - Not enough accounts"
     },
     {
       "code": 8781,

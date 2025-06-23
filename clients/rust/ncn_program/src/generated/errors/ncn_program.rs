@@ -268,8 +268,8 @@ pub enum NcnProgramError {
     /// 8779 - Cannot close account - No receiver provided
     #[error("Cannot close account - No receiver provided")]
     CannotCloseAccountNoReceiverProvided = 0x224B,
-    /// 8780 - Cannot close account - No enough accounts
-    #[error("Cannot close account - No enough accounts")]
+    /// 8780 - Cannot close account - Not enough accounts
+    #[error("Cannot close account - Not enough accounts")]
     CannotCloseAccountNoEnoughAccounts = 0x224C,
     /// 8781 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
     #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]

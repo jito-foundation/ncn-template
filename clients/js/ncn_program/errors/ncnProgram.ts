@@ -186,7 +186,7 @@ export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED = 0x2249; //
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS = 0x224a; // 8778
 /** CannotCloseAccountNoReceiverProvided: Cannot close account - No receiver provided */
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED = 0x224b; // 8779
-/** CannotCloseAccountNoEnoughAccounts: Cannot close account - No enough accounts */
+/** CannotCloseAccountNoEnoughAccounts: Cannot close account - Not enough accounts */
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS = 0x224c; // 8780
 /** CannotCloseEpochStateAccount: Cannot close epoch state account - Epoch state needs all other accounts to be closed first */
 export const NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT = 0x224d; // 8781
@@ -303,7 +303,7 @@ if (process.env.NODE_ENV !== 'production') {
     [NCN_PROGRAM_ERROR__BALLOT_TALLY_NOT_FOUND_FULL]: `Ballot tally not found`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT]: `Cannot close account`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_ALREADY_CLOSED]: `Cannot close account - Already closed`,
-    [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS]: `Cannot close account - No enough accounts`,
+    [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_ENOUGH_ACCOUNTS]: `Cannot close account - Not enough accounts`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NO_RECEIVER_PROVIDED]: `Cannot close account - No receiver provided`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_ACCOUNT_NOT_ENOUGH_EPOCHS]: `Cannot close account - Not enough epochs have passed since consensus reached`,
     [NCN_PROGRAM_ERROR__CANNOT_CLOSE_EPOCH_STATE_ACCOUNT]: `Cannot close epoch state account - Epoch state needs all other accounts to be closed first`,
