@@ -1719,9 +1719,6 @@ pub async fn crank_post_vote_cooldown(handler: &CliHandler, epoch: u64) -> Resul
 pub async fn crank_distribute(handler: &CliHandler, epoch: u64) -> Result<()> {
     let operators = get_all_operators_in_ncn(handler).await?;
 
-    let epoch_snapshot = get_or_create_epoch_snapshot(handler, epoch).await?;
-    let fees = epoch_snapshot.fees();
-
     let ncn_reward_router = get_or_create_ncn_reward_router(handler, epoch).await?;
 
     let ncn_reward_receiver_rewards = get_ncn_reward_receiver_rewards(handler, epoch).await?;
