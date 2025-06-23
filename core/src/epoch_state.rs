@@ -286,7 +286,7 @@ pub struct EpochState {
     /// Operator Vault distribution progress
     operator_vault_distribution_progress: Progress,
 
-    /// Operator Vault distribution progress
+    /// Operator Vault distribution progress per route
     operator_vault_routes_distribution_progress: [Progress; 256],
 
     /// Is closing
