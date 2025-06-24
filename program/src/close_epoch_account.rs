@@ -40,8 +40,6 @@ pub fn process_close_epoch_account(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Processing close epoch account for epoch: {}", epoch);
-
     let (required_accounts, optional_accounts) = accounts.split_at(7);
     let [epoch_marker, epoch_state, config, ncn, account_to_close, account_payer, system_program] =
         required_accounts
@@ -50,26 +48,11 @@ pub fn process_close_epoch_account(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Checking system program");
     load_system_program(system_program)?;
-
-    msg!("Loading NCN account: {}", ncn.key);
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading epoch state for NCN: {}, epoch: {}", ncn.key, epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, false)?;
-
-    msg!("Loading NCN config for NCN: {}", ncn.key);
     NcnConfig::load(program_id, config, ncn.key, false)?;
-
-    msg!("Loading account payer: {}", account_payer.key);
     AccountPayer::load(program_id, account_payer, ncn.key, false)?;
-
-    msg!(
-        "Checking epoch marker doesn't exist: {}, epoch: {}",
-        ncn.key,
-        epoch
-    );
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
     let closing_epoch_state = account_to_close.key.eq(epoch_state.key);
@@ -85,11 +68,9 @@ pub fn process_close_epoch_account(
     }
 
     {
-        msg!("Getting config data");
         let config_data = config.try_borrow_data()?;
         let config_account = NcnConfig::try_from_slice_unchecked(&config_data)?;
 
-        msg!("Getting epoch state data");
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
 
@@ -102,12 +83,10 @@ pub fn process_close_epoch_account(
                 epochs_after_consensus_before_close
             );
 
-            msg!("Getting current slot and epoch schedule");
             let current_slot = Clock::get()?.slot;
             let epoch_schedule = EpochSchedule::get()?;
             msg!("Current slot: {}", current_slot);
 
-            msg!("Checking if enough epochs have passed since consensus was reached");
             let can_close_epoch_accounts = epoch_state_account.can_close_epoch_accounts(
                 &epoch_schedule,
                 epochs_after_consensus_before_close,
@@ -126,19 +105,15 @@ pub fn process_close_epoch_account(
 
         // Account Check
         {
-            msg!("Checking account discriminator");
             let discriminator = {
                 if closing_epoch_state {
-                    // Cannot borrow the data again
                     msg!("Using EpochState discriminator for closing epoch state");
                     EpochState::DISCRIMINATOR
                 } else {
-                    msg!("Getting discriminator from account to close");
                     let account_to_close_data = account_to_close.try_borrow_data()?;
                     account_to_close_data[0]
                 }
             };
-            msg!("Account discriminator: {}", discriminator);
 
             match discriminator {
                 EpochState::DISCRIMINATOR => {
@@ -288,16 +263,9 @@ pub fn process_close_epoch_account(
     }
 
     if closing_epoch_state {
-        msg!("Finding program address for epoch marker");
         let (epoch_marker_pda, epoch_marker_bump, mut epoch_marker_seeds) =
             EpochMarker::find_program_address(program_id, ncn.key, epoch);
         epoch_marker_seeds.push(vec![epoch_marker_bump]);
-
-        msg!(
-            "Generated epoch marker PDA: {}, bump: {}",
-            epoch_marker_pda,
-            epoch_marker_bump
-        );
 
         if epoch_marker_pda != *epoch_marker.key {
             msg!(

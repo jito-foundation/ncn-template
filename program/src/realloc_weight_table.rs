@@ -27,11 +27,6 @@ pub fn process_realloc_weight_table(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!(
-        "Starting realloc_weight_table instruction for epoch {}",
-        epoch
-    );
-
     let [epoch_state, ncn_config, weight_table, ncn, vault_registry, account_payer, system_program] =
         accounts
     else {
@@ -39,17 +34,11 @@ pub fn process_realloc_weight_table(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading system program");
     load_system_program(system_program)?;
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-    msg!("Loading NCN config");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
-    msg!("Loading vault registry");
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
-    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
     let (weight_table_pda, weight_table_bump, _) =
@@ -62,11 +51,7 @@ pub fn process_realloc_weight_table(
 
     if weight_table.data_len() < WeightTable::SIZE {
         let new_size = get_new_size(weight_table.data_len(), WeightTable::SIZE)?;
-        msg!(
-            "Reallocating weight table from {} bytes to {} bytes",
-            weight_table.data_len(),
-            new_size
-        );
+
         AccountPayer::pay_and_realloc(program_id, ncn.key, account_payer, weight_table, new_size)?;
     } else {
         msg!("Weight table size is sufficient, no reallocation needed");
@@ -76,7 +61,6 @@ pub fn process_realloc_weight_table(
         && weight_table.try_borrow_data()?[0] != WeightTable::DISCRIMINATOR;
 
     if should_initialize {
-        msg!("Initializing weight table...");
         let vault_registry_data = vault_registry.data.borrow();
         let vault_registry = VaultRegistry::try_from_slice_unchecked(&vault_registry_data)?;
 
@@ -102,7 +86,6 @@ pub fn process_realloc_weight_table(
 
         // Update Epoch State
         {
-            msg!("Updating epoch state...");
             let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
             let epoch_state_account =
                 EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;

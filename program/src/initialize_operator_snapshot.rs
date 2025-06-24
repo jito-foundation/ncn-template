@@ -36,8 +36,6 @@ pub fn process_initialize_operator_snapshot(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting initialize operator snapshot for epoch: {}", epoch);
-
     let [epoch_marker, epoch_state, config, restaking_config, ncn, operator, ncn_operator_state, epoch_snapshot, operator_snapshot, account_payer, system_program] =
         accounts
     else {
@@ -45,15 +43,10 @@ pub fn process_initialize_operator_snapshot(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and validating epoch state for epoch: {}", epoch);
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, false)?;
-    msg!("Loading NCN config account");
     Config::load(program_id, config, ncn.key, false)?;
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-    msg!("Loading NCN operator state account");
     NcnOperatorState::load(
         &jito_restaking_program::id(),
         ncn_operator_state,
@@ -61,27 +54,15 @@ pub fn process_initialize_operator_snapshot(
         operator,
         false,
     )?;
-    msg!("Loading epoch snapshot account");
     EpochSnapshot::load(program_id, epoch_snapshot, ncn.key, epoch, false)?;
-    msg!("Loading system account for operator snapshot");
     load_system_account(operator_snapshot, true)?;
-    msg!("Loading system program");
     load_system_program(system_program)?;
-    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
-    msg!("Checking epoch marker does not exist for epoch: {}", epoch);
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Finding program address for operator snapshot");
     let (operator_snapshot_pubkey, operator_snapshot_bump, mut operator_snapshot_seeds) =
         OperatorSnapshot::find_program_address(program_id, operator.key, ncn.key, epoch);
     operator_snapshot_seeds.push(vec![operator_snapshot_bump]);
-
-    msg!(
-        "Generated operator snapshot PDA: {}, bump: {}",
-        operator_snapshot_pubkey,
-        operator_snapshot_bump
-    );
 
     if operator_snapshot_pubkey.ne(operator_snapshot.key) {
         msg!(
@@ -104,12 +85,6 @@ pub fn process_initialize_operator_snapshot(
         let operator_count = epoch_snapshot.operator_count();
         let operator_index = ncn_operator_state.index();
 
-        msg!(
-            "Operator index: {}, operator count: {}",
-            operator_index,
-            operator_count
-        );
-
         if operator_index >= operator_count {
             msg!(
                 "Error: Operator index is out of bounds. Index: {}, Count: {}",
@@ -120,12 +95,6 @@ pub fn process_initialize_operator_snapshot(
         }
     }
 
-    msg!(
-        "Initializing Operator snapshot {} for NCN: {} at epoch: {}",
-        epoch_snapshot.key,
-        ncn.key,
-        epoch
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -138,11 +107,9 @@ pub fn process_initialize_operator_snapshot(
     )?;
 
     let current_slot = Clock::get()?.slot;
-    msg!("Current slot: {}", current_slot);
 
     let (_, ncn_epoch_length) = load_ncn_epoch(restaking_config, current_slot, None)?;
 
-    msg!("Determining operator activity status");
     let (is_active, ncn_operator_index): (bool, u64) = {
         let ncn_operator_state_data = ncn_operator_state.data.borrow();
         let ncn_operator_state_account =
@@ -161,7 +128,6 @@ pub fn process_initialize_operator_snapshot(
             .is_active_or_cooldown(current_slot, ncn_epoch_length)?;
 
         let ncn_operator_index = ncn_operator_state_account.index();
-        msg!("NCN operator index: {}", ncn_operator_index);
 
         (ncn_operator_okay && operator_ncn_okay, ncn_operator_index)
     };
@@ -172,7 +138,6 @@ pub fn process_initialize_operator_snapshot(
         let epoch_snapshot_account = EpochSnapshot::try_from_slice_unchecked(&epoch_snapshot_data)?;
         epoch_snapshot_account.vault_count()
     };
-    msg!("Vault count: {}", vault_count);
 
     let (operator_fee_bps, operator_index): (u16, u64) = {
         let operator_data = operator.data.borrow();
@@ -208,7 +173,6 @@ pub fn process_initialize_operator_snapshot(
 
     // Increment operator registration for an inactive operator
     if !is_active {
-        msg!("Operator is inactive, incrementing operator registration in epoch snapshot");
         let mut epoch_snapshot_data = epoch_snapshot.try_borrow_mut_data()?;
         let epoch_snapshot_account =
             EpochSnapshot::try_from_slice_unchecked_mut(&mut epoch_snapshot_data)?;
@@ -221,7 +185,6 @@ pub fn process_initialize_operator_snapshot(
     }
 
     // Update Epoch State
-    msg!("Updating epoch state account");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;

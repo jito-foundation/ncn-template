@@ -21,25 +21,17 @@ pub fn process_initialize_vault_registry(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
 ) -> ProgramResult {
-    msg!("Starting initialize_vault_registry instruction");
     let [ncn_config, vault_registry, ncn, account_payer, system_program] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading system account for vault registry");
     load_system_account(vault_registry, true)?;
-    msg!("Loading system program");
     load_system_program(system_program)?;
-
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading NCN config account");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
-    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Deriving vault registry PDA");
     let (vault_registry_pda, vault_registry_bump, mut vault_registry_seeds) =
         VaultRegistry::find_program_address(program_id, ncn.key);
     vault_registry_seeds.push(vec![vault_registry_bump]);

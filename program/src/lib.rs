@@ -71,7 +71,7 @@ use crate::{
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
-declare_id!(env!("NCN_PROGRAM_ID"));
+declare_id!("5SiK283D1iFSqHvr8vbNWCBjbjRXeEYS79CLax7nosPf");
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {

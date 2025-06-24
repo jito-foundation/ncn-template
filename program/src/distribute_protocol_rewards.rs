@@ -16,8 +16,6 @@ pub fn process_distribute_protocol_rewards(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting Protocol rewards distribution for epoch {}", epoch);
-
     let [epoch_state, ncn_config, ncn, ncn_reward_router, ncn_reward_receiver, protocol_fee_wallet, system_program] =
         accounts
     else {
@@ -25,15 +23,10 @@ pub fn process_distribute_protocol_rewards(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading epoch state for epoch {}", epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading NCN config");
     Config::load(program_id, ncn_config, ncn.key, false)?;
-    msg!("Loading NCN reward router");
     NCNRewardRouter::load(program_id, ncn_reward_router, ncn.key, epoch, true)?;
-    msg!("Loading NCN reward receiver");
     NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
 
     {
@@ -45,11 +38,9 @@ pub fn process_distribute_protocol_rewards(
             msg!("Error: Incorrect Protocol fee wallet provided");
             return Err(ProgramError::InvalidAccountData);
         }
-        msg!("Protocol fee wallet validation passed");
     }
 
     // Get rewards and update state
-    msg!("Calculating protocol rewards");
     let rewards = {
         let mut ncn_reward_router_data = ncn_reward_router.try_borrow_mut_data()?;
         let ncn_reward_router_account =
@@ -60,9 +51,7 @@ pub fn process_distribute_protocol_rewards(
             return Err(NCNProgramError::RouterStillRouting.into());
         }
 
-        let rewards = ncn_reward_router_account.distribute_protocol_fee_rewards()?;
-        msg!("Calculated Protocol fee rewards: {} lamports", rewards);
-        rewards
+        ncn_reward_router_account.distribute_protocol_fee_rewards()?
     };
 
     if rewards > 0 {
@@ -71,12 +60,6 @@ pub fn process_distribute_protocol_rewards(
         let (_, ncn_reward_receiver_bump, mut ncn_reward_receiver_seeds) =
             NCNRewardReceiver::find_program_address(program_id, ncn.key, epoch);
         ncn_reward_receiver_seeds.push(vec![ncn_reward_receiver_bump]);
-
-        let ncn_reward_receiver_balance = **ncn_reward_receiver.try_borrow_lamports()?;
-        msg!(
-            "NCN reward receiver balance: {} lamports",
-            ncn_reward_receiver_balance
-        );
 
         // Transfer rewards from receiver to Protocol fee wallet
         let transfer_instruction =
@@ -104,20 +87,11 @@ pub fn process_distribute_protocol_rewards(
         msg!("No rewards to distribute (0 lamports)");
     }
 
-    msg!("Updating epoch state with distributed protocol rewards");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
         epoch_state_account.update_distribute_protocol_rewards(rewards);
-        msg!(
-            "Updated epoch state with distributed Protocol rewards: {} lamports",
-            rewards
-        );
     }
 
-    msg!(
-        "Protocol rewards distribution completed successfully for epoch {}",
-        epoch
-    );
     Ok(())
 }

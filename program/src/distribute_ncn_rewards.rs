@@ -16,8 +16,6 @@ pub fn process_distribute_ncn_rewards(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting NCN rewards distribution for epoch {}", epoch);
-
     let [epoch_state, ncn_config, ncn, ncn_reward_router, ncn_reward_receiver, ncn_fee_wallet, system_program] =
         accounts
     else {
@@ -25,15 +23,10 @@ pub fn process_distribute_ncn_rewards(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading epoch state for epoch {}", epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading NCN config");
     Config::load(program_id, ncn_config, ncn.key, false)?;
-    msg!("Loading NCN reward router");
     NCNRewardRouter::load(program_id, ncn_reward_router, ncn.key, epoch, true)?;
-    msg!("Loading NCN reward receiver");
     NCNRewardReceiver::load(program_id, ncn_reward_receiver, ncn.key, epoch, true)?;
 
     {
@@ -45,11 +38,9 @@ pub fn process_distribute_ncn_rewards(
             msg!("Error: Incorrect NCN fee wallet provided");
             return Err(ProgramError::InvalidAccountData);
         }
-        msg!("NCN fee wallet validation passed");
     }
 
     // Get rewards and update state
-    msg!("Calculating NCN rewards");
     let rewards = {
         let mut ncn_reward_router_data = ncn_reward_router.try_borrow_mut_data()?;
         let ncn_reward_router_account =
@@ -104,7 +95,6 @@ pub fn process_distribute_ncn_rewards(
         msg!("No rewards to distribute (0 lamports)");
     }
 
-    msg!("Updating epoch state with distributed NCN rewards");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
@@ -115,9 +105,5 @@ pub fn process_distribute_ncn_rewards(
         );
     }
 
-    msg!(
-        "NCN rewards distribution completed successfully for epoch {}",
-        epoch
-    );
     Ok(())
 }

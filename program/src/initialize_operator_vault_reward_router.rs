@@ -19,11 +19,6 @@ pub fn process_initialize_operator_vault_reward_router(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!(
-        "Starting initialization of operator vault reward router for epoch {}",
-        epoch
-    );
-
     let [epoch_marker, epoch_state, ncn, operator, operator_snapshot, operator_vault_reward_router, operator_vault_reward_receiver, account_payer, system_program] =
         accounts
     else {
@@ -31,16 +26,9 @@ pub fn process_initialize_operator_vault_reward_router(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Validating epoch state and checking if epoch is closing");
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, true)?;
-
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-
-    msg!("Loading operator snapshot for epoch {}", epoch);
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
@@ -49,8 +37,6 @@ pub fn process_initialize_operator_vault_reward_router(
         epoch,
         true,
     )?;
-
-    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         operator_vault_reward_receiver,
@@ -60,15 +46,11 @@ pub fn process_initialize_operator_vault_reward_router(
         true,
     )?;
 
-    msg!("Loading system accounts");
     load_system_account(operator_vault_reward_router, true)?;
     load_system_program(system_program)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
-
-    msg!("Checking epoch marker");
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Retrieving operator NCN index from snapshot");
     let operator_ncn_index = {
         let operator_snapshot_data = operator_snapshot.try_borrow_data()?;
         let operator_snapshot_account =
@@ -77,9 +59,7 @@ pub fn process_initialize_operator_vault_reward_router(
     };
 
     let current_slot = Clock::get()?.slot;
-    msg!("Current slot: {}", current_slot);
 
-    msg!("Deriving operator vault reward router PDA");
     let (
         operator_vault_reward_router_pubkey,
         operator_vault_reward_router_bump,
@@ -95,13 +75,6 @@ pub fn process_initialize_operator_vault_reward_router(
         );
         return Err(ProgramError::InvalidAccountData);
     }
-
-    msg!(
-        "Creating new operator vault reward router for operator {} in NCN {} at epoch {}",
-        operator.key,
-        ncn.key,
-        epoch
-    );
 
     AccountPayer::pay_and_create_account(
         program_id,

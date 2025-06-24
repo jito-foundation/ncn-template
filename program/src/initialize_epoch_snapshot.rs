@@ -30,7 +30,6 @@ pub fn process_initialize_epoch_snapshot(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting initialize_epoch_snapshot instruction");
     let [epoch_marker, epoch_state, config, ncn, weight_table, epoch_snapshot, account_payer, system_program] =
         accounts
     else {
@@ -38,32 +37,22 @@ pub fn process_initialize_epoch_snapshot(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and validating epoch state for epoch: {}", epoch);
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, true)?;
-    msg!("Loading NCN config account");
     Config::load(program_id, config, ncn.key, false)?;
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
-    msg!("Checking epoch marker does not exist for epoch: {}", epoch);
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Loading system account for epoch snapshot");
     load_system_account(epoch_snapshot, true)?;
-    msg!("Loading system program");
     load_system_program(system_program)?;
 
     let current_slot = Clock::get()?.slot;
     let ncn_epoch = epoch;
-    msg!("Current slot: {}, NCN epoch: {}", current_slot, ncn_epoch);
 
-    msg!("Loading weight table");
     WeightTable::load(program_id, weight_table, ncn.key, ncn_epoch, false)?;
 
     // Weight table needs to be finalized before the snapshot can be taken
     let vault_count = {
-        msg!("Checking weight table finalization status");
         let weight_table_data = weight_table.data.borrow();
         let weight_table_account = WeightTable::try_from_slice_unchecked(&weight_table_data)?;
 
@@ -73,11 +62,9 @@ pub fn process_initialize_epoch_snapshot(
         }
 
         let count = weight_table_account.vault_count();
-        msg!("Weight table vault count: {}", count);
         count
     };
 
-    msg!("Deriving epoch snapshot PDA");
     let (epoch_snapshot_pubkey, epoch_snapshot_bump, mut epoch_snapshot_seeds) =
         EpochSnapshot::find_program_address(program_id, ncn.key, ncn_epoch);
     epoch_snapshot_seeds.push(vec![epoch_snapshot_bump]);
@@ -87,12 +74,6 @@ pub fn process_initialize_epoch_snapshot(
         return Err(ProgramError::InvalidAccountData);
     }
 
-    msg!(
-        "Initializing Epoch snapshot {} for NCN: {} at epoch: {}",
-        epoch_snapshot.key,
-        ncn.key,
-        ncn_epoch
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -108,7 +89,6 @@ pub fn process_initialize_epoch_snapshot(
         let ncn_data = ncn.data.borrow();
         let ncn_account = Ncn::try_from_slice_unchecked(&ncn_data)?;
         let count = ncn_account.operator_count();
-        msg!("Operator count: {}", count);
         count
     };
 
@@ -145,7 +125,6 @@ pub fn process_initialize_epoch_snapshot(
         ncn_fees,
     );
 
-    msg!("Updating epoch state");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;

@@ -35,21 +35,16 @@ pub fn process_admin_set_parameters(
     epochs_after_consensus_before_close: Option<u64>,
     valid_slots_after_consensus: Option<u64>,
 ) -> ProgramResult {
-    msg!("Starting admin_set_parameters instruction");
     let [config, ncn_account, ncn_admin] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Verifying admin signer");
     load_signer(ncn_admin, true)?;
-
-    msg!("Loading and verifying accounts");
     Config::load(program_id, config, ncn_account.key, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn_account, false)?;
 
     {
-        msg!("Verifying NCN admin");
         let ncn_data = ncn_account.data.borrow();
         let ncn = Ncn::try_from_slice_unchecked(&ncn_data)?;
         if ncn.admin != *ncn_admin.key {
@@ -61,7 +56,6 @@ pub fn process_admin_set_parameters(
     let mut config_data = config.try_borrow_mut_data()?;
     let config = Config::try_from_slice_unchecked_mut(&mut config_data)?;
 
-    msg!("Verifying NCN account");
     if config.ncn != *ncn_account.key {
         msg!("Error: Incorrect NCN account");
         return Err(NCNProgramError::IncorrectNcn.into());
@@ -77,7 +71,6 @@ pub fn process_admin_set_parameters(
     }
 
     if let Some(epochs) = epochs_before_stall {
-        msg!("Validating epochs_before_stall value: {}", epochs);
         if !(MIN_EPOCHS_BEFORE_STALL..=MAX_EPOCHS_BEFORE_STALL).contains(&epochs) {
             msg!("Error: Invalid epochs_before_stall value");
             return Err(NCNProgramError::InvalidEpochsBeforeStall.into());
@@ -91,10 +84,6 @@ pub fn process_admin_set_parameters(
     }
 
     if let Some(epochs) = epochs_after_consensus_before_close {
-        msg!(
-            "Validating epochs_after_consensus_before_close value: {}",
-            epochs
-        );
         if !(MIN_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE..=MAX_EPOCHS_AFTER_CONSENSUS_BEFORE_CLOSE)
             .contains(&epochs)
         {
@@ -110,7 +99,6 @@ pub fn process_admin_set_parameters(
     }
 
     if let Some(slots) = valid_slots_after_consensus {
-        msg!("Validating valid_slots_after_consensus value: {}", slots);
         if !(MIN_VALID_SLOTS_AFTER_CONSENSUS..=MAX_VALID_SLOTS_AFTER_CONSENSUS).contains(&slots) {
             msg!("Error: Invalid valid_slots_after_consensus value");
             return Err(NCNProgramError::InvalidSlotsAfterConsensus.into());

@@ -28,22 +28,13 @@ pub fn process_admin_set_weight(
     epoch: u64,
     weight: u128,
 ) -> ProgramResult {
-    msg!(
-        "Processing admin set weight for st_mint: {}, epoch: {}, weight: {}",
-        st_mint,
-        epoch,
-        weight
-    );
-
     let [epoch_state, ncn, weight_table, weight_table_admin] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading NCN account: {}", ncn.key);
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
 
-    msg!("Getting weight table admin from NCN account");
     let ncn_weight_table_admin = {
         let ncn_data = ncn.data.borrow();
         let ncn = Ncn::try_from_slice_unchecked(&ncn_data)?;
@@ -51,17 +42,8 @@ pub fn process_admin_set_weight(
     };
     msg!("NCN weight table admin: {}", ncn_weight_table_admin);
 
-    msg!("Verifying weight table admin is the signer");
     load_signer(weight_table_admin, true)?;
-
-    msg!("Loading epoch state for NCN: {}, epoch: {}", ncn.key, epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-
-    msg!(
-        "Loading weight table for NCN: {}, epoch: {}",
-        ncn.key,
-        epoch
-    );
     WeightTable::load(program_id, weight_table, ncn.key, epoch, true)?;
 
     if ncn_weight_table_admin.ne(weight_table_admin.key) {
@@ -76,7 +58,6 @@ pub fn process_admin_set_weight(
     let mut weight_table_data = weight_table.try_borrow_mut_data()?;
     let weight_table_account = WeightTable::try_from_slice_unchecked_mut(&mut weight_table_data)?;
 
-    msg!("Checking if weight table is initialized");
     weight_table_account.check_table_initialized()?;
 
     if weight_table_account.finalized() {
@@ -85,7 +66,6 @@ pub fn process_admin_set_weight(
     }
 
     let current_slot = Clock::get()?.slot;
-    msg!("Current slot: {}", current_slot);
 
     msg!(
         "Setting weight for st_mint: {}, weight: {}",

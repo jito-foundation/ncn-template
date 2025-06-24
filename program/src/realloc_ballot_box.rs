@@ -26,32 +26,17 @@ pub fn process_realloc_ballot_box(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!(
-        "Starting realloc_ballot_box instruction for epoch {}",
-        epoch
-    );
-
     let [epoch_state, ncn_config, ballot_box, ncn, account_payer, system_program] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading system program");
     load_system_program(system_program)?;
-
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading epoch state account");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, false)?;
-
-    msg!("Loading NCN config account");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
-
-    msg!("Loading account payer");
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Deriving ballot box PDA");
     let (ballot_box_pda, ballot_box_bump, _) =
         BallotBox::find_program_address(program_id, ncn.key, epoch);
 
@@ -63,12 +48,6 @@ pub fn process_realloc_ballot_box(
     let ballot_box_size = ballot_box.data_len();
     if ballot_box_size < BallotBox::SIZE {
         let new_size = get_new_size(ballot_box_size, BallotBox::SIZE)?;
-        msg!(
-            "Reallocating ballot box from {} bytes to {} bytes",
-            ballot_box_size,
-            new_size
-        );
-
         AccountPayer::pay_and_realloc(program_id, ncn.key, account_payer, ballot_box, new_size)?;
     } else {
         msg!("Ballot box size is sufficient, no reallocation needed");
@@ -78,13 +57,11 @@ pub fn process_realloc_ballot_box(
         && ballot_box.try_borrow_data()?[0] != BallotBox::DISCRIMINATOR;
 
     if should_initialize {
-        msg!("Initializing ballot box account");
         let mut ballot_box_data = ballot_box.try_borrow_mut_data()?;
         ballot_box_data[0] = BallotBox::DISCRIMINATOR;
         let ballot_box_account = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
         ballot_box_account.initialize(ncn.key, epoch, ballot_box_bump, Clock::get()?.slot);
 
-        msg!("Updating epoch state");
         {
             let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
             let epoch_state_account =

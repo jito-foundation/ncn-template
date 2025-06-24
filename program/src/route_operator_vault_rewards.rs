@@ -24,16 +24,9 @@ pub fn process_route_operator_vault_rewards(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading epoch state");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-
-    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         ncn_reward_receiver,
@@ -42,8 +35,6 @@ pub fn process_route_operator_vault_rewards(
         epoch,
         true,
     )?;
-
-    msg!("Loading operator snapshot");
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
@@ -52,8 +43,6 @@ pub fn process_route_operator_vault_rewards(
         epoch,
         false,
     )?;
-
-    msg!("Loading operator vault reward router");
     OperatorVaultRewardRouter::load(
         program_id,
         ncn_reward_router,
@@ -63,7 +52,6 @@ pub fn process_route_operator_vault_rewards(
         true,
     )?;
 
-    msg!("Loading operator snapshot");
     let operator_snapshot_data = operator_snapshot.try_borrow_data()?;
     let operator_snapshot_account =
         OperatorSnapshot::try_from_slice_unchecked(&operator_snapshot_data)?;
@@ -79,14 +67,12 @@ pub fn process_route_operator_vault_rewards(
     msg!("Rent cost: {} lamports", rent_cost);
 
     if !ncn_reward_router_account.still_routing() {
-        msg!("Routing is not in progress, starting new routing process");
         ncn_reward_router_account.route_incoming_rewards(rent_cost, account_balance)?;
         ncn_reward_router_account.route_operator_rewards(operator_snapshot_account)?;
     } else {
         msg!("Routing already in progress, continuing existing process");
     }
 
-    msg!("Routing reward pool...");
     ncn_reward_router_account.route_reward_pool(operator_snapshot_account, max_iterations)?;
 
     {

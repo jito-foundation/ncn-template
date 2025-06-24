@@ -19,8 +19,6 @@ pub fn process_distribute_vault_rewards(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting vault rewards distribution for epoch {}", epoch);
-
     let [epoch_state, ncn_config, ncn, operator, vault, operator_snapshot, operator_vault_reward_router, operator_vault_reward_receiver, system_program] =
         accounts
     else {
@@ -28,23 +26,10 @@ pub fn process_distribute_vault_rewards(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading epoch state for epoch {}", epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
-
-    msg!("Loading NCN account");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading operator account");
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-
-    msg!("Loading vault account");
     Vault::load(&jito_vault_program::id(), vault, true)?;
-
-    msg!(
-        "Loading operator snapshot for operator {} in epoch {}",
-        operator.key,
-        epoch
-    );
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
@@ -53,11 +38,7 @@ pub fn process_distribute_vault_rewards(
         epoch,
         true,
     )?;
-
-    msg!("Loading NCN config");
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
-
-    msg!("Loading operator vault reward router");
     OperatorVaultRewardRouter::load(
         program_id,
         operator_vault_reward_router,
@@ -66,8 +47,6 @@ pub fn process_distribute_vault_rewards(
         epoch,
         true,
     )?;
-
-    msg!("Loading operator vault reward receiver");
     OperatorVaultRewardReceiver::load(
         program_id,
         operator_vault_reward_receiver,
@@ -78,11 +57,6 @@ pub fn process_distribute_vault_rewards(
     )?;
 
     // Get rewards and update state
-    msg!(
-        "Calculating vault rewards for operator {} and vault {}",
-        operator.key,
-        vault.key
-    );
     let rewards = {
         let mut operator_vault_reward_router_data =
             operator_vault_reward_router.try_borrow_mut_data()?;
@@ -96,10 +70,7 @@ pub fn process_distribute_vault_rewards(
             return Err(NCNProgramError::RouterStillRouting.into());
         }
 
-        let calculated_rewards =
-            operator_vault_reward_router_account.distribute_vault_reward_route(vault.key)?;
-        msg!("Calculated vault rewards: {} lamports", calculated_rewards);
-        calculated_rewards
+        operator_vault_reward_router_account.distribute_vault_reward_route(vault.key)?
     };
 
     if rewards > 0 {
@@ -135,17 +106,10 @@ pub fn process_distribute_vault_rewards(
                 .collect::<Vec<&[u8]>>()
                 .as_slice()],
         )?;
-
-        msg!(
-            "Successfully transferred {} lamports to vault {}",
-            rewards,
-            vault.key
-        );
     } else {
         msg!("No rewards to distribute (0 lamports)");
     }
 
-    msg!("Updating epoch state with distributed vault rewards");
     {
         let operator_snapshot_data = operator_snapshot.try_borrow_data()?;
         let operator_snapshot_account =
@@ -157,16 +121,7 @@ pub fn process_distribute_vault_rewards(
             operator_snapshot_account.ncn_operator_index() as usize,
             rewards,
         );
-        msg!(
-            "Updated epoch state with {} lamports distributed for operator index {}",
-            rewards,
-            operator_snapshot_account.ncn_operator_index()
-        );
     }
 
-    msg!(
-        "Vault rewards distribution completed successfully for epoch {}",
-        epoch
-    );
     Ok(())
 }
