@@ -201,17 +201,15 @@ impl ConsensusResult {
 
 impl fmt::Display for ConsensusResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "ConsensusResult {{ ncn: {}, epoch: {}, weather_status: {}, vote_weight: {}, total_vote_weight: {}, consensus_slot: {},  consensus_reached: {} }}",
-            self.ncn,
-            self.epoch(),
-            self.weather_status,
-            self.vote_weight(),
-            self.total_vote_weight(),
-            self.consensus_slot(),
-            self.is_consensus_reached(),
-        )
+        writeln!(f, "ConsensusResult {{")?;
+        writeln!(f, "  ncn: {},", self.ncn)?;
+        writeln!(f, "  epoch: {},", self.epoch())?;
+        writeln!(f, "  weather_status: {},", self.weather_status)?;
+        writeln!(f, "  vote_weight: {},", self.vote_weight())?;
+        writeln!(f, "  total_vote_weight: {},", self.total_vote_weight())?;
+        writeln!(f, "  consensus_slot: {},", self.consensus_slot())?;
+        writeln!(f, "  consensus_reached: {}", self.is_consensus_reached())?;
+        writeln!(f, "}}")
     }
 }
 

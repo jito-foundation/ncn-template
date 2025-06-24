@@ -3,9 +3,10 @@ use std::time::Duration;
 use crate::{
     getters::{
         get_account, get_all_operators_in_ncn, get_all_sorted_operators_for_vault, get_all_vaults,
-        get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot, get_operator,
-        get_operator_snapshot, get_vault, get_vault_config, get_vault_registry,
-        get_vault_update_state_tracker, get_weight_table,
+        get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
+        get_epoch_snapshot, get_operator, get_operator_snapshot, get_or_create_vault_registry,
+        get_vault, get_vault_config, get_vault_registry, get_vault_update_state_tracker,
+        get_weight_table,
     },
     handler::CliHandler,
     log::boring_progress_bar,
@@ -17,8 +18,7 @@ use jito_restaking_core::{
 };
 use jito_vault_client::{
     instructions::{
-        CloseVaultUpdateStateTrackerBuilder,
-        CrankVaultUpdateStateTrackerBuilder,
+        CloseVaultUpdateStateTrackerBuilder, CrankVaultUpdateStateTrackerBuilder,
         InitializeVaultUpdateStateTrackerBuilder,
     },
     types::WithdrawalAllocationMethod,
@@ -47,7 +47,7 @@ use ncn_program_core::{
     account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     config::Config as NCNProgramConfig,
-    consensus_result::{ConsensusResult},
+    consensus_result::ConsensusResult,
     constants::MAX_REALLOC_BYTES,
     epoch_marker::EpochMarker,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
@@ -57,6 +57,7 @@ use ncn_program_core::{
 };
 use solana_client::rpc_config::RpcSendTransactionConfig;
 
+use serde::Deserialize;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
@@ -630,7 +631,7 @@ pub async fn set_epoch_weights(handler: &CliHandler, epoch: u64) -> Result<()> {
         handler,
         &[set_epoch_weights_ix],
         &[],
-        "Set Weight",
+        "Set Epoch Weights",
         &[
             format!("NCN: {:?}", ncn),
             format!("Epoch: {:?}", epoch),
@@ -1016,6 +1017,17 @@ pub async fn operator_cast_vote(
 
 // --------------------- MIDDLEWARE ------------------------------
 
+pub async fn get_consensus_result_instruction(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let consensus_result = get_consensus_result(handler, epoch).await?;
+
+    info!(
+        "Consensus Result for epoch {}: {:?}",
+        epoch, consensus_result
+    );
+
+    Ok(())
+}
+
 pub const CREATE_TIMEOUT_MS: u64 = 2000;
 pub const CREATE_GET_RETRIES: u64 = 3;
 pub async fn check_created(handler: &CliHandler, address: &Pubkey) -> Result<()> {
@@ -1280,7 +1292,7 @@ pub async fn get_or_create_ballot_box(handler: &CliHandler, epoch: u64) -> Resul
 
 pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
     let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
-    let vault_registry = get_vault_registry(handler).await?;
+    let vault_registry = get_or_create_vault_registry(handler).await?;
     let all_registered_vaults: Vec<Pubkey> = vault_registry
         .get_valid_vault_entries()
         .iter()
@@ -1377,22 +1389,137 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
     Ok(())
 }
 
-#[allow(clippy::large_stack_frames)]
-pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
-    // VOTE
+#[derive(Deserialize, Debug)]
+struct WeatherInfo {
+    main: String,
+}
 
-    let ballot_box = get_or_create_ballot_box(handler, epoch).await?;
+#[derive(Deserialize, Debug)]
+struct WeatherResponse {
+    weather: Vec<WeatherInfo>,
+}
+
+async fn get_weather_status(api_key: &str, city_name: &str) -> Result<u8> {
+    let url = format!(
+        "http://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
+        city_name, api_key
+    );
+
+    let response = reqwest::get(&url).await?.json::<WeatherResponse>().await?;
+
+    if let Some(weather_condition) = response.weather.get(0) {
+        match weather_condition.main.as_str() {
+            "Clear" => Ok(0),                                      // Sunny
+            "Rain" | "Snow" | "Drizzle" | "Thunderstorm" => Ok(2), // Raining/Snowing
+            _ => Ok(1),                                            // Anything else
+        }
+    } else {
+        Ok(1) // Default to "Anything else" if no weather info is available
+    }
+}
+
+/// Casts a vote for an operator based on the current weather in Solana Beach
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `epoch` - Current epoch number
+/// * `operator` - Public key of the operator voting
+///
+/// # Returns
+/// * `Result<u8>` - Weather value that was voted (0:Sunny, 1:Other, 2:Rain/Snow)
+pub async fn operator_crank_vote(
+    handler: &CliHandler,
+    epoch: u64,
+    operator: &Pubkey,
+) -> Result<u8> {
+    // Get API key for weather service
+    let api_key = handler.open_weather_api_key()?;
+
+    // Fetch current weather status from OpenWeather API
+    let weather_value = get_weather_status(&api_key, "Solana Beach").await?;
+    info!(
+        "Current weather in Solana Beach (0:Sunny, 1:Other, 2:Rain/Snow): {}",
+        weather_value
+    );
+
+    // Cast the vote with the weather value
+    operator_cast_vote(handler, operator, epoch, weather_value).await?;
+    Ok(weather_value)
+}
+
+/// Logs detailed information about an operator's vote and ballot box state
+///
+/// This function retrieves the ballot box for the current epoch and logs:
+/// - Whether the operator voted
+/// - Details of the operator's vote if they voted
+/// - Current consensus status
+/// - Winning ballot if consensus is reached
+///
+/// # Arguments
+/// * `handler` - CLI handler for RPC communication
+/// * `epoch` - Current epoch number
+/// * `operator` - Public key of the operator to check
+///
+/// # Returns
+/// * `Result<()>` - Success or failure
+pub async fn operator_crank_post_vote(
+    handler: &CliHandler,
+    epoch: u64,
+    operator: &Pubkey,
+) -> Result<()> {
+    // Get the ballot box for the current epoch
+    let ballot_box = get_ballot_box(handler, epoch).await?;
+
+    // Check if operator voted and get their vote details
+    let did_operator_vote = ballot_box.did_operator_vote(operator);
+    let operator_vote = if did_operator_vote {
+        ballot_box
+            .operator_votes()
+            .iter()
+            .find(|v| v.operator().eq(&operator))
+    } else {
+        None
+    };
+
+    // Build detailed log message
+    let mut log_message = format!("\n----- Post Vote Status -----\n");
+    log_message.push_str(&format!("Epoch: {}\n", epoch));
+    log_message.push_str(&format!("Did Operator Vote: {}\n", did_operator_vote));
+
+    // Add operator vote details if they voted
+    if let Some(vote) = operator_vote {
+        let operator_ballot = ballot_box.ballot_tallies()[vote.ballot_index() as usize];
+        let operator_ballot_weight = operator_ballot.stake_weights();
+        log_message.push_str("Operator Vote Details:\n");
+        log_message.push_str(&format!("  Operator: {}\n", vote.operator()));
+        log_message.push_str(&format!("  Slot Voted: {}\n", vote.slot_voted()));
+        log_message.push_str(&format!("  Ballot Index: {}\n", vote.ballot_index()));
+        log_message.push_str(&format!(
+            "  Operator Ballot Weight: {}\n",
+            operator_ballot_weight.stake_weight()
+        ));
+        log_message.push_str(&format!("  Operator Vote: {}\n", operator_ballot.ballot()));
+    } else {
+        log_message.push_str("No operator vote found\n");
+    }
+
+    // Add consensus information
+    log_message.push_str(&format!(
+        "Consensus Reached: {}\n",
+        ballot_box.is_consensus_reached()
+    ));
+
+    // Add winning ballot if consensus is reached
     if ballot_box.is_consensus_reached() {
-        log::info!(
-            "Consensus already reached for epoch: {:?}. Skipping voting.",
-            epoch
-        );
-        return Ok(());
+        log_message.push_str(&format!(
+            "Winning Ballot: {}\n",
+            ballot_box.get_winning_ballot()?
+        ));
     }
+    log_message.push_str("--------------------------\n");
 
-    if test_vote {
-        crank_test_vote(handler, epoch).await?;
-    }
+    // Log the complete message
+    log::info!("{}", log_message);
 
     Ok(())
 }
@@ -1400,7 +1527,7 @@ pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Re
 #[allow(clippy::large_stack_frames)]
 pub async fn crank_test_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
     let voter = handler.keypair()?.pubkey();
-    let weather_status = 8;
+    let weather_status = 0;
     let operators = get_all_operators_in_ncn(handler).await?;
 
     for operator in operators.iter() {
@@ -1507,6 +1634,22 @@ pub async fn crank_close_epoch_accounts(handler: &CliHandler, epoch: u64) -> Res
         );
     }
 
+    Ok(())
+}
+
+pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
+    create_weight_table(handler, epoch).await?;
+    set_epoch_weights(handler, epoch).await?;
+    Ok(())
+}
+
+pub async fn crank_post_vote_cooldown(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let result = get_consensus_result(handler, epoch).await?;
+
+    info!(
+        "\n\n--- Consensus Result for epoch {} is: \n {} ---",
+        epoch, result
+    );
     Ok(())
 }
 

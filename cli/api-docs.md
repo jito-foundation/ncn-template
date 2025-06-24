@@ -17,6 +17,8 @@ A CLI for creating and managing the ncn program
 
 ###### **Subcommands:**
 
+* `run-keeper` — NCN Keeper
+* `run-operator` — Operator Keeper
 * `crank-update-all-vaults` — Crank Functions
 * `crank-register-vaults` — 
 * `crank-snapshot` — 
@@ -55,14 +57,11 @@ A CLI for creating and managing the ncn program
 * `get-ballot-box` — 
 * `get-account-payer` — 
 * `get-total-epoch-rent-cost` — 
+* `get-consensus-result` — 
 * `get-operator-stakes` — 
 * `get-vault-stakes` — 
 * `get-vault-operator-stakes` — 
 * `full-update-vaults` — 
-* `test` — TESTS
-* `create-test-ncn` — 
-* `create-and-add-test-operator` — 
-* `create-and-add-test-vault` — 
 
 ###### **Options:**
 
@@ -94,6 +93,42 @@ A CLI for creating and managing the ncn program
 * `--epoch <EPOCH>` — Epoch - defaults to current epoch
 * `--keypair-path <KEYPAIR_PATH>` — keypair path
 * `--verbose` — Verbose mode
+* `--open-weather-api-key <OPEN_WEATHER_API_KEY>` — Open weather api key
+
+
+
+## `ncn-program-cli run-keeper`
+
+NCN Keeper
+
+**Usage:** `ncn-program-cli run-keeper [OPTIONS]`
+
+###### **Options:**
+
+* `--loop-timeout-ms <LOOP_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `600000`
+* `--error-timeout-ms <ERROR_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `10000`
+
+
+
+## `ncn-program-cli run-operator`
+
+Operator Keeper
+
+**Usage:** `ncn-program-cli run-operator [OPTIONS] --operator <OPERATOR>`
+
+###### **Options:**
+
+* `--operator <OPERATOR>` — Operator address
+* `--loop-timeout-ms <LOOP_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `600000`
+* `--error-timeout-ms <ERROR_TIMEOUT_MS>` — Keeper error timeout in milliseconds
+
+  Default value: `10000`
 
 
 
@@ -286,7 +321,7 @@ Instructions
 ###### **Options:**
 
 * `--operator <OPERATOR>` — Operator address
-* `--weather-status <WEATHER_STATUS>` — Meta merkle root
+* `--weather-status <WEATHER_STATUS>` — weather status at solana beach
 
 
 
@@ -415,6 +450,12 @@ Getters
 
 
 
+## `ncn-program-cli get-consensus-result`
+
+**Usage:** `ncn-program-cli get-consensus-result`
+
+
+
 ## `ncn-program-cli get-operator-stakes`
 
 **Usage:** `ncn-program-cli get-operator-stakes`
@@ -440,47 +481,6 @@ Getters
 ###### **Options:**
 
 * `--vault <VAULT>` — Vault address
-
-
-
-## `ncn-program-cli test`
-
-TESTS
-
-**Usage:** `ncn-program-cli test`
-
-
-
-## `ncn-program-cli create-test-ncn`
-
-**Usage:** `ncn-program-cli create-test-ncn`
-
-
-
-## `ncn-program-cli create-and-add-test-operator`
-
-**Usage:** `ncn-program-cli create-and-add-test-operator [OPTIONS]`
-
-###### **Options:**
-
-* `--operator-fee-bps <OPERATOR_FEE_BPS>` — Operator Fee BPS
-
-  Default value: `100`
-
-
-
-## `ncn-program-cli create-and-add-test-vault`
-
-**Usage:** `ncn-program-cli create-and-add-test-vault [OPTIONS]`
-
-###### **Options:**
-
-* `--deposit-fee-bps <DEPOSIT_FEE_BPS>` — Deposit fee BPS
-
-  Default value: `100`
-* `--withdrawal-fee-bps <WITHDRAWAL_FEE_BPS>` — Withdrawal fee BPS
-
-  Default value: `100`
 
 
 

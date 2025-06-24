@@ -74,7 +74,7 @@ Setting up and using the NCN program follows this general workflow:
 
    ```bash
    # Fund your payer account if needed
-   ncn-program-cli admin-fund-account-payer --amount-in-sol 1
+   ncn-program-cli admin-fund-account-payer --amount-in-sol 10
    ```
 
 2. **Initialize the NCN Program**:
@@ -97,7 +97,15 @@ Setting up and using the NCN program follows this general workflow:
    ncn-program-cli crank-register-vaults
    ```
 
-4. **Setup Epochs and Consensus Cycle**:
+4. Running the keeper command to automate epoch management:
+
+   ```bash
+   ncn-program-cli keeper
+   ```
+
+Keeper command will run these commands internally:
+
+1. **Setup Epochs and Consensus Cycle**:
 
    ```bash
    # Create epoch state
@@ -110,7 +118,7 @@ Setting up and using the NCN program follows this general workflow:
    ncn-program-cli set-epoch-weights
    ```
 
-5. **Create Snapshots**:
+1. **Create Snapshots**:
 
    ```bash
    # Create epoch snapshot
@@ -123,24 +131,14 @@ Setting up and using the NCN program follows this general workflow:
    ncn-program-cli snapshot-vault-operator-delegation
    ```
 
-6. **Voting Process**:
+1. **Voting Process**:
 
    ```bash
    # Create ballot box
    ncn-program-cli create-ballot-box
 
-   # Cast vote as an operator
-   ncn-program-cli operator-cast-vote
-   ```
-
-7. **Query Information**:
-
-   ```bash
-   # Get operator snapshot details
-   ncn-program-cli get-operator-snapshot
-
-   # Get ballot box results
-   ncn-program-cli get-ballot-box
+   # or
+   ncn-program-cli crank-vote
    ```
 
 ## Command Groups
@@ -149,9 +147,22 @@ The CLI provides the following command categories:
 
 - **Admin Commands**: Configuration and administration
 - **Crank Functions**: Update and maintain system state
-- **Instructions**: Core program interactions
 - **Getters**: Query on-chain state
+- **Instructions**: Core program interactions
+- **Keeper Command**: Automated epoch management
 
 Refer to `ncn-program-cli --help` for a complete list of available commands.
+
+### Keeper Command
+
+The `keeper` command is responsible for automating various epoch-related tasks, such as creating epoch states, snapshotting, and managing votes. It runs as a continuous process, monitoring the chain and executing necessary actions based on the current epoch state.
+
+**Example Usage:**
+
+```bash
+ncn-program-cli keeper
+```
+
+This command starts the keeper process with a loop timeout of 10 minutes, an error timeout of 10 seconds, targeting the testnet cluster, and identifying the region as local for metrics.
 
 For detailed usage instructions and examples, refer to the [API documentation](api-docs.md).

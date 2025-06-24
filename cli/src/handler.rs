@@ -5,11 +5,11 @@ use crate::{
     args::{Args, ProgramCommand},
     getters::{
         get_account_payer, get_all_operators_in_ncn, get_all_tickets, get_all_vaults,
-        get_all_vaults_in_ncn, get_ballot_box, get_current_slot, get_epoch_snapshot,
-        get_epoch_state, get_is_epoch_completed, get_ncn, get_ncn_operator_state,
-        get_ncn_program_config, get_ncn_vault_ticket, get_operator_snapshot,
-        get_total_epoch_rent_cost, get_vault_ncn_ticket, get_vault_operator_delegation,
-        get_vault_registry, get_weight_table,
+        get_all_vaults_in_ncn, get_ballot_box, get_consensus_result, get_current_slot,
+        get_epoch_snapshot, get_epoch_state, get_is_epoch_completed, get_ncn,
+        get_ncn_operator_state, get_ncn_program_config, get_ncn_vault_ticket,
+        get_operator_snapshot, get_total_epoch_rent_cost, get_vault_ncn_ticket,
+        get_vault_operator_delegation, get_vault_registry, get_weight_table,
     },
     instructions::{
         admin_create_config, admin_fund_account_payer, admin_register_st_mint, admin_set_new_admin,
@@ -19,6 +19,8 @@ use crate::{
         full_vault_update, operator_cast_vote, register_vault, set_epoch_weights,
         snapshot_vault_operator_delegation, update_all_vaults_in_network,
     },
+    keeper::keeper_loop::startup_ncn_keeper,
+    operator::operator_loop::startup_operator_loop,
 };
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
@@ -50,6 +52,7 @@ pub struct CliHandler {
     pub rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
+    pub open_weather_api_key: Option<String>,
 }
 
 impl CliHandler {
@@ -75,6 +78,8 @@ impl CliHandler {
 
         let token_program_id = Pubkey::from_str(&args.token_program_id)?;
 
+        let open_weather_api_key = args.open_weather_api_key.clone();
+
         let ncn = args
             .ncn
             .clone()
@@ -96,6 +101,7 @@ impl CliHandler {
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
+            open_weather_api_key,
         };
 
         handler.epoch = {
@@ -145,6 +151,12 @@ impl CliHandler {
         Ok(config)
     }
 
+    pub fn open_weather_api_key(&self) -> Result<String> {
+        self.open_weather_api_key.clone().ok_or_else(|| {
+            anyhow!("No Open Weather API key provided. Set the OPENWEATHER_API_KEY environment variable or pass it as an argument.")
+        })
+    }
+
     pub fn keypair(&self) -> Result<&Keypair> {
         self.keypair.as_ref().ok_or_else(|| anyhow!("No keypair"))
     }
@@ -156,6 +168,23 @@ impl CliHandler {
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
+            // Keepers
+            // Ncn Keeper
+            ProgramCommand::RunKeeper {
+                loop_timeout_ms,
+                error_timeout_ms,
+            } => startup_ncn_keeper(self, loop_timeout_ms, error_timeout_ms).await,
+
+            // Operator Keeper
+            ProgramCommand::RunOperator {
+                loop_timeout_ms,
+                error_timeout_ms,
+                operator,
+            } => {
+                let operator = Pubkey::from_str(&operator)
+                    .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
+                startup_operator_loop(self, loop_timeout_ms, error_timeout_ms, operator).await
+            }
             // Cranks
             ProgramCommand::CrankRegisterVaults {} => crank_register_vaults(self).await,
             ProgramCommand::CrankUpdateAllVaults {} => update_all_vaults_in_network(self).await,
@@ -164,6 +193,7 @@ impl CliHandler {
             ProgramCommand::CrankCloseEpochAccounts {} => {
                 crank_close_epoch_accounts(self, self.epoch).await
             }
+
             ProgramCommand::SetEpochWeights {} => set_epoch_weights(self, self.epoch).await,
 
             // Admin
@@ -428,6 +458,15 @@ impl CliHandler {
                 info!(
                     "\n\n--- Total Epoch Rent Cost ---\nCost: {}\n",
                     lamports_to_sol(total_epoch_rent_cost)
+                );
+                Ok(())
+            }
+            ProgramCommand::GetConsensusResult {} => {
+                let result = get_consensus_result(self, self.epoch).await?;
+
+                info!(
+                    "\n\n--- Consensus Result for epoch {} is: \n {} ---",
+                    self.epoch, result
                 );
                 Ok(())
             }
