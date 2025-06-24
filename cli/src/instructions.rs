@@ -1394,60 +1394,57 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
         .collect();
 
     let epoch_snapshot = get_or_create_epoch_snapshot(handler, epoch).await?;
-    if epoch_snapshot.finalized() {
-        log::info!(
-            "Epoch snapshot already finalized for epoch: {:?}. Skipping snapshotting.",
-            epoch
-        );
-        return Ok(());
-    }
+    if !epoch_snapshot.finalized() {
+        for operator in operators.iter() {
+            // Create Vault Operator Delegation
+            let result = get_or_create_operator_snapshot(handler, operator, epoch).await;
 
-    for operator in operators.iter() {
-        // Create Vault Operator Delegation
-        let result = get_or_create_operator_snapshot(handler, operator, epoch).await;
-
-        if result.is_err() {
-            log::error!(
+            if result.is_err() {
+                log::error!(
                 "Failed to get or create operator snapshot for operator: {:?} in epoch: {:?} with error: {:?}",
                 operator,
                 epoch,
                 result.err().unwrap()
             );
-            continue;
-        };
+                continue;
+            };
 
-        let operator_snapshot = result?;
+            let operator_snapshot = result?;
 
-        let vaults_to_run: Vec<Pubkey> = all_vaults
-            .iter()
-            .filter(|vault| !operator_snapshot.contains_vault(vault))
-            .cloned()
-            .collect();
+            let vaults_to_run: Vec<Pubkey> = all_vaults
+                .iter()
+                .filter(|vault| !operator_snapshot.contains_vault(vault))
+                .cloned()
+                .collect();
 
-        for vault in vaults_to_run.iter() {
-            let result = full_vault_update(handler, vault).await;
+            for vault in vaults_to_run.iter() {
+                let result = full_vault_update(handler, vault).await;
 
-            if let Err(err) = result {
-                log::error!(
-                    "Failed to update the vault: {:?} with error: {:?}",
-                    vault,
-                    err
-                );
-            }
+                if let Err(err) = result {
+                    log::error!(
+                        "Failed to update the vault: {:?} with error: {:?}",
+                        vault,
+                        err
+                    );
+                }
 
-            let result = snapshot_vault_operator_delegation(handler, vault, operator, epoch).await;
+                let result =
+                    snapshot_vault_operator_delegation(handler, vault, operator, epoch).await;
 
-            if let Err(err) = result {
-                log::error!(
+                if let Err(err) = result {
+                    log::error!(
                     "Failed to snapshot vault operator delegation for vault: {:?} and operator: {:?} in epoch: {:?} with error: {:?}",
                     vault,
                     operator,
                     epoch,
                     err
                 );
+                }
             }
         }
     }
+
+    let _ = get_or_create_ballot_box(handler, epoch).await?;
 
     Ok(())
 }
