@@ -20,14 +20,11 @@ use solana_program::{
 /// 4. `[]` vault: The vault to register
 /// 5. `[]` ncn_vault_ticket: The connection between NCN and vault from the restaking program
 pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    msg!("Starting register_vault instruction");
-
     let [config, vault_registry, ncn, vault, ncn_vault_ticket] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading required accounts...");
     Config::load(program_id, config, ncn.key, false)?;
     VaultRegistry::load(program_id, vault_registry, ncn.key, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
@@ -39,11 +36,9 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         vault,
         false,
     )?;
-    msg!("All required accounts loaded successfully");
 
     let clock = Clock::get()?;
     let slot = clock.slot;
-    msg!("Current slot: {}", slot);
 
     let mut vault_registry_data = vault_registry.try_borrow_mut_data()?;
     let vault_registry = VaultRegistry::try_from_slice_unchecked_mut(&mut vault_registry_data)?;
@@ -51,26 +46,17 @@ pub fn process_register_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
     let vault_data = vault.data.borrow();
     let vault_account = Vault::try_from_slice_unchecked(&vault_data)?;
 
-    msg!("Checking if supported mint is registered...");
     if !vault_registry.has_st_mint(&vault_account.supported_mint) {
         msg!("Error: Supported mint not registered");
         return Err(ProgramError::InvalidAccountData);
     }
-    msg!("Supported mint is registered");
 
-    msg!(
-        "Registering vault with index {} and supported mint {}",
-        vault_account.vault_index(),
-        vault_account.supported_mint
-    );
     vault_registry.register_vault(
         vault.key,
         &vault_account.supported_mint,
         vault_account.vault_index(),
         slot,
     )?;
-    msg!("Vault registered successfully");
 
-    msg!("register_vault instruction completed successfully");
     Ok(())
 }

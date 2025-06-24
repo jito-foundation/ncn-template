@@ -7,16 +7,26 @@ mod admin_set_tie_breaker;
 mod admin_set_weight;
 mod cast_vote;
 mod close_epoch_account;
+mod distribute_ncn_rewards;
+mod distribute_operator_rewards;
+mod distribute_operator_vault_reward_route;
+mod distribute_protocol_rewards;
+mod distribute_vault_rewards;
 mod initialize_ballot_box;
 mod initialize_epoch_snapshot;
 mod initialize_epoch_state;
+mod initialize_ncn_reward_router;
 mod initialize_operator_snapshot;
+mod initialize_operator_vault_reward_router;
 mod initialize_vault_registry;
 mod initialize_weight_table;
 mod realloc_ballot_box;
+mod realloc_ncn_reward_router;
 mod realloc_vault_registry;
 mod realloc_weight_table;
 mod register_vault;
+mod route_ncn_rewards;
+mod route_operator_vault_rewards;
 mod set_epoch_weights;
 mod snapshot_vault_operator_delegation;
 
@@ -39,19 +49,29 @@ use crate::{
     admin_set_tie_breaker::process_admin_set_tie_breaker,
     admin_set_weight::process_admin_set_weight, cast_vote::process_cast_vote,
     close_epoch_account::process_close_epoch_account,
+    distribute_ncn_rewards::process_distribute_ncn_rewards,
+    distribute_operator_rewards::process_distribute_operator_rewards,
+    distribute_operator_vault_reward_route::process_distribute_operator_vault_reward_route,
+    distribute_protocol_rewards::process_distribute_protocol_rewards,
+    distribute_vault_rewards::process_distribute_vault_rewards,
     initialize_ballot_box::process_initialize_ballot_box,
     initialize_epoch_snapshot::process_initialize_epoch_snapshot,
+    initialize_ncn_reward_router::process_initialize_ncn_reward_router,
     initialize_operator_snapshot::process_initialize_operator_snapshot,
+    initialize_operator_vault_reward_router::process_initialize_operator_vault_reward_router,
     initialize_vault_registry::process_initialize_vault_registry,
     initialize_weight_table::process_initialize_weight_table,
     realloc_ballot_box::process_realloc_ballot_box,
+    realloc_ncn_reward_router::process_realloc_ncn_reward_router,
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table, register_vault::process_register_vault,
+    route_ncn_rewards::process_route_ncn_rewards,
+    route_operator_vault_rewards::process_route_operator_vault_rewards,
     set_epoch_weights::process_set_epoch_weights,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
-declare_id!(env!("NCN_PROGRAM_ID"));
+declare_id!("5SiK283D1iFSqHvr8vbNWCBjbjRXeEYS79CLax7nosPf");
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -87,6 +107,7 @@ pub fn process_instruction(
             epochs_before_stall,
             epochs_after_consensus_before_close,
             valid_slots_after_consensus,
+            ncn_fee_bps,
         } => {
             msg!("Instruction: InitializeConfig");
             process_admin_initialize_config(
@@ -95,6 +116,7 @@ pub fn process_instruction(
                 epochs_before_stall,
                 epochs_after_consensus_before_close,
                 valid_slots_after_consensus,
+                ncn_fee_bps,
             )
         }
         NCNProgramInstruction::InitializeVaultRegistry => {
@@ -214,6 +236,56 @@ pub fn process_instruction(
         NCNProgramInstruction::AdminSetStMint { st_mint, weight } => {
             msg!("Instruction: AdminSetStMint");
             process_admin_set_st_mint(program_id, accounts, &st_mint, weight)
+        }
+
+        // ---------------------------------------------------- //
+        //                ROUTE AND DISTRIBUTE                  //
+        // ---------------------------------------------------- //
+        NCNProgramInstruction::InitializeNCNRewardRouter { epoch } => {
+            msg!("Instruction: InitializeNCNRewardRouter");
+            process_initialize_ncn_reward_router(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::ReallocNCNRewardRouter { epoch } => {
+            msg!("Instruction: ReallocNCNRewardRouter");
+            process_realloc_ncn_reward_router(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::RouteNCNRewards {
+            max_iterations,
+            epoch,
+        } => {
+            msg!("Instruction: RouteNCNRewards");
+            process_route_ncn_rewards(program_id, accounts, max_iterations, epoch)
+        }
+        NCNProgramInstruction::DistributeProtocolRewards { epoch } => {
+            msg!("Instruction: DistributeProtocolRewards");
+            process_distribute_protocol_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeNCNRewards { epoch } => {
+            msg!("Instruction: DistributeNCNRewards");
+            process_distribute_ncn_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::InitializeOperatorVaultRewardRouter { epoch } => {
+            msg!("Instruction: InitializeOperatorVaultRewardRouter");
+            process_initialize_operator_vault_reward_router(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeOperatorVaultRewardRoute { epoch } => {
+            msg!("Instruction: DistributeOperatorVaultRewardRoute");
+            process_distribute_operator_vault_reward_route(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::RouteOperatorVaultRewards {
+            max_iterations,
+            epoch,
+        } => {
+            msg!("Instruction: RouteOperatorVaultRewards");
+            process_route_operator_vault_rewards(program_id, accounts, max_iterations, epoch)
+        }
+        NCNProgramInstruction::DistributeOperatorRewards { epoch } => {
+            msg!("Instruction: DistributeOperatorRewards");
+            process_distribute_operator_rewards(program_id, accounts, epoch)
+        }
+        NCNProgramInstruction::DistributeVaultRewards { epoch } => {
+            msg!("Instruction: DistributeVaultRewards");
+            process_distribute_vault_rewards(program_id, accounts, epoch)
         }
     }
 }

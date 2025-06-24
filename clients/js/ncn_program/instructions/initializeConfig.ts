@@ -10,6 +10,8 @@ import {
   combineCodec,
   getStructDecoder,
   getStructEncoder,
+  getU16Decoder,
+  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -42,6 +44,7 @@ export type InitializeConfigInstruction<
   TProgram extends string = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountConfig extends string | IAccountMeta<string> = string,
   TAccountNcn extends string | IAccountMeta<string> = string,
+  TAccountNcnFeeWallet extends string | IAccountMeta<string> = string,
   TAccountNcnAdmin extends string | IAccountMeta<string> = string,
   TAccountTieBreakerAdmin extends string | IAccountMeta<string> = string,
   TAccountAccountPayer extends string | IAccountMeta<string> = string,
@@ -57,6 +60,9 @@ export type InitializeConfigInstruction<
         ? WritableAccount<TAccountConfig>
         : TAccountConfig,
       TAccountNcn extends string ? ReadonlyAccount<TAccountNcn> : TAccountNcn,
+      TAccountNcnFeeWallet extends string
+        ? ReadonlyAccount<TAccountNcnFeeWallet>
+        : TAccountNcnFeeWallet,
       TAccountNcnAdmin extends string
         ? ReadonlySignerAccount<TAccountNcnAdmin> &
             IAccountSignerMeta<TAccountNcnAdmin>
@@ -79,12 +85,14 @@ export type InitializeConfigInstructionData = {
   epochsBeforeStall: bigint;
   epochsAfterConsensusBeforeClose: bigint;
   validSlotsAfterConsensus: bigint;
+  ncnFeeBps: number;
 };
 
 export type InitializeConfigInstructionDataArgs = {
   epochsBeforeStall: number | bigint;
   epochsAfterConsensusBeforeClose: number | bigint;
   validSlotsAfterConsensus: number | bigint;
+  ncnFeeBps: number;
 };
 
 export function getInitializeConfigInstructionDataEncoder(): Encoder<InitializeConfigInstructionDataArgs> {
@@ -94,6 +102,7 @@ export function getInitializeConfigInstructionDataEncoder(): Encoder<InitializeC
       ['epochsBeforeStall', getU64Encoder()],
       ['epochsAfterConsensusBeforeClose', getU64Encoder()],
       ['validSlotsAfterConsensus', getU64Encoder()],
+      ['ncnFeeBps', getU16Encoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_CONFIG_DISCRIMINATOR })
   );
@@ -105,6 +114,7 @@ export function getInitializeConfigInstructionDataDecoder(): Decoder<InitializeC
     ['epochsBeforeStall', getU64Decoder()],
     ['epochsAfterConsensusBeforeClose', getU64Decoder()],
     ['validSlotsAfterConsensus', getU64Decoder()],
+    ['ncnFeeBps', getU16Decoder()],
   ]);
 }
 
@@ -121,6 +131,7 @@ export function getInitializeConfigInstructionDataCodec(): Codec<
 export type InitializeConfigInput<
   TAccountConfig extends string = string,
   TAccountNcn extends string = string,
+  TAccountNcnFeeWallet extends string = string,
   TAccountNcnAdmin extends string = string,
   TAccountTieBreakerAdmin extends string = string,
   TAccountAccountPayer extends string = string,
@@ -128,6 +139,7 @@ export type InitializeConfigInput<
 > = {
   config: Address<TAccountConfig>;
   ncn: Address<TAccountNcn>;
+  ncnFeeWallet: Address<TAccountNcnFeeWallet>;
   ncnAdmin: TransactionSigner<TAccountNcnAdmin>;
   tieBreakerAdmin: Address<TAccountTieBreakerAdmin>;
   accountPayer: Address<TAccountAccountPayer>;
@@ -135,11 +147,13 @@ export type InitializeConfigInput<
   epochsBeforeStall: InitializeConfigInstructionDataArgs['epochsBeforeStall'];
   epochsAfterConsensusBeforeClose: InitializeConfigInstructionDataArgs['epochsAfterConsensusBeforeClose'];
   validSlotsAfterConsensus: InitializeConfigInstructionDataArgs['validSlotsAfterConsensus'];
+  ncnFeeBps: InitializeConfigInstructionDataArgs['ncnFeeBps'];
 };
 
 export function getInitializeConfigInstruction<
   TAccountConfig extends string,
   TAccountNcn extends string,
+  TAccountNcnFeeWallet extends string,
   TAccountNcnAdmin extends string,
   TAccountTieBreakerAdmin extends string,
   TAccountAccountPayer extends string,
@@ -149,6 +163,7 @@ export function getInitializeConfigInstruction<
   input: InitializeConfigInput<
     TAccountConfig,
     TAccountNcn,
+    TAccountNcnFeeWallet,
     TAccountNcnAdmin,
     TAccountTieBreakerAdmin,
     TAccountAccountPayer,
@@ -159,6 +174,7 @@ export function getInitializeConfigInstruction<
   TProgramAddress,
   TAccountConfig,
   TAccountNcn,
+  TAccountNcnFeeWallet,
   TAccountNcnAdmin,
   TAccountTieBreakerAdmin,
   TAccountAccountPayer,
@@ -171,6 +187,7 @@ export function getInitializeConfigInstruction<
   const originalAccounts = {
     config: { value: input.config ?? null, isWritable: true },
     ncn: { value: input.ncn ?? null, isWritable: false },
+    ncnFeeWallet: { value: input.ncnFeeWallet ?? null, isWritable: false },
     ncnAdmin: { value: input.ncnAdmin ?? null, isWritable: false },
     tieBreakerAdmin: {
       value: input.tieBreakerAdmin ?? null,
@@ -198,6 +215,7 @@ export function getInitializeConfigInstruction<
     accounts: [
       getAccountMeta(accounts.config),
       getAccountMeta(accounts.ncn),
+      getAccountMeta(accounts.ncnFeeWallet),
       getAccountMeta(accounts.ncnAdmin),
       getAccountMeta(accounts.tieBreakerAdmin),
       getAccountMeta(accounts.accountPayer),
@@ -211,6 +229,7 @@ export function getInitializeConfigInstruction<
     TProgramAddress,
     TAccountConfig,
     TAccountNcn,
+    TAccountNcnFeeWallet,
     TAccountNcnAdmin,
     TAccountTieBreakerAdmin,
     TAccountAccountPayer,
@@ -228,10 +247,11 @@ export type ParsedInitializeConfigInstruction<
   accounts: {
     config: TAccountMetas[0];
     ncn: TAccountMetas[1];
-    ncnAdmin: TAccountMetas[2];
-    tieBreakerAdmin: TAccountMetas[3];
-    accountPayer: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    ncnFeeWallet: TAccountMetas[2];
+    ncnAdmin: TAccountMetas[3];
+    tieBreakerAdmin: TAccountMetas[4];
+    accountPayer: TAccountMetas[5];
+    systemProgram: TAccountMetas[6];
   };
   data: InitializeConfigInstructionData;
 };
@@ -244,7 +264,7 @@ export function parseInitializeConfigInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeConfigInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -259,6 +279,7 @@ export function parseInitializeConfigInstruction<
     accounts: {
       config: getNextAccount(),
       ncn: getNextAccount(),
+      ncnFeeWallet: getNextAccount(),
       ncnAdmin: getNextAccount(),
       tieBreakerAdmin: getNextAccount(),
       accountPayer: getNextAccount(),

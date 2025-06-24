@@ -118,14 +118,14 @@ pub enum ProgramCommand {
             long,
             env,
             default_value_t = 600_000, // 10 minutes
-            help = "Keeper error timeout in milliseconds"
+            help = "Maximum time in milliseconds between keeper loop iterations"
         )]
         loop_timeout_ms: u64,
         #[arg(
             long,
             env,
             default_value_t = 10_000, // 10 seconds
-            help = "Keeper error timeout in milliseconds"
+            help = "Timeout in milliseconds when an error occurs before retrying"
         )]
         error_timeout_ms: u64,
     },
@@ -138,14 +138,14 @@ pub enum ProgramCommand {
             long,
             env,
             default_value_t = 600_000, // 10 minutes
-            help = "Keeper error timeout in milliseconds"
+            help = "Maximum time in milliseconds between keeper loop iterations"
         )]
         loop_timeout_ms: u64,
         #[arg(
             long,
             env,
             default_value_t = 10_000, // 10 seconds
-            help = "Keeper error timeout in milliseconds"
+            help = "Timeout in milliseconds when an error occurs before retrying"
         )]
         error_timeout_ms: u64,
     },
@@ -153,11 +153,17 @@ pub enum ProgramCommand {
     CrankUpdateAllVaults {},
     CrankRegisterVaults {},
     CrankSnapshot {},
+    CrankDistribute {},
     CrankCloseEpochAccounts {},
     SetEpochWeights {},
 
     /// Admin
     AdminCreateConfig {
+        #[arg(long, help = "Ncn Fee Wallet Address")]
+        ncn_fee_wallet: String,
+        #[arg(long, help = "Ncn Fee bps")]
+        ncn_fee_bps: u64,
+
         #[arg(long, default_value_t = 10 as u64, help = "Epochs before tie breaker can set consensus")]
         epochs_before_stall: u64,
         #[arg(long, default_value_t = (DEFAULT_SLOTS_PER_EPOCH as f64 * 0.1) as u64, help = "Valid slots after consensus")]
@@ -185,7 +191,7 @@ pub enum ProgramCommand {
         weight: u128,
     },
     AdminSetTieBreaker {
-        #[arg(long, help = "tir breaker for voting")]
+        #[arg(long, help = "tie breaker for voting")]
         weather_status: u8,
     },
     AdminSetParameters {
@@ -244,6 +250,25 @@ pub enum ProgramCommand {
         weather_status: u8,
     },
 
+    CreateNCNRewardRouter,
+
+    CreateOperatorVaultRewardRouter {
+        #[arg(long, help = "Operator address")]
+        operator: String,
+    },
+
+    RouteNCNRewards,
+
+    RouteOperatorVaultRewards {
+        #[arg(long, help = "Operator address")]
+        operator: String,
+    },
+
+    DistributeBaseOperatorVaultRewards {
+        #[arg(long, help = "Operator address")]
+        operator: String,
+    },
+
     /// Getters
     GetNcn,
     GetNcnOperatorState {
@@ -284,6 +309,15 @@ pub enum ProgramCommand {
     GetOperatorStakes,
     GetVaultStakes,
     GetVaultOperatorStakes,
+
+    GetNCNRewardRouter,
+    GetNCNRewardReceiverAddress,
+    GetOperatorVaultRewardRouter {
+        #[arg(long, env = "OPERATOR", help = "Operator Account Address")]
+        operator: String,
+    },
+    GetAllOperatorVaultRewardRouters,
+
     // GetAllOptedInValidators,
     FullUpdateVaults {
         #[arg(long, help = "Vault address")]

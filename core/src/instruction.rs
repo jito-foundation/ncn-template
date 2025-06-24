@@ -23,10 +23,11 @@ pub enum NCNProgramInstruction {
     /// Sets up the basic program parameters
     #[account(0, writable, name = "config")]
     #[account(1, name = "ncn")]
-    #[account(2, signer, name = "ncn_admin")]
-    #[account(3, name = "tie_breaker_admin")]
-    #[account(4, writable, name = "account_payer")]
-    #[account(5, name = "system_program")]
+    #[account(2, name = "ncn_fee_wallet")]
+    #[account(3, signer, name = "ncn_admin")]
+    #[account(4, name = "tie_breaker_admin")]
+    #[account(5, writable, name = "account_payer")]
+    #[account(6, name = "system_program")]
     InitializeConfig {
         /// Number of epochs before voting is considered stalled
         epochs_before_stall: u64,
@@ -34,6 +35,8 @@ pub enum NCNProgramInstruction {
         epochs_after_consensus_before_close: u64,
         /// Number of slots after consensus where voting is still valid
         valid_slots_after_consensus: u64,
+        /// NCN fee basis points (bps) for the NCN program
+        ncn_fee_bps: u16,
     },
 
     /// Initializes the vault registry account to track validator vaults
@@ -205,6 +208,108 @@ pub enum NCNProgramInstruction {
     // ---------------------------------------------------- //
     //                ROUTE AND DISTRIBUTE                  //
     // ---------------------------------------------------- //
+    /// Initializes the NCN reward router
+
+    #[account(0, name = "epoch_marker")]
+    #[account(1, name = "epoch_state")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "ncn_reward_router")]
+    #[account(4, writable, name = "ncn_reward_receiver")]
+    #[account(5, writable, name = "account_payer")]
+    #[account(6, name = "system_program")]
+    InitializeNCNRewardRouter{
+        epoch: u64,
+    },
+
+    /// Resizes the NCN reward router account
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, writable, name = "ncn_reward_router")]
+    #[account(3, name = "ncn")]
+    #[account(4, writable, name = "account_payer")]
+    #[account(5, name = "system_program")]
+    ReallocNCNRewardRouter {
+        epoch: u64,
+    },
+
+    /// Routes NCN reward router
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "epoch_snapshot")]
+    #[account(4, name = "ballot_box")]
+    #[account(5, writable, name = "ncn_reward_router")]
+    #[account(6, writable, name = "ncn_reward_receiver")]
+    RouteNCNRewards{
+        max_iterations: u16,
+        epoch: u64,
+    },
+
+    /// Distributes Protocol rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "ncn_reward_router")]
+    #[account(4, writable, name = "ncn_reward_receiver")]
+    #[account(5, writable, name = "protocol_fee_wallet")]
+    #[account(6, name = "system_program")]
+    DistributeProtocolRewards{
+        epoch: u64,
+    },
+
+    /// Distributes NCN rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "ncn_reward_router")]
+    #[account(4, writable, name = "ncn_reward_receiver")]
+    #[account(5, writable, name = "ncn_fee_wallet")]
+    #[account(6, name = "system_program")]
+    DistributeNCNRewards{
+        epoch: u64,
+    },
+
+    #[account(0, name = "epoch_marker")]
+    #[account(1, writable, name = "epoch_state")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, name = "operator_snapshot")]
+    #[account(5, writable, name = "operator_vault_reward_router")]
+    #[account(6, writable, name = "operator_vault_reward_receiver")]
+    #[account(7, writable, name = "account_payer")]
+    #[account(8, name = "system_program")]
+    InitializeOperatorVaultRewardRouter{
+        epoch: u64,
+    },
+
+    /// Distributes base ncn reward routes
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, writable, name = "ncn_reward_router")]
+    #[account(5, writable, name = "ncn_reward_receiver")]
+    #[account(6, name = "operator_vault_reward_router")]
+    #[account(7, writable, name = "operator_vault_reward_receiver")]
+    #[account(8, name = "system_program")]
+    DistributeOperatorVaultRewardRoute{
+        epoch: u64,
+    },
+
+    /// Routes ncn reward router
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "ncn")]
+    #[account(2, name = "operator")]
+    #[account(3, name = "operator_snapshot")]
+    #[account(4, writable, name = "operator_vault_reward_router")]
+    #[account(5, writable, name = "operator_vault_reward_receiver")]
+    RouteOperatorVaultRewards{
+        max_iterations: u16,
+        epoch: u64,
+    },
+
+
+
     /// Close an epoch account
     #[account(0, writable, name = "epoch_marker")]
     #[account(1, writable, name = "epoch_state")]
@@ -213,9 +318,39 @@ pub enum NCNProgramInstruction {
     #[account(4, writable, name = "account_to_close")]
     #[account(5, writable, name = "account_payer")]
     #[account(6, name = "system_program")]
+    #[account(7, writable, optional, name = "ncn_fee_wallet")]
+    #[account(8, writable, optional, name = "receiver_to_close")]
     CloseEpochAccount {
         epoch: u64,
     },
+
+    /// Distributes ncn operator rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, writable, name = "operator")]
+    #[account(4, writable, name = "operator_snapshot")]
+    #[account(5, writable, name = "operator_vault_reward_router")]
+    #[account(6, writable, name = "operator_vault_reward_receiver")]
+    #[account(7, name = "system_program")]
+    DistributeOperatorRewards{
+        epoch: u64,
+    },
+
+    /// Distributes vault rewards
+    #[account(0, writable, name = "epoch_state")]
+    #[account(1, name = "config")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "operator")]
+    #[account(4, writable, name = "vault")]
+    #[account(5, writable, name = "operator_snapshot")]
+    #[account(6, writable, name = "operator_vault_reward_router")]
+    #[account(7, writable, name = "operator_vault_reward_receiver")]
+    #[account(8, name = "system_program")]
+    DistributeVaultRewards{
+        epoch: u64,
+    },
+
 
     // ---------------------------------------------------- //
     //                        ADMIN                         //

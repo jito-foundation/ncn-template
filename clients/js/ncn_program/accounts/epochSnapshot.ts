@@ -33,8 +33,12 @@ import {
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
 import {
+  getFeesDecoder,
+  getFeesEncoder,
   getStakeWeightsDecoder,
   getStakeWeightsEncoder,
+  type Fees,
+  type FeesArgs,
   type StakeWeights,
   type StakeWeightsArgs,
 } from '../types';
@@ -51,6 +55,7 @@ export type EpochSnapshot = {
   operatorsRegistered: bigint;
   validOperatorVaultDelegations: bigint;
   stakeWeights: StakeWeights;
+  fees: Fees;
 };
 
 export type EpochSnapshotArgs = {
@@ -65,6 +70,7 @@ export type EpochSnapshotArgs = {
   operatorsRegistered: number | bigint;
   validOperatorVaultDelegations: number | bigint;
   stakeWeights: StakeWeightsArgs;
+  fees: FeesArgs;
 };
 
 export function getEpochSnapshotEncoder(): Encoder<EpochSnapshotArgs> {
@@ -80,6 +86,7 @@ export function getEpochSnapshotEncoder(): Encoder<EpochSnapshotArgs> {
     ['operatorsRegistered', getU64Encoder()],
     ['validOperatorVaultDelegations', getU64Encoder()],
     ['stakeWeights', getStakeWeightsEncoder()],
+    ['fees', getFeesEncoder()],
   ]);
 }
 
@@ -96,6 +103,7 @@ export function getEpochSnapshotDecoder(): Decoder<EpochSnapshot> {
     ['operatorsRegistered', getU64Decoder()],
     ['validOperatorVaultDelegations', getU64Decoder()],
     ['stakeWeights', getStakeWeightsDecoder()],
+    ['fees', getFeesDecoder()],
   ]);
 }
 

@@ -36,7 +36,7 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const ADMIN_SET_PARAMETERS_DISCRIMINATOR = 15;
+export const ADMIN_SET_PARAMETERS_DISCRIMINATOR = 25;
 
 export function getAdminSetParametersDiscriminatorBytes() {
   return getU8Encoder().encode(ADMIN_SET_PARAMETERS_DISCRIMINATOR);

@@ -70,8 +70,10 @@ pub enum NCNProgramError {
     FeeCapExceeded,
     #[error("Total fees cannot be 0")]
     TotalFeesCannotBeZero,
-    #[error("DAO wallet cannot be default")]
-    DefaultDaoWallet,
+    #[error("Protocol wallet cannot be default")]
+    DefaultProtocolWallet,
+    #[error("NCN Fee wallet cannot be default")]
+    DefaultNcnWallet,
     #[error("Incorrect NCN Admin")]
     IncorrectNcnAdmin,
     #[error("Incorrect NCN")]
@@ -175,10 +177,12 @@ pub enum NCNProgramError {
     CannotCloseAccountNotEnoughEpochs,
     #[error("Cannot close account - No receiver provided")]
     CannotCloseAccountNoReceiverProvided,
+    #[error("Cannot close account - Not enough accounts")]
+    CannotCloseAccountNoEnoughAccounts,
     #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
     CannotCloseEpochStateAccount,
-    #[error("Invalid DAO wallet")]
-    InvalidDaoWallet,
+    #[error("Invalid NCN Fee wallet")]
+    InvalidNCNFeeWallet,
     #[error("Epoch is closing down")]
     EpochIsClosingDown,
     #[error("Marker exists")]

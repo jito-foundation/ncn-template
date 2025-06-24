@@ -29,7 +29,7 @@ import {
 import { NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR = 14;
+export const CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR = 22;
 
 export function getCloseEpochAccountDiscriminatorBytes() {
   return getU8Encoder().encode(CLOSE_EPOCH_ACCOUNT_DISCRIMINATOR);
@@ -46,6 +46,8 @@ export type CloseEpochAccountInstruction<
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
+  TAccountNcnFeeWallet extends string | IAccountMeta<string> = string,
+  TAccountReceiverToClose extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -70,6 +72,12 @@ export type CloseEpochAccountInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountNcnFeeWallet extends string
+        ? WritableAccount<TAccountNcnFeeWallet>
+        : TAccountNcnFeeWallet,
+      TAccountReceiverToClose extends string
+        ? WritableAccount<TAccountReceiverToClose>
+        : TAccountReceiverToClose,
       ...TRemainingAccounts,
     ]
   >;
@@ -116,6 +124,8 @@ export type CloseEpochAccountInput<
   TAccountAccountToClose extends string = string,
   TAccountAccountPayer extends string = string,
   TAccountSystemProgram extends string = string,
+  TAccountNcnFeeWallet extends string = string,
+  TAccountReceiverToClose extends string = string,
 > = {
   epochMarker: Address<TAccountEpochMarker>;
   epochState: Address<TAccountEpochState>;
@@ -124,6 +134,8 @@ export type CloseEpochAccountInput<
   accountToClose: Address<TAccountAccountToClose>;
   accountPayer: Address<TAccountAccountPayer>;
   systemProgram?: Address<TAccountSystemProgram>;
+  ncnFeeWallet?: Address<TAccountNcnFeeWallet>;
+  receiverToClose?: Address<TAccountReceiverToClose>;
   epoch: CloseEpochAccountInstructionDataArgs['epoch'];
 };
 
@@ -135,6 +147,8 @@ export function getCloseEpochAccountInstruction<
   TAccountAccountToClose extends string,
   TAccountAccountPayer extends string,
   TAccountSystemProgram extends string,
+  TAccountNcnFeeWallet extends string,
+  TAccountReceiverToClose extends string,
   TProgramAddress extends Address = typeof NCN_PROGRAM_PROGRAM_ADDRESS,
 >(
   input: CloseEpochAccountInput<
@@ -144,7 +158,9 @@ export function getCloseEpochAccountInstruction<
     TAccountNcn,
     TAccountAccountToClose,
     TAccountAccountPayer,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountNcnFeeWallet,
+    TAccountReceiverToClose
   >,
   config?: { programAddress?: TProgramAddress }
 ): CloseEpochAccountInstruction<
@@ -155,7 +171,9 @@ export function getCloseEpochAccountInstruction<
   TAccountNcn,
   TAccountAccountToClose,
   TAccountAccountPayer,
-  TAccountSystemProgram
+  TAccountSystemProgram,
+  TAccountNcnFeeWallet,
+  TAccountReceiverToClose
 > {
   // Program address.
   const programAddress = config?.programAddress ?? NCN_PROGRAM_PROGRAM_ADDRESS;
@@ -169,6 +187,8 @@ export function getCloseEpochAccountInstruction<
     accountToClose: { value: input.accountToClose ?? null, isWritable: true },
     accountPayer: { value: input.accountPayer ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    ncnFeeWallet: { value: input.ncnFeeWallet ?? null, isWritable: true },
+    receiverToClose: { value: input.receiverToClose ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -194,6 +214,8 @@ export function getCloseEpochAccountInstruction<
       getAccountMeta(accounts.accountToClose),
       getAccountMeta(accounts.accountPayer),
       getAccountMeta(accounts.systemProgram),
+      getAccountMeta(accounts.ncnFeeWallet),
+      getAccountMeta(accounts.receiverToClose),
     ],
     programAddress,
     data: getCloseEpochAccountInstructionDataEncoder().encode(
@@ -207,7 +229,9 @@ export function getCloseEpochAccountInstruction<
     TAccountNcn,
     TAccountAccountToClose,
     TAccountAccountPayer,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountNcnFeeWallet,
+    TAccountReceiverToClose
   >;
 
   return instruction;
@@ -226,6 +250,8 @@ export type ParsedCloseEpochAccountInstruction<
     accountToClose: TAccountMetas[4];
     accountPayer: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    ncnFeeWallet?: TAccountMetas[7] | undefined;
+    receiverToClose?: TAccountMetas[8] | undefined;
   };
   data: CloseEpochAccountInstructionData;
 };
@@ -238,7 +264,7 @@ export function parseCloseEpochAccountInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedCloseEpochAccountInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 9) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -247,6 +273,12 @@ export function parseCloseEpochAccountInstruction<
     const accountMeta = instruction.accounts![accountIndex]!;
     accountIndex += 1;
     return accountMeta;
+  };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === NCN_PROGRAM_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
   };
   return {
     programAddress: instruction.programAddress,
@@ -258,6 +290,8 @@ export function parseCloseEpochAccountInstruction<
       accountToClose: getNextAccount(),
       accountPayer: getNextAccount(),
       systemProgram: getNextAccount(),
+      ncnFeeWallet: getNextOptionalAccount(),
+      receiverToClose: getNextOptionalAccount(),
     },
     data: getCloseEpochAccountInstructionDataDecoder().decode(instruction.data),
   };

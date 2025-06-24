@@ -2,10 +2,13 @@ use std::fmt::{Debug, Formatter};
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
 use ncn_program_core::{
+    account_payer::AccountPayer,
     ballot_box::{BallotBox, WeatherStatus},
     constants::WEIGHT,
     epoch_snapshot::{EpochSnapshot, OperatorSnapshot},
     epoch_state::EpochState,
+    ncn_reward_router::{NCNRewardReceiver, NCNRewardRouter},
+    operator_vault_reward_router::{OperatorVaultRewardReceiver, OperatorVaultRewardRouter},
     weight_table::WeightTable,
 };
 use solana_program::{clock::Clock, native_token::sol_to_lamports, pubkey::Pubkey};
@@ -14,6 +17,7 @@ use solana_sdk::{
     account::Account,
     clock::DEFAULT_SLOTS_PER_EPOCH,
     epoch_schedule::EpochSchedule,
+    native_token::lamports_to_sol,
     signature::{Keypair, Signer},
 };
 
@@ -687,6 +691,220 @@ impl TestBuilder {
         Ok(())
     }
 
+    /// Initializes the base reward router and ncn reward routers for the TestNcn for the current epoch.
+    pub async fn add_routers_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+
+        ncn_program_client
+            .do_full_initialize_ncn_reward_router(ncn, epoch)
+            .await?;
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+
+            ncn_program_client
+                .do_initialize_operator_vault_reward_router(ncn, operator, epoch)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    // 13 - Route NCN rewards
+    pub async fn route_in_ncn_rewards_for_test_ncn(
+        &mut self,
+        test_ncn: &TestNcn,
+        rewards: u64,
+    ) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+        let epoch = self.clock().await.epoch;
+
+        let valid_slots_after_consensus = {
+            let config = ncn_program_client.get_ncn_config(ncn).await?;
+            config.valid_slots_after_consensus()
+        };
+
+        self.warp_slot_incremental(valid_slots_after_consensus + 1)
+            .await?;
+
+        let ncn_reward_receiver =
+            NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch).0;
+
+        let sol_rewards = lamports_to_sol(rewards);
+
+        // send rewards to the base reward router
+        println!("Airdropping {} SOL to base reward receiver", sol_rewards);
+        ncn_program_client
+            .airdrop(&ncn_reward_receiver, sol_rewards)
+            .await?;
+
+        // route rewards
+        println!("Route");
+        ncn_program_client.do_route_ncn_rewards(ncn, epoch).await?;
+        // Should be able to route twice
+        ncn_program_client.do_route_ncn_rewards(ncn, epoch).await?;
+
+        let ncn_reward_router = ncn_program_client.get_ncn_reward_router(ncn, epoch).await?;
+
+        // Rewards Distribution
+        // 1. Jito Rewards Distribution
+        {
+            let rewards = ncn_reward_router.protocol_rewards();
+
+            if rewards > 0 {
+                let mut ncn_program_client = self.ncn_program_client();
+                let config = ncn_program_client.get_ncn_config(ncn).await?;
+                let protocol_fee_wallet = config.fee_config.protocol_fee_wallet();
+
+                let balance_before = {
+                    let account = self.get_account(protocol_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                println!("Distributing {} of Protocol Rewards", rewards);
+                ncn_program_client
+                    .do_distribute_protocol_rewards(ncn, epoch)
+                    .await?;
+
+                let balance_after = {
+                    let account = self.get_account(protocol_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                assert_eq!(
+                    balance_after,
+                    balance_before + rewards,
+                    "Protocol fee wallet balance should increase by the rewards amount"
+                );
+            }
+        }
+
+        // NCN Rewards
+        {
+            let rewards = ncn_reward_router.ncn_rewards();
+
+            if rewards > 0 {
+                let mut ncn_program_client = self.ncn_program_client();
+                let config = ncn_program_client.get_ncn_config(ncn).await?;
+                let ncn_fee_wallet = config.fee_config.ncn_fee_wallet();
+
+                let balance_before = {
+                    let account = self.get_account(ncn_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                println!("Distributing {} of NCN Rewards", rewards);
+                ncn_program_client
+                    .do_distribute_ncn_rewards(ncn, epoch)
+                    .await?;
+
+                let balance_after = {
+                    let account = self.get_account(ncn_fee_wallet).await?;
+                    account.unwrap().lamports
+                };
+
+                assert_eq!(
+                    balance_after,
+                    balance_before + rewards,
+                    "NCN fee wallet balance should increase by the rewards amount"
+                );
+            }
+        }
+
+        // Operator Vault Rewards
+        {
+            for operator_root in test_ncn.operators.iter() {
+                let operator = operator_root.operator_pubkey;
+
+                let operator_route = ncn_reward_router.operator_vault_reward_route(&operator);
+
+                let rewards = operator_route.rewards().unwrap_or(0);
+
+                if rewards == 0 {
+                    continue;
+                }
+
+                println!("Distribute Ncn Reward {}", rewards);
+                ncn_program_client
+                    .do_distribute_operator_vault_reward_route(operator, ncn, epoch)
+                    .await?;
+            }
+        }
+
+        println!("Done");
+
+        Ok(())
+    }
+
+    // 14 - Route Operator Vault Rewards
+    pub async fn route_in_operator_vault_rewards_for_test_ncn(
+        &mut self,
+        test_ncn: &TestNcn,
+    ) -> TestResult<()> {
+        let mut ncn_program_client = self.ncn_program_client();
+
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+        let epoch = self.clock().await.epoch;
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+
+            ncn_program_client
+                .do_route_operator_vault_rewards(ncn, operator, epoch)
+                .await?;
+            // Should be able to route twice
+            ncn_program_client
+                .do_route_operator_vault_rewards(ncn, operator, epoch)
+                .await?;
+
+            let operator_vault_reward_router = ncn_program_client
+                .get_operator_vault_reward_router(operator, ncn, epoch)
+                .await?;
+
+            let operator_rewards = operator_vault_reward_router.operator_rewards();
+            if operator_rewards > 0 {
+                ncn_program_client
+                    .do_distribute_operator_rewards(operator, ncn, epoch)
+                    .await?;
+            }
+
+            for vault_root in test_ncn.vaults.iter() {
+                let vault = vault_root.vault_pubkey;
+
+                let vault_reward_route = operator_vault_reward_router.vault_reward_route(&vault);
+
+                if let Ok(vault_reward_route) = vault_reward_route {
+                    let vault_rewards = vault_reward_route.rewards();
+
+                    if vault_rewards > 0 {
+                        ncn_program_client
+                            .do_distribute_vault_rewards(vault, operator, ncn, epoch)
+                            .await?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn reward_test_ncn(&mut self, test_ncn: &TestNcn, rewards: u64) -> TestResult<()> {
+        self.add_routers_for_test_ncn(test_ncn).await?;
+        self.route_in_ncn_rewards_for_test_ncn(test_ncn, rewards)
+            .await?;
+
+        self.route_in_operator_vault_rewards_for_test_ncn(test_ncn)
+            .await?;
+
+        Ok(())
+    }
+
     /// Closes all epoch-specific accounts (BallotBox, OperatorSnapshots, EpochSnapshot, WeightTable, EpochState)
     /// for a given epoch after the required cooldown period has passed.
     /// Asserts that the accounts are actually closed (deleted).
@@ -696,10 +914,23 @@ impl TestBuilder {
     ) -> TestResult<()> {
         let mut ncn_program_client = self.ncn_program_client();
 
+        const EXTRA_SOL_TO_AIRDROP: f64 = 0.25;
+
         let epoch_to_close = self.clock().await.epoch;
         let ncn: Pubkey = test_ncn.ncn_root.ncn_pubkey;
 
         let config_account = ncn_program_client.get_ncn_config(ncn).await?;
+
+        let ncn_fees_wallet = *config_account.fee_config.ncn_fee_wallet();
+
+        let (account_payer, _, _) = AccountPayer::find_program_address(&ncn_program::id(), &ncn);
+        let rent = self.context.banks_client.get_rent().await?;
+
+        let lamports_per_signature: u64 = if ncn_fees_wallet.eq(&self.context.payer.pubkey()) {
+            5000
+        } else {
+            0
+        };
 
         // Wait until we can close the accounts
         {
@@ -711,6 +942,140 @@ impl TestBuilder {
         }
 
         // Close Accounts in reverse order of creation
+
+        // NCN Reward Routers
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+            let (operator_vault_reward_router, _, _) =
+                OperatorVaultRewardRouter::find_program_address(
+                    &ncn_program::id(),
+                    &operator,
+                    &ncn,
+                    epoch_to_close,
+                );
+
+            let (operator_vault_reward_receiver, _, _) =
+                OperatorVaultRewardReceiver::find_program_address(
+                    &ncn_program::id(),
+                    &operator,
+                    &ncn,
+                    epoch_to_close,
+                );
+
+            ncn_program_client
+                .airdrop(&operator_vault_reward_receiver, EXTRA_SOL_TO_AIRDROP)
+                .await?;
+
+            let ncn_fee_wallet_balance_before = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_before = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            ncn_program_client
+                .do_close_router_epoch_account(
+                    ncn,
+                    epoch_to_close,
+                    operator_vault_reward_router,
+                    operator_vault_reward_receiver,
+                )
+                .await?;
+
+            let ncn_fee_wallet_balance_after = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_after = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            let router_rent = rent.minimum_balance(OperatorVaultRewardRouter::SIZE);
+            let receiver_rent = rent.minimum_balance(0);
+            assert_eq!(
+                account_payer_balance_before + router_rent + receiver_rent,
+                account_payer_balance_after
+            );
+
+            // DAO wallet is also the payer wallet
+            assert!(
+                ncn_fee_wallet_balance_before - lamports_per_signature
+                    < ncn_fee_wallet_balance_after
+            );
+
+            let result = self.get_account(&operator_vault_reward_router).await?;
+            assert!(result.is_none());
+
+            let result = self.get_account(&operator_vault_reward_receiver).await?;
+            assert!(result.is_none());
+        }
+
+        // NCN Reward Router
+        {
+            let (ncn_reward_router, _, _) =
+                NCNRewardRouter::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
+
+            let (ncn_reward_receiver, _, _) =
+                NCNRewardReceiver::find_program_address(&ncn_program::id(), &ncn, epoch_to_close);
+
+            ncn_program_client
+                .airdrop(&ncn_reward_receiver, EXTRA_SOL_TO_AIRDROP)
+                .await?;
+
+            let ncn_fee_wallet_balance_before = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_before = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            ncn_program_client
+                .do_close_router_epoch_account(
+                    ncn,
+                    epoch_to_close,
+                    ncn_reward_router,
+                    ncn_reward_receiver,
+                )
+                .await?;
+
+            let ncn_fee_wallet_balance_after = {
+                let account = self.get_account(&ncn_fees_wallet).await?;
+                account.unwrap().lamports
+            };
+
+            let account_payer_balance_after = {
+                let account = self.get_account(&account_payer).await?;
+                account.unwrap().lamports
+            };
+
+            let router_rent = rent.minimum_balance(NCNRewardRouter::SIZE);
+            let receiver_rent = rent.minimum_balance(0);
+            assert_eq!(
+                account_payer_balance_before + router_rent + receiver_rent,
+                account_payer_balance_after
+            );
+
+            assert_eq!(
+                ncn_fee_wallet_balance_before + sol_to_lamports(EXTRA_SOL_TO_AIRDROP)
+                    - lamports_per_signature,
+                ncn_fee_wallet_balance_after
+            );
+
+            let result = self.get_account(&ncn_reward_router).await?;
+            assert!(result.is_none());
+
+            let result = self.get_account(&ncn_reward_receiver).await?;
+            assert!(result.is_none());
+        }
 
         // Ballot Box
         {

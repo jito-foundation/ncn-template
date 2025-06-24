@@ -4,7 +4,7 @@
 
 | Account             | Address                                      |
 | ------------------- | -------------------------------------------- |
-| Test NCN Program ID | 7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8 |
+| Test NCN Program ID | HDdd3ATbccVPoFs9aXtZKqXMSvehsgt8UFQdJnyCyYb8 |
 | Test NCN            | 5zqy3uyXMi5Uurup7S5kKUUuwHGnGcykVwwUik37fm6i |
 
 ## Setup CLIs
@@ -50,7 +50,7 @@ export RPC_URL="https://api.devnet.solana.com"
 export COMMITMENT="confirmed"
 
 # Set NCN Program ID (if different from default)
-export NCN_PROGRAM_ID="7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8"
+export NCN_PROGRAM_ID="HDdd3ATbccVPoFs9aXtZKqXMSvehsgt8UFQdJnyCyYb8"
 
 
 # Set Jito Restaking and Vault Program IDs
@@ -81,7 +81,7 @@ Setting up and using the NCN program follows this general workflow:
 
    ```bash
    # Create program configuration with tie-breaker admin
-   ncn-program-cli admin-create-config --tie-breaker-admin <ADMIN_ADDRESS>
+   ncn-program-cli admin-create-config --tie-breaker-admin <ADMIN_ADDRESS> --ncn-fee-wallet <FEE_WALLET_ADDRESS> --ncn-fee-bps <FEE_BPS>
 
    # Create the vault registry
    ncn-program-cli create-vault-registry
@@ -100,7 +100,7 @@ Setting up and using the NCN program follows this general workflow:
 4. Running the keeper command to automate epoch management:
 
    ```bash
-   ncn-program-cli keeper
+   ncn-program-cli run-keeper
    ```
 
 Keeper command will run these commands internally:
@@ -118,7 +118,7 @@ Keeper command will run these commands internally:
    ncn-program-cli set-epoch-weights
    ```
 
-1. **Create Snapshots**:
+2. **Create Snapshots**:
 
    ```bash
    # Create epoch snapshot
@@ -131,14 +131,34 @@ Keeper command will run these commands internally:
    ncn-program-cli snapshot-vault-operator-delegation
    ```
 
-1. **Voting Process**:
+3. **Voting Process**:
 
    ```bash
    # Create ballot box
    ncn-program-cli create-ballot-box
+   ```
 
-   # or
-   ncn-program-cli crank-vote
+4. **Post-Vote Cooldown**:
+   
+   After voting completes and consensus is reached, there's a cooldown period before rewards can be distributed.
+
+5. **Reward Distribution**:
+
+   ```bash
+   # Create reward routers
+   ncn-program-cli create-ncn-reward-router
+   ncn-program-cli create-operator-vault-reward-router --operator <OPERATOR_ADDRESS>
+   
+   # Route and distribute rewards
+   ncn-program-cli route-ncn-rewards
+   ncn-program-cli route-operator-vault-rewards --operator <OPERATOR_ADDRESS>
+   ```
+
+6. **Clean Up**:
+
+   ```bash
+   # Close epoch accounts
+   ncn-program-cli crank-close-epoch-accounts
    ```
 
 ## Command Groups
@@ -155,14 +175,24 @@ Refer to `ncn-program-cli --help` for a complete list of available commands.
 
 ### Keeper Command
 
-The `keeper` command is responsible for automating various epoch-related tasks, such as creating epoch states, snapshotting, and managing votes. It runs as a continuous process, monitoring the chain and executing necessary actions based on the current epoch state.
+The `keeper` command is responsible for automating various epoch-related tasks, such as creating epoch states, snapshotting, managing votes, and distributing rewards. It runs as a continuous process, monitoring the chain and executing necessary actions based on the current epoch state.
+
+The keeper progresses through these states:
+- **SetWeight**: Establish stake weights for the epoch
+- **Snapshot**: Capture operator and vault state snapshots
+- **Vote**: Monitor operator votes on consensus
+- **PostVoteCooldown**: Wait period after voting completes
+- **Distribute**: Distribute rewards to stakeholders
+- **Close**: Close and finalize epoch accounts
 
 **Example Usage:**
 
 ```bash
-ncn-program-cli keeper
+ncn-program-cli run-keeper
 ```
 
-This command starts the keeper process with a loop timeout of 10 minutes, an error timeout of 10 seconds, targeting the testnet cluster, and identifying the region as local for metrics.
+This command starts the keeper process with default settings:
+- Loop timeout: 10 minutes
+- Error timeout: 10 seconds
 
 For detailed usage instructions and examples, refer to the [API documentation](api-docs.md).

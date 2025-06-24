@@ -40,12 +40,6 @@ pub fn process_cast_vote(
     weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
-    msg!(
-        "Processing cast vote for epoch: {}, weather status: {}",
-        epoch,
-        weather_status
-    );
-
     let account_info_iter = &mut accounts.iter();
     let epoch_state = next_account_info(account_info_iter)?;
     let ncn_config = next_account_info(account_info_iter)?;
@@ -57,38 +51,13 @@ pub fn process_cast_vote(
     let operator_admin = next_account_info(account_info_iter)?;
     let consensus_result = next_account_info(account_info_iter)?;
 
-    msg!("Verifying operator admin is the signer");
-    // Operator is casting the vote, needs to be signer
     load_signer(operator_admin, false)?;
-
-    msg!("Loading epoch state for NCN: {}, epoch: {}", ncn.key, epoch);
     EpochState::load(program_id, epoch_state, ncn.key, epoch, false)?;
-
-    msg!("Loading NCN config for NCN: {}", ncn.key);
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
-
-    msg!("Loading NCN account: {}", ncn.key);
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading operator account: {}", operator.key);
     Operator::load(&jito_restaking_program::id(), operator, false)?;
-
-    msg!("Loading ballot box for NCN: {}, epoch: {}", ncn.key, epoch);
     BallotBox::load(program_id, ballot_box, ncn.key, epoch, true)?;
-
-    msg!(
-        "Loading epoch snapshot for NCN: {}, epoch: {}",
-        ncn.key,
-        epoch
-    );
     EpochSnapshot::load(program_id, epoch_snapshot, ncn.key, epoch, false)?;
-
-    msg!(
-        "Loading operator snapshot for operator: {}, NCN: {}, epoch: {}",
-        operator.key,
-        ncn.key,
-        epoch
-    );
     OperatorSnapshot::load(
         program_id,
         operator_snapshot,
@@ -97,15 +66,8 @@ pub fn process_cast_vote(
         epoch,
         false,
     )?;
-
-    msg!(
-        "Loading consensus result for NCN: {}, epoch: {}",
-        ncn.key,
-        epoch
-    );
     ConsensusResult::load(program_id, consensus_result, ncn.key, epoch, true)?;
 
-    msg!("Verifying operator admin is the designated voter");
     let operator_data = operator.data.borrow();
     let operator_account = Operator::try_from_slice_unchecked(&operator_data)?;
 
@@ -123,15 +85,10 @@ pub fn process_cast_vote(
         let ncn_config = NcnConfig::try_from_slice_unchecked(&ncn_config_data)?;
         ncn_config.valid_slots_after_consensus()
     };
-    msg!(
-        "Valid slots after consensus: {}",
-        valid_slots_after_consensus
-    );
 
     let mut ballot_box_data = ballot_box.data.borrow_mut();
     let ballot_box = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
 
-    msg!("Getting total stake weights from epoch snapshot");
     let total_stake_weights = {
         let epoch_snapshot_data = epoch_snapshot.data.borrow();
         let epoch_snapshot = EpochSnapshot::try_from_slice_unchecked(&epoch_snapshot_data)?;
@@ -184,7 +141,6 @@ pub fn process_cast_vote(
 
     // If consensus is reached, update the consensus result account
     if ballot_box.is_consensus_reached() {
-        msg!("Consensus has been reached for epoch: {}", epoch);
         let winning_ballot_tally = ballot_box.get_winning_ballot_tally()?;
         msg!(
             "Consensus reached for epoch {} with ballot weather status: {}, stake weight: {}",
@@ -194,7 +150,6 @@ pub fn process_cast_vote(
         );
 
         // Update the consensus result account
-        msg!("Updating consensus result account");
         let mut consensus_result_data = consensus_result.try_borrow_mut_data()?;
         let consensus_result_account =
             ConsensusResult::try_from_slice_unchecked_mut(&mut consensus_result_data)?;
@@ -210,7 +165,6 @@ pub fn process_cast_vote(
     }
 
     // Update Epoch State
-    msg!("Updating epoch state account");
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
@@ -220,13 +174,6 @@ pub fn process_cast_vote(
             slot,
         )?;
     }
-
-    msg!(
-        "Cast vote completed successfully for operator: {}, epoch: {}, weather status: {}",
-        operator.key,
-        epoch,
-        weather_status
-    );
 
     Ok(())
 }

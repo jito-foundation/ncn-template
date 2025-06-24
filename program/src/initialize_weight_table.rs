@@ -28,7 +28,6 @@ pub fn process_initialize_weight_table(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting initialize_weight_table instruction");
     let [epoch_marker, epoch_state, vault_registry, ncn, weight_table, account_payer, system_program] =
         accounts
     else {
@@ -36,18 +35,15 @@ pub fn process_initialize_weight_table(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and verifying accounts");
     EpochState::load_and_check_is_closing(program_id, epoch_state, ncn.key, epoch, false)?;
     VaultRegistry::load(program_id, vault_registry, ncn.key, false)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
     EpochMarker::check_dne(program_id, epoch_marker, ncn.key, epoch)?;
 
-    msg!("Verifying system accounts");
     load_system_account(weight_table, true)?;
     load_system_program(system_program)?;
 
-    msg!("Getting vault counts");
     let vault_count = {
         let ncn_data = ncn.data.borrow();
         let ncn = Ncn::try_from_slice_unchecked(&ncn_data)?;
@@ -73,7 +69,6 @@ pub fn process_initialize_weight_table(
         return Err(ProgramError::InvalidAccountData);
     }
 
-    msg!("Deriving weight table PDA");
     let (weight_table_pubkey, weight_table_bump, mut weight_table_seeds) =
         WeightTable::find_program_address(program_id, ncn.key, epoch);
     weight_table_seeds.push(vec![weight_table_bump]);
@@ -83,16 +78,6 @@ pub fn process_initialize_weight_table(
         return Err(ProgramError::InvalidAccountData);
     }
 
-    msg!(
-        "Initializing Weight Table {} for NCN: {} at epoch: {}",
-        weight_table.key,
-        ncn.key,
-        epoch
-    );
-    msg!(
-        "Creating weight table account with size: {}",
-        MAX_REALLOC_BYTES
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -104,6 +89,5 @@ pub fn process_initialize_weight_table(
         &weight_table_seeds,
     )?;
 
-    msg!("Successfully completed initialize_weight_table instruction");
     Ok(())
 }

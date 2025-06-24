@@ -10,6 +10,7 @@ use ncn_program_core::{
         MIN_EPOCHS_BEFORE_STALL, MIN_VALID_SLOTS_AFTER_CONSENSUS,
     },
     error::NCNProgramError,
+    fees::FeeConfig,
 };
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
@@ -37,32 +38,21 @@ pub fn process_admin_initialize_config(
     epochs_before_stall: u64,
     epochs_after_consensus_before_close: u64,
     valid_slots_after_consensus: u64,
+    ncn_fee_bps: u16,
 ) -> ProgramResult {
-    msg!("Processing admin initialize config with epochs_before_stall: {}, epochs_after_consensus_before_close: {}, valid_slots_after_consensus: {}", 
-        epochs_before_stall, epochs_after_consensus_before_close, valid_slots_after_consensus);
-
-    let [config, ncn, ncn_admin, tie_breaker_admin, account_payer, system_program] = accounts
+    let [config, ncn, ncn_fee_wallet, ncn_admin, tie_breaker_admin, account_payer, system_program] =
+        accounts
     else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Checking config is a system account");
     load_system_account(config, true)?;
-
-    msg!("Checking system program");
     load_system_program(system_program)?;
-
-    msg!("Verifying NCN admin is the signer");
     load_signer(ncn_admin, false)?;
-
-    msg!("Loading NCN account: {}", ncn.key);
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Loading account payer: {}", account_payer.key);
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Getting current epoch");
     let epoch = Clock::get()?.epoch;
     msg!("Current epoch: {}", epoch);
 
@@ -112,7 +102,6 @@ pub fn process_admin_initialize_config(
         return Err(NCNProgramError::InvalidSlotsAfterConsensus.into());
     }
 
-    msg!("Verifying NCN admin matches the signer");
     let ncn_data = ncn.data.borrow();
     let ncn_account = Ncn::try_from_slice_unchecked(&ncn_data)?;
     if ncn_account.admin != *ncn_admin.key {
@@ -124,7 +113,6 @@ pub fn process_admin_initialize_config(
         return Err(NCNProgramError::IncorrectNcnAdmin.into());
     }
 
-    msg!("Finding program address for config");
     let (config_pda, config_bump, mut config_seeds) =
         Config::find_program_address(program_id, ncn.key);
     config_seeds.push(vec![config_bump]);
@@ -144,7 +132,6 @@ pub fn process_admin_initialize_config(
         return Err(ProgramError::InvalidSeeds);
     }
 
-    msg!("Creating config account with {} bytes", Config::SIZE);
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -155,18 +142,14 @@ pub fn process_admin_initialize_config(
         Config::SIZE,
         &config_seeds,
     )?;
-    msg!("Config account created successfully: {}", config.key);
 
-    msg!("Initializing config account with discriminator");
     let mut config_data = config.try_borrow_mut_data()?;
     config_data[0] = Config::DISCRIMINATOR;
     let config = Config::try_from_slice_unchecked_mut(&mut config_data)?;
 
     let starting_valid_epoch = epoch;
-    msg!(
-        "Setting starting_valid_epoch to current epoch: {}",
-        starting_valid_epoch
-    );
+
+    let fee_config = FeeConfig::new(ncn_fee_wallet.key, ncn_fee_bps, epoch)?;
 
     msg!(
         "Creating new config with tie_breaker_admin: {}",
@@ -179,10 +162,9 @@ pub fn process_admin_initialize_config(
         valid_slots_after_consensus,
         epochs_before_stall,
         epochs_after_consensus_before_close,
+        &fee_config,
         config_bump,
     );
-    msg!("Config initialized successfully");
-
-    msg!("Admin initialize config completed successfully");
+    config.fee_config.check_fees_okay(epoch)?;
     Ok(())
 }

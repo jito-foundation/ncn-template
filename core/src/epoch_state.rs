@@ -36,6 +36,8 @@ pub struct EpochAccountStatus {
     epoch_snapshot: u8,
     operator_snapshot: [u8; 256],
     ballot_box: u8,
+    ncn_reward_router: u8,
+    operator_vault_reward_router: [u8; 256],
 }
 
 impl Default for EpochAccountStatus {
@@ -45,7 +47,9 @@ impl Default for EpochAccountStatus {
             weight_table: 0,
             epoch_snapshot: 0,
             operator_snapshot: [0; MAX_OPERATORS],
+            ncn_reward_router: 0,
             ballot_box: 0,
+            operator_vault_reward_router: [0; MAX_OPERATORS],
         }
     }
 }
@@ -83,6 +87,10 @@ impl EpochAccountStatus {
         Self::get_account_status(self.ballot_box)
     }
 
+    pub const fn ncn_reward_router(&self) -> Result<AccountStatus, NCNProgramError> {
+        Self::get_account_status(self.ncn_reward_router)
+    }
+
     pub fn set_epoch_state(&mut self, status: AccountStatus) {
         self.epoch_state = status as u8;
     }
@@ -101,6 +109,14 @@ impl EpochAccountStatus {
 
     pub fn set_ballot_box(&mut self, status: AccountStatus) {
         self.ballot_box = status as u8;
+    }
+
+    pub fn set_ncn_reward_router(&mut self, status: AccountStatus) {
+        self.ncn_reward_router = status as u8;
+    }
+
+    pub fn set_operator_vault_reward_router(&mut self, index: usize, status: AccountStatus) {
+        self.operator_vault_reward_router[index] = status as u8;
     }
 
     pub fn are_all_closed(&self) -> bool {
@@ -126,6 +142,20 @@ impl EpochAccountStatus {
 
         if self.ballot_box != AccountStatus::Closed as u8 {
             return false;
+        }
+
+        if self.ncn_reward_router != AccountStatus::Closed as u8 {
+            return false;
+        }
+
+        for operator_vault_reward_router_ref in self.operator_vault_reward_router.iter() {
+            let operator_vault_reward_router = *operator_vault_reward_router_ref;
+            let is_dne = operator_vault_reward_router == AccountStatus::DNE as u8;
+            let is_closed = operator_vault_reward_router == AccountStatus::Closed as u8;
+
+            if !is_dne && !is_closed {
+                return false;
+            }
         }
 
         true
@@ -244,6 +274,21 @@ pub struct EpochState {
     /// Progress on voting
     voting_progress: Progress,
 
+    /// Total Distribution progress
+    total_distribution_progress: Progress,
+
+    /// NCN distribution progress
+    ncn_distribution_progress: Progress,
+
+    /// Protocol distribution progress
+    protocol_distribution_progress: Progress,
+
+    /// Operator Vault distribution progress
+    operator_vault_distribution_progress: Progress,
+
+    /// Operator Vault distribution progress per route
+    operator_vault_routes_distribution_progress: [Progress; 256],
+
     /// Is closing
     is_closing: PodBool,
 }
@@ -271,6 +316,11 @@ impl EpochState {
             epoch_snapshot_progress: Progress::default(),
             operator_snapshot_progress: [Progress::default(); MAX_OPERATORS],
             voting_progress: Progress::default(),
+            total_distribution_progress: Progress::default(),
+            ncn_distribution_progress: Progress::default(),
+            protocol_distribution_progress: Progress::default(),
+            operator_vault_distribution_progress: Progress::default(),
+            operator_vault_routes_distribution_progress: [Progress::default(); MAX_OPERATORS],
             is_closing: PodBool::from(false),
         }
     }
@@ -366,7 +416,6 @@ impl EpochState {
         Self::load(program_id, account, ncn, epoch, expect_writable)
     }
 
-    // ------------ HELPER FUNCTIONS ------------
     // ------------ GETTERS ------------
 
     pub const fn ncn(&self) -> &Pubkey {
@@ -443,6 +492,28 @@ impl EpochState {
         self.voting_progress
     }
 
+    pub const fn total_distribution_progress(&self) -> Progress {
+        self.total_distribution_progress
+    }
+
+    pub const fn ncn_distribution_progress(&self) -> Progress {
+        self.ncn_distribution_progress
+    }
+
+    pub const fn protocol_distribution_progress(&self) -> Progress {
+        self.protocol_distribution_progress
+    }
+
+    pub const fn operator_vault_distribution_progress(&self) -> Progress {
+        self.operator_vault_distribution_progress
+    }
+
+    pub const fn operator_vault_distribution_progress_route(
+        &self,
+        operator_index: usize,
+    ) -> Progress {
+        self.operator_vault_routes_distribution_progress[operator_index]
+    }
     // ------------ UPDATERS ------------
     pub fn update_realloc_epoch_state(&mut self) {
         self.account_status.set_epoch_state(AccountStatus::Created);
@@ -534,6 +605,68 @@ impl EpochState {
         Ok(())
     }
 
+    pub fn update_realloc_ncn_reward_router(&mut self) {
+        self.account_status
+            .set_ncn_reward_router(AccountStatus::CreatedWithReceiver);
+        self.ncn_distribution_progress = Progress::new(0);
+        self.protocol_distribution_progress = Progress::new(0);
+        self.operator_vault_distribution_progress = Progress::new(0);
+    }
+
+    pub fn update_realloc_operator_vault_reward_router(&mut self, operator_index: usize) {
+        self.account_status
+            .set_operator_vault_reward_router(operator_index, AccountStatus::CreatedWithReceiver);
+        self.operator_vault_routes_distribution_progress[operator_index] = Progress::new(0);
+    }
+
+    pub fn update_route_total_rewards(&mut self, total_rewards: u64) {
+        self.total_distribution_progress.set_total(total_rewards);
+    }
+
+    pub fn update_route_ncn_rewards(&mut self, ncn_rewards: u64) {
+        self.ncn_distribution_progress.set_total(ncn_rewards);
+    }
+
+    pub fn update_route_protocol_rewards(&mut self, protocol_rewards: u64) {
+        self.protocol_distribution_progress
+            .set_total(protocol_rewards);
+    }
+
+    pub fn update_operator_vault_rewards(&mut self, rewards: u64) {
+        self.operator_vault_distribution_progress.set_total(rewards);
+    }
+
+    pub fn update_distribute_ncn_rewards(&mut self, rewards: u64) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.ncn_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_distribute_protocol_rewards(&mut self, rewards: u64) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.protocol_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_route_operator_vault_rewards(
+        &mut self,
+        operator_index: usize,
+        total_rewards: u64,
+    ) {
+        self.operator_vault_routes_distribution_progress[operator_index].set_total(total_rewards);
+    }
+
+    pub fn update_distribute_operator_vault_rewards(&mut self, rewards: u64) {
+        let _ = self.operator_vault_distribution_progress.increment(rewards);
+    }
+
+    pub fn update_distribute_operator_vault_route_rewards(
+        &mut self,
+        operator_index: usize,
+        rewards: u64,
+    ) {
+        let _ = self.total_distribution_progress.increment(rewards);
+        let _ = self.operator_vault_routes_distribution_progress[operator_index].increment(rewards);
+    }
+
     // ---------- CLOSERS ----------
     pub fn set_is_closing(&mut self) {
         self.is_closing = PodBool::from(true);
@@ -559,6 +692,16 @@ impl EpochState {
 
     pub fn close_ballot_box(&mut self) {
         self.account_status.set_ballot_box(AccountStatus::Closed);
+    }
+
+    pub fn close_ncn_reward_router(&mut self) {
+        self.account_status
+            .set_ncn_reward_router(AccountStatus::Closed);
+    }
+
+    pub fn close_operator_vault_reward_router(&mut self, ncn_operator_index: usize) {
+        self.account_status
+            .set_operator_vault_reward_router(ncn_operator_index, AccountStatus::Closed)
     }
 
     // ------------ STATE ------------
@@ -628,7 +771,7 @@ impl EpochState {
             return Ok(State::PostVoteCooldown);
         }
 
-        Ok(State::PostVoteCooldown)
+        Ok(State::Distribute)
     }
 
     pub fn current_state_patched(
@@ -668,7 +811,7 @@ impl EpochState {
             return Ok(State::PostVoteCooldown);
         }
 
-        Ok(State::PostVoteCooldown)
+        Ok(State::Distribute)
     }
 }
 
@@ -679,6 +822,7 @@ pub enum State {
     Snapshot,
     Vote,
     PostVoteCooldown,
+    Distribute,
     Close,
 }
 
@@ -700,6 +844,7 @@ impl fmt::Display for EpochState {
        writeln!(f, "  Weight Table:                 {:?}", self.account_status.weight_table().unwrap())?;
        writeln!(f, "  Epoch Snapshot:               {:?}", self.account_status.epoch_snapshot().unwrap())?;
        writeln!(f, "  Ballot Box:                   {:?}", self.account_status.ballot_box().unwrap())?;
+       writeln!(f, "  Base Reward Router:           {:?}", self.account_status.ncn_reward_router().unwrap())?;
        
        writeln!(f, "\nOperator Snapshots:")?;
        for i in 0..MAX_OPERATORS {

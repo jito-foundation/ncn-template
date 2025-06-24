@@ -23,6 +23,10 @@ pub struct CloseEpochAccount {
     pub account_payer: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
+
+    pub ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
+
+    pub receiver_to_close: Option<solana_program::pubkey::Pubkey>,
 }
 
 impl CloseEpochAccount {
@@ -38,7 +42,7 @@ impl CloseEpochAccount {
         args: CloseEpochAccountInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.epoch_marker,
             false,
@@ -66,6 +70,28 @@ impl CloseEpochAccount {
             self.system_program,
             false,
         ));
+        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
+            accounts.push(solana_program::instruction::AccountMeta::new(
+                ncn_fee_wallet,
+                false,
+            ));
+        } else {
+            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+                crate::NCN_PROGRAM_ID,
+                false,
+            ));
+        }
+        if let Some(receiver_to_close) = self.receiver_to_close {
+            accounts.push(solana_program::instruction::AccountMeta::new(
+                receiver_to_close,
+                false,
+            ));
+        } else {
+            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+                crate::NCN_PROGRAM_ID,
+                false,
+            ));
+        }
         accounts.extend_from_slice(remaining_accounts);
         let mut data = CloseEpochAccountInstructionData::new()
             .try_to_vec()
@@ -88,7 +114,7 @@ pub struct CloseEpochAccountInstructionData {
 
 impl CloseEpochAccountInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 14 }
+        Self { discriminator: 22 }
     }
 }
 
@@ -115,6 +141,8 @@ pub struct CloseEpochAccountInstructionArgs {
 ///   4. `[writable]` account_to_close
 ///   5. `[writable]` account_payer
 ///   6. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   7. `[writable, optional]` ncn_fee_wallet
+///   8. `[writable, optional]` receiver_to_close
 #[derive(Clone, Debug, Default)]
 pub struct CloseEpochAccountBuilder {
     epoch_marker: Option<solana_program::pubkey::Pubkey>,
@@ -124,6 +152,8 @@ pub struct CloseEpochAccountBuilder {
     account_to_close: Option<solana_program::pubkey::Pubkey>,
     account_payer: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
+    ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
+    receiver_to_close: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -171,6 +201,24 @@ impl CloseEpochAccountBuilder {
         self.system_program = Some(system_program);
         self
     }
+    /// `[optional account]`
+    #[inline(always)]
+    pub fn ncn_fee_wallet(
+        &mut self,
+        ncn_fee_wallet: Option<solana_program::pubkey::Pubkey>,
+    ) -> &mut Self {
+        self.ncn_fee_wallet = ncn_fee_wallet;
+        self
+    }
+    /// `[optional account]`
+    #[inline(always)]
+    pub fn receiver_to_close(
+        &mut self,
+        receiver_to_close: Option<solana_program::pubkey::Pubkey>,
+    ) -> &mut Self {
+        self.receiver_to_close = receiver_to_close;
+        self
+    }
     #[inline(always)]
     pub fn epoch(&mut self, epoch: u64) -> &mut Self {
         self.epoch = Some(epoch);
@@ -206,6 +254,8 @@ impl CloseEpochAccountBuilder {
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
+            ncn_fee_wallet: self.ncn_fee_wallet,
+            receiver_to_close: self.receiver_to_close,
         };
         let args = CloseEpochAccountInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
@@ -230,6 +280,10 @@ pub struct CloseEpochAccountCpiAccounts<'a, 'b> {
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+
+    pub receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
 }
 
 /// `close_epoch_account` CPI instruction.
@@ -250,6 +304,10 @@ pub struct CloseEpochAccountCpi<'a, 'b> {
     pub account_payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+
+    pub receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// The arguments for the instruction.
     pub __args: CloseEpochAccountInstructionArgs,
 }
@@ -269,6 +327,8 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             account_to_close: accounts.account_to_close,
             account_payer: accounts.account_payer,
             system_program: accounts.system_program,
+            ncn_fee_wallet: accounts.ncn_fee_wallet,
+            receiver_to_close: accounts.receiver_to_close,
             __args: args,
         }
     }
@@ -305,7 +365,7 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.epoch_marker.key,
             false,
@@ -334,6 +394,28 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             *self.system_program.key,
             false,
         ));
+        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
+            accounts.push(solana_program::instruction::AccountMeta::new(
+                *ncn_fee_wallet.key,
+                false,
+            ));
+        } else {
+            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+                crate::NCN_PROGRAM_ID,
+                false,
+            ));
+        }
+        if let Some(receiver_to_close) = self.receiver_to_close {
+            accounts.push(solana_program::instruction::AccountMeta::new(
+                *receiver_to_close.key,
+                false,
+            ));
+        } else {
+            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+                crate::NCN_PROGRAM_ID,
+                false,
+            ));
+        }
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -352,7 +434,7 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(9 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.epoch_marker.clone());
         account_infos.push(self.epoch_state.clone());
@@ -361,6 +443,12 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
         account_infos.push(self.account_to_close.clone());
         account_infos.push(self.account_payer.clone());
         account_infos.push(self.system_program.clone());
+        if let Some(ncn_fee_wallet) = self.ncn_fee_wallet {
+            account_infos.push(ncn_fee_wallet.clone());
+        }
+        if let Some(receiver_to_close) = self.receiver_to_close {
+            account_infos.push(receiver_to_close.clone());
+        }
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -384,6 +472,8 @@ impl<'a, 'b> CloseEpochAccountCpi<'a, 'b> {
 ///   4. `[writable]` account_to_close
 ///   5. `[writable]` account_payer
 ///   6. `[]` system_program
+///   7. `[writable, optional]` ncn_fee_wallet
+///   8. `[writable, optional]` receiver_to_close
 #[derive(Clone, Debug)]
 pub struct CloseEpochAccountCpiBuilder<'a, 'b> {
     instruction: Box<CloseEpochAccountCpiBuilderInstruction<'a, 'b>>,
@@ -400,6 +490,8 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
             account_to_close: None,
             account_payer: None,
             system_program: None,
+            ncn_fee_wallet: None,
+            receiver_to_close: None,
             epoch: None,
             __remaining_accounts: Vec::new(),
         });
@@ -456,6 +548,24 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
         system_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.system_program = Some(system_program);
+        self
+    }
+    /// `[optional account]`
+    #[inline(always)]
+    pub fn ncn_fee_wallet(
+        &mut self,
+        ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ) -> &mut Self {
+        self.instruction.ncn_fee_wallet = ncn_fee_wallet;
+        self
+    }
+    /// `[optional account]`
+    #[inline(always)]
+    pub fn receiver_to_close(
+        &mut self,
+        receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ) -> &mut Self {
+        self.instruction.receiver_to_close = receiver_to_close;
         self
     }
     #[inline(always)]
@@ -538,6 +648,10 @@ impl<'a, 'b> CloseEpochAccountCpiBuilder<'a, 'b> {
                 .instruction
                 .system_program
                 .expect("system_program is not set"),
+
+            ncn_fee_wallet: self.instruction.ncn_fee_wallet,
+
+            receiver_to_close: self.instruction.receiver_to_close,
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -557,6 +671,8 @@ struct CloseEpochAccountCpiBuilderInstruction<'a, 'b> {
     account_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     account_payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_fee_wallet: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    receiver_to_close: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

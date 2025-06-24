@@ -32,6 +32,12 @@ import {
   type MaybeAccount,
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
+import {
+  getFeeConfigDecoder,
+  getFeeConfigEncoder,
+  type FeeConfig,
+  type FeeConfigArgs,
+} from '../types';
 
 export type Config = {
   discriminator: bigint;
@@ -41,6 +47,7 @@ export type Config = {
   epochsBeforeStall: bigint;
   epochsAfterConsensusBeforeClose: bigint;
   startingValidEpoch: bigint;
+  feeConfig: FeeConfig;
   bump: number;
 };
 
@@ -52,6 +59,7 @@ export type ConfigArgs = {
   epochsBeforeStall: number | bigint;
   epochsAfterConsensusBeforeClose: number | bigint;
   startingValidEpoch: number | bigint;
+  feeConfig: FeeConfigArgs;
   bump: number;
 };
 
@@ -64,6 +72,7 @@ export function getConfigEncoder(): Encoder<ConfigArgs> {
     ['epochsBeforeStall', getU64Encoder()],
     ['epochsAfterConsensusBeforeClose', getU64Encoder()],
     ['startingValidEpoch', getU64Encoder()],
+    ['feeConfig', getFeeConfigEncoder()],
     ['bump', getU8Encoder()],
   ]);
 }
@@ -77,6 +86,7 @@ export function getConfigDecoder(): Decoder<Config> {
     ['epochsBeforeStall', getU64Decoder()],
     ['epochsAfterConsensusBeforeClose', getU64Decoder()],
     ['startingValidEpoch', getU64Decoder()],
+    ['feeConfig', getFeeConfigDecoder()],
     ['bump', getU8Decoder()],
   ]);
 }

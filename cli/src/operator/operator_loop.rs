@@ -235,7 +235,7 @@ pub async fn startup_operator_loop(
                     Ok(())
                 }
                 // Post-vote states - perform post-vote actions and mark epoch as completed
-                State::PostVoteCooldown | State::Close => {
+                State::PostVoteCooldown | State::Close | State::Distribute => {
                     operator_crank_post_vote(handler, state.epoch, &operator).await?;
 
                     info!(

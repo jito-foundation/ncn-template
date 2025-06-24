@@ -21,23 +21,33 @@ import {
   type ParsedAdminSetWeightInstruction,
   type ParsedCastVoteInstruction,
   type ParsedCloseEpochAccountInstruction,
+  type ParsedDistributeNCNRewardsInstruction,
+  type ParsedDistributeOperatorRewardsInstruction,
+  type ParsedDistributeOperatorVaultRewardRouteInstruction,
+  type ParsedDistributeProtocolRewardsInstruction,
+  type ParsedDistributeVaultRewardsInstruction,
   type ParsedInitializeBallotBoxInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeEpochSnapshotInstruction,
   type ParsedInitializeEpochStateInstruction,
+  type ParsedInitializeNCNRewardRouterInstruction,
   type ParsedInitializeOperatorSnapshotInstruction,
+  type ParsedInitializeOperatorVaultRewardRouterInstruction,
   type ParsedInitializeVaultRegistryInstruction,
   type ParsedInitializeWeightTableInstruction,
   type ParsedReallocBallotBoxInstruction,
+  type ParsedReallocNCNRewardRouterInstruction,
   type ParsedReallocVaultRegistryInstruction,
   type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
+  type ParsedRouteNCNRewardsInstruction,
+  type ParsedRouteOperatorVaultRewardsInstruction,
   type ParsedSetEpochWeightsInstruction,
   type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
 
 export const NCN_PROGRAM_PROGRAM_ADDRESS =
-  '7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8' as Address<'7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8'>;
+  '5SiK283D1iFSqHvr8vbNWCBjbjRXeEYS79CLax7nosPf' as Address<'5SiK283D1iFSqHvr8vbNWCBjbjRXeEYS79CLax7nosPf'>;
 
 export enum NcnProgramAccount {
   BallotBox,
@@ -47,6 +57,8 @@ export enum NcnProgramAccount {
   EpochSnapshot,
   OperatorSnapshot,
   EpochState,
+  NCNRewardRouter,
+  OperatorVaultRewardRouter,
   VaultRegistry,
   WeightTable,
 }
@@ -66,7 +78,17 @@ export enum NcnProgramInstruction {
   InitializeBallotBox,
   ReallocBallotBox,
   CastVote,
+  InitializeNCNRewardRouter,
+  ReallocNCNRewardRouter,
+  RouteNCNRewards,
+  DistributeProtocolRewards,
+  DistributeNCNRewards,
+  InitializeOperatorVaultRewardRouter,
+  DistributeOperatorVaultRewardRoute,
+  RouteOperatorVaultRewards,
   CloseEpochAccount,
+  DistributeOperatorRewards,
+  DistributeVaultRewards,
   AdminSetParameters,
   AdminSetNewAdmin,
   AdminSetTieBreaker,
@@ -122,24 +144,54 @@ export function identifyNcnProgramInstruction(
     return NcnProgramInstruction.CastVote;
   }
   if (containsBytes(data, getU8Encoder().encode(14), 0)) {
-    return NcnProgramInstruction.CloseEpochAccount;
+    return NcnProgramInstruction.InitializeNCNRewardRouter;
   }
   if (containsBytes(data, getU8Encoder().encode(15), 0)) {
-    return NcnProgramInstruction.AdminSetParameters;
+    return NcnProgramInstruction.ReallocNCNRewardRouter;
   }
   if (containsBytes(data, getU8Encoder().encode(16), 0)) {
-    return NcnProgramInstruction.AdminSetNewAdmin;
+    return NcnProgramInstruction.RouteNCNRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(17), 0)) {
-    return NcnProgramInstruction.AdminSetTieBreaker;
+    return NcnProgramInstruction.DistributeProtocolRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(18), 0)) {
-    return NcnProgramInstruction.AdminSetWeight;
+    return NcnProgramInstruction.DistributeNCNRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(19), 0)) {
-    return NcnProgramInstruction.AdminRegisterStMint;
+    return NcnProgramInstruction.InitializeOperatorVaultRewardRouter;
   }
   if (containsBytes(data, getU8Encoder().encode(20), 0)) {
+    return NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
+  }
+  if (containsBytes(data, getU8Encoder().encode(21), 0)) {
+    return NcnProgramInstruction.RouteOperatorVaultRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(22), 0)) {
+    return NcnProgramInstruction.CloseEpochAccount;
+  }
+  if (containsBytes(data, getU8Encoder().encode(23), 0)) {
+    return NcnProgramInstruction.DistributeOperatorRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(24), 0)) {
+    return NcnProgramInstruction.DistributeVaultRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(25), 0)) {
+    return NcnProgramInstruction.AdminSetParameters;
+  }
+  if (containsBytes(data, getU8Encoder().encode(26), 0)) {
+    return NcnProgramInstruction.AdminSetNewAdmin;
+  }
+  if (containsBytes(data, getU8Encoder().encode(27), 0)) {
+    return NcnProgramInstruction.AdminSetTieBreaker;
+  }
+  if (containsBytes(data, getU8Encoder().encode(28), 0)) {
+    return NcnProgramInstruction.AdminSetWeight;
+  }
+  if (containsBytes(data, getU8Encoder().encode(29), 0)) {
+    return NcnProgramInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(30), 0)) {
     return NcnProgramInstruction.AdminSetStMint;
   }
   throw new Error(
@@ -148,7 +200,7 @@ export function identifyNcnProgramInstruction(
 }
 
 export type ParsedNcnProgramInstruction<
-  TProgram extends string = '7rNw1g2ZUCdTrCyVGZwCJLnbp3ssTRK5mdkH8gm9AKE8',
+  TProgram extends string = '5SiK283D1iFSqHvr8vbNWCBjbjRXeEYS79CLax7nosPf',
 > =
   | ({
       instructionType: NcnProgramInstruction.InitializeConfig;
@@ -193,8 +245,38 @@ export type ParsedNcnProgramInstruction<
       instructionType: NcnProgramInstruction.CastVote;
     } & ParsedCastVoteInstruction<TProgram>)
   | ({
+      instructionType: NcnProgramInstruction.InitializeNCNRewardRouter;
+    } & ParsedInitializeNCNRewardRouterInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.ReallocNCNRewardRouter;
+    } & ParsedReallocNCNRewardRouterInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.RouteNCNRewards;
+    } & ParsedRouteNCNRewardsInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeProtocolRewards;
+    } & ParsedDistributeProtocolRewardsInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeNCNRewards;
+    } & ParsedDistributeNCNRewardsInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.InitializeOperatorVaultRewardRouter;
+    } & ParsedInitializeOperatorVaultRewardRouterInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeOperatorVaultRewardRoute;
+    } & ParsedDistributeOperatorVaultRewardRouteInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.RouteOperatorVaultRewards;
+    } & ParsedRouteOperatorVaultRewardsInstruction<TProgram>)
+  | ({
       instructionType: NcnProgramInstruction.CloseEpochAccount;
     } & ParsedCloseEpochAccountInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeOperatorRewards;
+    } & ParsedDistributeOperatorRewardsInstruction<TProgram>)
+  | ({
+      instructionType: NcnProgramInstruction.DistributeVaultRewards;
+    } & ParsedDistributeVaultRewardsInstruction<TProgram>)
   | ({
       instructionType: NcnProgramInstruction.AdminSetParameters;
     } & ParsedAdminSetParametersInstruction<TProgram>)

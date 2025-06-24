@@ -28,22 +28,17 @@ pub fn process_admin_set_tie_breaker(
     weather_status: u8,
     epoch: u64,
 ) -> ProgramResult {
-    msg!("Starting admin_set_tie_breaker instruction");
     let [epoch_state, ncn_config, ballot_box, ncn, tie_breaker_admin] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading and verifying accounts");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
     BallotBox::load(program_id, ballot_box, ncn.key, epoch, true)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
-
-    msg!("Verifying tie breaker admin signer");
     load_signer(tie_breaker_admin, false)?;
 
-    msg!("Verifying tie breaker admin authority");
     let ncn_config_data = ncn_config.data.borrow();
     let ncn_config = NcnConfig::try_from_slice_unchecked(&ncn_config_data)?;
 
@@ -52,13 +47,11 @@ pub fn process_admin_set_tie_breaker(
         return Err(NCNProgramError::TieBreakerAdminInvalid.into());
     }
 
-    msg!("Updating ballot box with tie breaker vote");
     let mut ballot_box_data = ballot_box.data.borrow_mut();
     let ballot_box_account = BallotBox::try_from_slice_unchecked_mut(&mut ballot_box_data)?;
 
     let clock = Clock::get()?;
     let current_epoch = clock.epoch;
-    msg!("Current epoch: {}", current_epoch);
 
     msg!(
         "Setting tie breaker ballot with weather status: {}",
@@ -70,7 +63,6 @@ pub fn process_admin_set_tie_breaker(
         ncn_config.epochs_before_stall(),
     )?;
 
-    msg!("Updating epoch state");
     {
         let slot = clock.slot;
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
@@ -80,6 +72,5 @@ pub fn process_admin_set_tie_breaker(
         epoch_state_account.update_set_tie_breaker(consensus_reached, slot)?;
     }
 
-    msg!("Successfully completed admin_set_tie_breaker instruction");
     Ok(())
 }

@@ -21,22 +21,17 @@ pub fn process_initialize_vault_registry(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
 ) -> ProgramResult {
-    msg!("Starting initialize_vault_registry instruction");
     let [ncn_config, vault_registry, ncn, account_payer, system_program] = accounts else {
         msg!("Error: Not enough account keys provided");
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Verifying system accounts");
     load_system_account(vault_registry, true)?;
     load_system_program(system_program)?;
-
-    msg!("Loading and verifying accounts");
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
     AccountPayer::load(program_id, account_payer, ncn.key, true)?;
 
-    msg!("Deriving vault registry PDA");
     let (vault_registry_pda, vault_registry_bump, mut vault_registry_seeds) =
         VaultRegistry::find_program_address(program_id, ncn.key);
     vault_registry_seeds.push(vec![vault_registry_bump]);
@@ -46,10 +41,6 @@ pub fn process_initialize_vault_registry(
         return Err(ProgramError::InvalidSeeds);
     }
 
-    msg!(
-        "Creating vault registry account with size: {}",
-        MAX_REALLOC_BYTES
-    );
     AccountPayer::pay_and_create_account(
         program_id,
         ncn.key,
@@ -61,6 +52,5 @@ pub fn process_initialize_vault_registry(
         &vault_registry_seeds,
     )?;
 
-    msg!("Successfully completed initialize_vault_registry instruction");
     Ok(())
 }

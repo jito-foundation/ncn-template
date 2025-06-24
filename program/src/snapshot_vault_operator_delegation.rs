@@ -38,11 +38,6 @@ pub fn process_snapshot_vault_operator_delegation(
     accounts: &[AccountInfo],
     epoch: u64,
 ) -> ProgramResult {
-    msg!(
-        "Starting snapshot_vault_operator_delegation instruction for epoch {}",
-        epoch
-    );
-
     let [epoch_state, ncn_config, restaking_config, ncn, operator, vault, vault_ncn_ticket, ncn_vault_ticket, vault_operator_delegation, weight_table, epoch_snapshot, operator_snapshot] =
         accounts
     else {
@@ -50,16 +45,13 @@ pub fn process_snapshot_vault_operator_delegation(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    msg!("Loading required accounts...");
     EpochState::load(program_id, epoch_state, ncn.key, epoch, true)?;
     NcnConfig::load(program_id, ncn_config, ncn.key, false)?;
     Config::load(&jito_restaking_program::id(), restaking_config, false)?;
     Ncn::load(&jito_restaking_program::id(), ncn, false)?;
     Operator::load(&jito_restaking_program::id(), operator, false)?;
     Vault::load(&jito_vault_program::id(), vault, false)?;
-    msg!("Core accounts loaded successfully");
 
-    msg!("Loading NCN vault ticket...");
     NcnVaultTicket::load(
         &jito_restaking_program::id(),
         ncn_vault_ticket,
@@ -69,7 +61,6 @@ pub fn process_snapshot_vault_operator_delegation(
     )?;
 
     if !vault_ncn_ticket.data_is_empty() {
-        msg!("Loading vault NCN ticket...");
         VaultNcnTicket::load(
             &jito_vault_program::id(),
             vault_ncn_ticket,
@@ -80,7 +71,6 @@ pub fn process_snapshot_vault_operator_delegation(
     }
 
     if !vault_operator_delegation.data_is_empty() {
-        msg!("Loading vault operator delegation...");
         VaultOperatorDelegation::load(
             &jito_vault_program::id(),
             vault_operator_delegation,
@@ -91,12 +81,9 @@ pub fn process_snapshot_vault_operator_delegation(
     }
 
     let current_slot = Clock::get()?.slot;
-    msg!("Current slot: {}", current_slot);
 
     let (_, ncn_epoch_length) = load_ncn_epoch(restaking_config, current_slot, None)?;
-    msg!("NCN epoch length: {}", ncn_epoch_length);
 
-    msg!("Loading snapshot and weight table accounts...");
     WeightTable::load(program_id, weight_table, ncn.key, epoch, false)?;
     EpochSnapshot::load(program_id, epoch_snapshot, ncn.key, epoch, true)?;
     OperatorSnapshot::load(
@@ -107,10 +94,8 @@ pub fn process_snapshot_vault_operator_delegation(
         epoch,
         true,
     )?;
-    msg!("All accounts loaded successfully");
 
     // check vault is up to date
-    msg!("Checking if vault is up to date...");
     let vault_needs_update = {
         let vault_data = vault.data.borrow();
         let vault_account = Vault::try_from_slice_unchecked(&vault_data)?;
@@ -121,16 +106,13 @@ pub fn process_snapshot_vault_operator_delegation(
         msg!("Error: Vault is not up to date");
         return Err(NCNProgramError::VaultNeedsUpdate.into());
     }
-    msg!("Vault is up to date");
 
     let (vault_index, st_mint) = {
         let vault_data = vault.data.borrow();
         let vault_account = Vault::try_from_slice_unchecked(&vault_data)?;
         (vault_account.vault_index(), vault_account.supported_mint)
     };
-    msg!("Vault index: {}, Supported mint: {}", vault_index, st_mint);
 
-    msg!("Checking vault and operator status...");
     let is_active: bool = {
         let ncn_vault_okay = {
             let ncn_vault_ticket_data = ncn_vault_ticket.data.borrow();
@@ -166,7 +148,6 @@ pub fn process_snapshot_vault_operator_delegation(
     };
     msg!("Vault active status: {}", is_active);
 
-    msg!("Calculating total stake weight...");
     let total_stake_weight = {
         let weight_table_data = weight_table.data.borrow();
         let weight_table_account = WeightTable::try_from_slice_unchecked(&weight_table_data)?;
@@ -189,10 +170,8 @@ pub fn process_snapshot_vault_operator_delegation(
 
         total_stake_weight
     };
-    msg!("Total stake weight: {}", total_stake_weight);
 
     // Increment vault operator delegation
-    msg!("Updating operator snapshot...");
     let mut operator_snapshot_data = operator_snapshot.try_borrow_mut_data()?;
     let operator_snapshot_account =
         OperatorSnapshot::try_from_slice_unchecked_mut(&mut operator_snapshot_data)?;
@@ -205,11 +184,9 @@ pub fn process_snapshot_vault_operator_delegation(
         vault_index,
         &stake_weights,
     )?;
-    msg!("Operator snapshot updated successfully");
 
     // If operator is finalized, increment operator registration
     if operator_snapshot_account.finalized() {
-        msg!("Operator is finalized, updating epoch snapshot...");
         let mut epoch_snapshot_data = epoch_snapshot.try_borrow_mut_data()?;
         let epoch_snapshot_account =
             EpochSnapshot::try_from_slice_unchecked_mut(&mut epoch_snapshot_data)?;
@@ -219,21 +196,17 @@ pub fn process_snapshot_vault_operator_delegation(
             operator_snapshot_account.valid_operator_vault_delegations(),
             operator_snapshot_account.stake_weights(),
         )?;
-        msg!("Epoch snapshot updated successfully");
     }
 
     // Update Epoch State
     {
-        msg!("Updating epoch state...");
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
         epoch_state_account.update_snapshot_vault_operator_delegation(
             operator_snapshot_account.ncn_operator_index() as usize,
             operator_snapshot_account.finalized(),
         )?;
-        msg!("Epoch state updated successfully");
     }
 
-    msg!("snapshot_vault_operator_delegation instruction completed successfully");
     Ok(())
 }

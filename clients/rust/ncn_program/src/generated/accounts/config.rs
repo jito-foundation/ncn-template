@@ -5,6 +5,7 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
+use crate::generated::types::FeeConfig;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 use solana_program::pubkey::Pubkey;
@@ -27,6 +28,7 @@ pub struct Config {
     pub epochs_before_stall: u64,
     pub epochs_after_consensus_before_close: u64,
     pub starting_valid_epoch: u64,
+    pub fee_config: FeeConfig,
     pub bump: u8,
 }
 
