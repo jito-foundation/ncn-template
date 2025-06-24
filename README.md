@@ -13,6 +13,10 @@ Key features:
 - Admin controls for configuration and tie-breaking
 - Fee distribution to stakeholders after consensus
 
+## NCN Guides and Tutorials
+
+For more information about Jito (Re)Staking, take a look at the [docs](https://docs.restaking.jito.network). You can also find an in-depth tutorial on NCN programs (and this NCN program, specifically) [here](https://docs.restaking.jito.network/ncn/00_implementation).
+
 ## Testing Setup
 
 ### Prerequisites
