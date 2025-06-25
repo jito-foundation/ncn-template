@@ -1753,7 +1753,7 @@ pub async fn crank_distribute(handler: &CliHandler, epoch: u64) -> Result<()> {
         let result = distribute_protocol_rewards(handler, epoch).await;
         if let Err(err) = result {
             log::error!(
-                "Failed to distribute jito rewards for in epoch: {:?} with error: {:?}",
+                "Failed to distribute protocol rewards for in epoch: {:?} with error: {:?}",
                 epoch,
                 err
             );
