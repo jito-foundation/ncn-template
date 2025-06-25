@@ -1445,7 +1445,14 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
         }
     }
 
-    let _ = get_or_create_ballot_box(handler, epoch).await?;
+    let result = get_or_create_ballot_box(handler, epoch).await;
+    if let Err(err) = result {
+        log::error!(
+            "Failed to get or create ballot box for epoch: {:?} with error: {:?}",
+            epoch,
+            err
+        );
+    }
 
     Ok(())
 }
