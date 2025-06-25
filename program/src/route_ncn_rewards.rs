@@ -79,18 +79,18 @@ pub fn process_route_ncn_rewards(
 
     let total_rewards = ncn_reward_router_account.total_rewards();
     let ncn_rewards = ncn_reward_router_account.ncn_rewards();
-    let jito_rewards = ncn_reward_router_account.protocol_rewards();
+    let protocol_rewards = ncn_reward_router_account.protocol_rewards();
 
     msg!("Total rewards processed: {} lamports", total_rewards);
     msg!("NCN rewards: {} lamports", ncn_rewards);
-    msg!("Protocol rewards: {} lamports", jito_rewards);
+    msg!("Protocol rewards: {} lamports", protocol_rewards);
 
     {
         let mut epoch_state_data = epoch_state.try_borrow_mut_data()?;
         let epoch_state_account = EpochState::try_from_slice_unchecked_mut(&mut epoch_state_data)?;
 
         epoch_state_account.update_route_ncn_rewards(ncn_rewards);
-        epoch_state_account.update_route_protocol_rewards(jito_rewards);
+        epoch_state_account.update_route_protocol_rewards(protocol_rewards);
         epoch_state_account.update_route_total_rewards(total_rewards);
     }
 
