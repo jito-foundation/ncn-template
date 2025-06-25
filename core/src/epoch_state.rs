@@ -759,11 +759,12 @@ impl EpochState {
 
         if self.account_status.epoch_snapshot()? == AccountStatus::DNE
             || !self.epoch_snapshot_progress.is_complete()
+            || self.account_status.ballot_box()? == AccountStatus::DNE
         {
             return Ok(State::Snapshot);
         }
 
-        if self.account_status.ballot_box()? == AccountStatus::DNE || !self.is_consensus_reached() {
+        if !self.is_consensus_reached() {
             return Ok(State::Vote);
         }
 
@@ -799,11 +800,12 @@ impl EpochState {
 
         if self.account_status.epoch_snapshot()? == AccountStatus::DNE
             || !self.epoch_snapshot_progress.is_complete()
+            || self.account_status.ballot_box()? == AccountStatus::DNE
         {
             return Ok(State::Snapshot);
         }
 
-        if self.account_status.ballot_box()? == AccountStatus::DNE || !self.is_consensus_reached() {
+        if !self.is_consensus_reached() {
             return Ok(State::Vote);
         }
 

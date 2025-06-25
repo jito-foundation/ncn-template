@@ -676,7 +676,7 @@ impl CliHandler {
 
             ProgramCommand::GetNCNRewardRouter {} => {
                 let ncn_reward_router = get_ncn_reward_router(self, self.epoch).await?;
-                info!("{:?}", ncn_reward_router);
+                info!("{}", ncn_reward_router);
                 Ok(())
             }
 
@@ -690,7 +690,7 @@ impl CliHandler {
                 let operator = Pubkey::from_str(&operator)
                     .map_err(|e| anyhow!("Error parsing operator: {}", e))?;
                 let router = get_operator_vault_reward_router(self, &operator, self.epoch).await?;
-                info!("{:?}", router);
+                info!("{}", router);
                 Ok(())
             }
 
@@ -698,7 +698,7 @@ impl CliHandler {
                 let operators = get_all_operators_in_ncn(self).await?;
                 for operator in operators {
                     match get_operator_vault_reward_router(self, &operator, self.epoch).await {
-                        Ok(router) => info!("Operator: {:?}, Router: {:?}", operator, router),
+                        Ok(router) => info!("Operator: {}, Router: {}", operator, router),
                         Err(e) => info!(
                             "Failed to get operator vault reward router for {:?}: {:?}",
                             operator, e
