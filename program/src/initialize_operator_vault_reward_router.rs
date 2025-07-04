@@ -35,7 +35,7 @@ pub fn process_initialize_operator_vault_reward_router(
         operator.key,
         ncn.key,
         epoch,
-        true,
+        false,
     )?;
     OperatorVaultRewardReceiver::load(
         program_id,
